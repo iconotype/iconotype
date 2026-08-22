@@ -1,5 +1,5 @@
 {
-  "name": "@iconotype/web",
+  "name": "@iconotype/site",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,12 +7,6 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
-  },
-  "dependencies": {
-    "@iconotype/core-host": "workspace:*",
-    "@iconotype/core-model": "workspace:*",
-    "@iconotype/ui": "workspace:*",
-    "@iconotype/core-io": "workspace:*"
   },
   "devDependencies": {
     "@iconotype/build-config": "workspace:*"

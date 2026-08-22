@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- The em square with a punch-cut serif I sitting on the baseline: what the app is
+       for, drawn the way the app draws it. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c7ff5"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#g)"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity=".38" stroke-width="10">
+    <rect x="192" y="160" width="640" height="704" rx="16"/>
+    <path d="M192 736h640" stroke-dasharray="26 22"/>
+    <path d="M192 288h640" stroke-dasharray="26 22"/>
+  </g>
+  <g fill="#ffffff">
+    <rect x="336" y="288" width="352" height="86" rx="12"/>
+    <rect x="452" y="288" width="120" height="448" rx="12"/>
+    <rect x="336" y="650" width="352" height="86" rx="12"/>
+  </g>
+</svg>

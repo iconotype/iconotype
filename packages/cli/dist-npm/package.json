@@ -1,0 +1,40 @@
+{
+  "name": "iconotype",
+  "version": "1.2.3",
+  "description": "Build, fix and export icon fonts. Imports IcoMoon projects.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "iconotype": "./bin/iconotype.cjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mguillon/iconotype.git"
+  },
+  "keywords": [
+    "icon-font",
+    "icomoon",
+    "svg",
+    "woff2",
+    "webfont",
+    "icons"
+  ],
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "css-tree": "^3.2.1",
+    "fflate": "^0.8.3",
+    "paper": "^0.12.18",
+    "paperjs-offset": "^2.2.1",
+    "svg2ttf": "^6.1.0",
+    "svgpath": "^2.6.0",
+    "svgson": "^5.3.1",
+    "ttf2woff": "^3.0.0",
+    "woff2-encoder": "^2.0.0"
+  }
+}

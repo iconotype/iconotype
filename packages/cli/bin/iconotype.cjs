@@ -1327,6 +1327,7 @@ function toIconFontFile(project) {
     font: {
       family: prefs.family,
       prefix: prefs.prefix,
+      ...prefs.usagePrefixes?.length ? { usagePrefixes: [...prefs.usagePrefixes] } : {},
       ...prefs.postfix ? { postfix: prefs.postfix } : {},
       emSize: prefs.emSize,
       baseline: prefs.baselinePct,
@@ -1358,6 +1359,7 @@ function fromIconFontFile(file, id = "p0") {
     ...prefs.font,
     family: file.font?.family ?? file.name,
     prefix: file.font?.prefix ?? "icon-",
+    ...file.font?.usagePrefixes?.length ? { usagePrefixes: [...file.font.usagePrefixes] } : {},
     postfix: file.font?.postfix ?? "",
     emSize: file.font?.emSize ?? 1024,
     baselinePct: file.font?.baseline ?? 6.25,
@@ -2160,6 +2162,37 @@ async function buildPngs(entries, rasterize2, options = {}) {
   return out;
 }
 
+// ../core-export/src/layout.ts
+var dirOf = (path) => path.replace(/\/+$/, "").split("/").slice(0, -1).join("/");
+var clean = (path) => path.replace(/^\.\//, "").replace(/\/+/g, "/");
+var styleExtension = (kind) => kind.startsWith("scss") ? "scss" : kind.startsWith("less") ? "less" : kind === "json" ? "json" : kind === "dart" ? "dart" : "css";
+var styleFileName = (name, kind) => {
+  const extension = styleExtension(kind);
+  return extension === "scss" && kind.endsWith("variables") ? `_${name}.scss` : `${name}.${extension}`;
+};
+function outputConfigFor(opts) {
+  const kind = opts.styleKind ?? "css";
+  const stylesDir = (opts.stylesDir ?? "css").replace(/\/+$/, "");
+  return {
+    fonts: {
+      dir: (opts.fontsDir ?? "fonts").replace(/\/+$/, ""),
+      formats: opts.formats ?? ["woff2", "woff", "ttf"]
+    },
+    styles: [{ kind, path: `${stylesDir ? `${stylesDir}/` : ""}${styleFileName(opts.name, kind)}` }],
+    ...opts.typesPath ? { types: { path: opts.typesPath } } : {}
+  };
+}
+function relativeFontPath(stylePath, fontsDir) {
+  const from = clean(dirOf(stylePath)).split("/").filter(Boolean);
+  const to = clean(fontsDir).split("/").filter(Boolean);
+  let shared = 0;
+  while (shared < from.length && shared < to.length && from[shared] === to[shared]) shared++;
+  const up = "../".repeat(from.length - shared);
+  const down = to.slice(shared).join("/");
+  const joined = `${up}${down}`.replace(/\/+/g, "/");
+  return joined === "" ? "./" : joined.endsWith("/") ? joined : `${joined}/`;
+}
+
 // ../core-export/src/dart.ts
 function exportDart(project, build2, options = {}) {
   const family = project.preferences.font.family;
@@ -2193,18 +2226,6 @@ ${pkg ? "" : ""}`;
 }
 
 // ../core-export/src/outputs.ts
-var dirOf = (path) => path.replace(/\/+$/, "").split("/").slice(0, -1).join("/");
-var clean = (path) => path.replace(/^\.\//, "").replace(/\/+/g, "/");
-function relativeFontPath(stylePath, fontsDir) {
-  const from = clean(dirOf(stylePath)).split("/").filter(Boolean);
-  const to = clean(fontsDir).split("/").filter(Boolean);
-  let shared = 0;
-  while (shared < from.length && shared < to.length && from[shared] === to[shared]) shared++;
-  const up = "../".repeat(from.length - shared);
-  const down = to.slice(shared).join("/");
-  const joined = `${up}${down}`.replace(/\/+/g, "/");
-  return joined === "" ? "./" : joined.endsWith("/") ? joined : `${joined}/`;
-}
 var escape = (code) => `\\${code.toString(16)}`;
 function buildVariableBlock(project, build2, kind, fontPath) {
   const prefix = project.preferences.font.prefix;
@@ -2389,17 +2410,15 @@ async function init(args, io) {
   project.preferences.font.family = name;
   if (args.prefix) project.preferences.font.prefix = args.prefix;
   const styleKind = args.styleKind ?? "css";
-  const extension = styleKind.startsWith("scss") ? "scss" : styleKind.startsWith("less") ? "less" : styleKind === "json" ? "json" : styleKind === "dart" ? "dart" : "css";
   const stylesDir = (args.stylesDir ?? "css").replace(/\/+$/, "");
-  const filename = extension === "scss" && styleKind.endsWith("variables") ? `_${name}.scss` : `${name}.${extension}`;
-  project.output = {
-    fonts: {
-      dir: (args.fontsDir ?? "fonts").replace(/\/+$/, ""),
-      formats: args.formats ?? ["woff2", "woff", "ttf"]
-    },
-    styles: [{ kind: styleKind, path: `${stylesDir}/${filename}` }],
-    ...args.types ? { types: { path: args.types } } : {}
-  };
+  project.output = outputConfigFor({
+    name,
+    fontsDir: args.fontsDir,
+    stylesDir,
+    styleKind,
+    formats: args.formats,
+    typesPath: args.types
+  });
   const out = args.out ?? `${name}${ICONFONT_EXTENSION}`;
   (0, import_node_fs2.mkdirSync)((0, import_node_path2.dirname)(out) || ".", { recursive: true });
   (0, import_node_fs2.writeFileSync)(out, serializeIconFont(project));

@@ -1,0 +1,238 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, without the leading v (e.g. 0.2.0). Leave empty on a tag push.'
+        type: string
+        required: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # One draft release, filled in by the jobs below and published only once they have
+  # all succeeded. A half-uploaded release that people can already download is worse
+  # than no release.
+  draft:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      id: ${{ steps.create.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Work out the version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF" in
+            refs/tags/v*) version="${GITHUB_REF#refs/tags/v}" ;;
+            *) version="${INPUT_VERSION#v}" ;;
+          esac
+          if [ -z "$version" ]; then
+            echo "no version: push a v* tag, or give one to the manual run" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Collect the changes since the last tag
+        id: notes
+        run: |
+          set -euo pipefail
+          previous=$(git describe --tags --abbrev=0 "${{ steps.version.outputs.tag }}^" 2>/dev/null || true)
+          {
+            echo 'notes<<NOTES'
+            if [ -n "$previous" ]; then
+              git log --no-merges --pretty='- %s' "$previous..HEAD"
+            else
+              git log --no-merges --pretty='- %s' -20
+            fi
+            echo NOTES
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create the draft release
+        id: create
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: ${{ steps.notes.outputs.notes }}
+          draft: true
+          allowUpdates: true
+
+  desktop:
+    needs: draft
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: --target aarch64-apple-darwin
+          - platform: macos-latest
+            args: --target x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tauri v2 wants webkit2gtk 4.1, not the 4.0 the v1 templates installed
+      - name: System libraries (linux)
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev \
+            libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      # the registry, the git checkouts and the build directory — a cold Tauri build
+      # is ~2 minutes of dependencies before any of our code compiles
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+          key: ${{ matrix.args }}
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # set these to sign; without them the bundles are unsigned but still built
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          ENABLE_CODE_SIGNING: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          releaseId: ${{ needs.draft.outputs.id }}
+          args: ${{ matrix.args }}
+
+  # The .vsix goes on the release whether or not the marketplace token is set, so a
+  # fork without secrets still produces something installable.
+  extension:
+    needs: draft
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    # `secrets` is not a context a step-level `if` can read, so the token comes
+    # through the environment and the step checks that
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      - name: Stamp the version
+        working-directory: apps/vscode
+        run: npm pkg set version=${{ needs.draft.outputs.version }}
+
+      - run: pnpm --filter iconotype-vscode package
+
+      - name: Attach it to the release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.draft.outputs.tag }}
+          artifacts: apps/vscode/iconotype.vsix
+          draft: true
+          allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+
+      - name: Publish to the marketplace
+        if: env.VSCE_PAT != ''
+        working-directory: apps/vscode
+        run: pnpm exec vsce publish --no-dependencies --packagePath iconotype.vsix
+
+  # npm gets the CLI, which is what CI users install
+  cli:
+    needs: draft
+    runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      # writes packages/cli/dist-npm: the bundle plus a manifest npm can actually
+      # take — no workspace: ranges, no @iconotype scope, so `npx iconotype` works
+      - name: Assemble the npm package
+        working-directory: packages/cli
+        run: node publish.mjs ${{ needs.draft.outputs.version }}
+
+      - name: Publish
+        if: env.NPM_TOKEN != ''
+        working-directory: packages/cli/dist-npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
+
+  publish:
+    needs: [draft, desktop, extension, cli]
+    if: ${{ always() && needs.draft.result == 'success' && needs.desktop.result == 'success' && needs.extension.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.draft.outputs.tag }}
+          draft: false
+          makeLatest: true
+          allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+
+  # A failed build leaves a draft nobody asked for and a tag that cannot be reused.
+  # Both go.
+  cleanup:
+    needs: [draft, desktop, extension]
+    if: ${{ always() && needs.draft.result == 'success' && (needs.desktop.result == 'failure' || needs.extension.result == 'failure') }}
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete the draft and the tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.draft.outputs.tag }}
+          ID: ${{ needs.draft.outputs.id }}
+        run: |
+          set -euo pipefail
+          [ -n "$ID" ] && gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$ID" || true
+          git push --delete origin "$TAG" || true

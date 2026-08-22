@@ -1,4 +1,5 @@
 name: pages
+
 on:
   push: { branches: [main] }
   workflow_dispatch:
@@ -20,17 +21,57 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
+
+      # the store cache is what setup-node's `cache: pnpm` gives us; this one keeps
+      # the resolved node_modules links too, which is the slow half of an install
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - run: pnpm install --frozen-lockfile
-      # Pages serves from /<repo>/ — the web app reads BASE_PATH into vite's `base`
-      - run: pnpm --filter @iconotype/web build
+
+      # Vite's own transform cache, keyed by the lockfile and the source it saw
+      - name: Cache vite
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.vite
+          key: vite-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/**/src/**', 'packages/**/src/**') }}
+          restore-keys: vite-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      # Pages serves from /<repo>/, so both builds are told the same prefix: the site
+      # at the root of it and the app one level down, which is what the site's own
+      # "Open the web app" link points at.
+      - name: Build the site
+        run: pnpm --filter @iconotype/site build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+
+      - name: Build the web app
+        run: pnpm --filter @iconotype/web build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/app/
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p public/app
+          cp -r apps/site/dist/. public/
+          cp -r apps/web/dist/. public/app/
+          # Pages runs Jekyll over the artifact otherwise, which eats _-prefixed files
+          touch public/.nojekyll
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
-        with: { path: apps/web/dist }
+        with: { path: public }
       - id: deploy
         uses: actions/deploy-pages@v4

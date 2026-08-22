@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iconotype — icon fonts, without the round trip</title>
+    <meta
+      name="description"
+      content="Build, fix and ship icon fonts. Imports IcoMoon projects. A web app, a desktop app and a VSCode extension over one open-source core."
+    />
+    <link rel="icon" href="./mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./src/site.css" />
+    <meta property="og:title" content="Iconotype" />
+    <meta property="og:description" content="Icon fonts, without the round trip. Open source." />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="./">
+        <img src="./mark.svg" alt="" width="28" height="28" />
+        <span>Iconotype</span>
+      </a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#get">Get it</a>
+        <a href="#cli">CLI</a>
+        <a class="ghost" href="https://github.com/mguillon/iconotype">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <h1>Icon fonts, without the round trip.</h1>
+          <p class="lead">
+            Drop in SVGs or an existing IcoMoon project, fix the geometry a font actually needs,
+            and write the woff2 and the stylesheet straight into your repo — from the editor you
+            are already in.
+          </p>
+          <div class="cta">
+            <a class="button primary" href="./app/">Open the web app</a>
+            <a class="button" href="#get">Desktop &amp; VSCode</a>
+          </div>
+          <p class="fine">Free and open source. Your artwork never leaves your machine.</p>
+        </div>
+
+        <!-- the em square with a glyph on the baseline: what the app draws, drawn here -->
+        <div class="hero-art" aria-hidden="true">
+          <svg viewBox="0 0 400 300" role="img">
+            <rect class="frame" x="70" y="30" width="240" height="240" rx="10" />
+            <line class="guide" x1="70" y1="90" x2="310" y2="90" />
+            <line class="guide" x1="70" y1="222" x2="310" y2="222" />
+            <line class="guide vertical" x1="190" y1="30" x2="190" y2="270" />
+            <!-- the same serif I as the app's mark, sitting on the baseline -->
+            <g class="glyph">
+              <path d="M133 90h114v22h-44v88h44v22H133v-22h44v-88h-44z" />
+            </g>
+            <g class="nodes">
+              <circle cx="133" cy="90" r="5" /><circle cx="247" cy="90" r="5" />
+              <circle cx="133" cy="222" r="5" /><circle cx="247" cy="222" r="5" />
+              <circle cx="190" cy="156" r="5" />
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <section class="strip">
+        <div><strong>IcoMoon in, anything out</strong><span>Projects, selections, font packages, folders of SVG.</span></div>
+        <div><strong>Codepoints never move</strong><span>Append-only, locked, checked in CI.</span></div>
+        <div><strong>Reproducible builds</strong><span>Same input, same bytes, every time.</span></div>
+      </section>
+
+      <section id="features">
+        <h2>What it does</h2>
+        <div class="grid">
+          <article>
+            <h3>Fixes SVGs for fonts</h3>
+            <p>
+              Thirteen stages: inlined CSS, dereferenced <code>&lt;use&gt;</code>, shapes to paths,
+              baked transforms, strokes outlined into fills, even-odd to non-zero, clips and masks
+              applied. Anything a font cannot represent is reported, not silently mangled.
+            </p>
+          </article>
+          <article>
+            <h3>An editor for the real work</h3>
+            <p>
+              Align, nudge, scale, rotate, flip, fit to the em box, merge overlaps, snap to grid —
+              on an em square with the baseline drawn. Step through a whole set with one key.
+            </p>
+          </article>
+          <article>
+            <h3>Exports the whole package</h3>
+            <p>
+              woff2, woff, ttf, svg fonts. CSS, SCSS, LESS, variables-only partials, CSS custom
+              properties, JSON maps, Flutter <code>IconData</code>, sprite sheets, PNGs, favicons,
+              React and Vue components, and a <code>.d.ts</code> of every icon name.
+            </p>
+          </article>
+          <article>
+            <h3>Codepoints are an API</h3>
+            <p>
+              Allocation is append-only and written to <code>codepoints.lock</code>. Renaming an
+              icon moves its name, never its codepoint, so a font already shipped keeps rendering
+              what it rendered yesterday. CI fails a build that would break one.
+            </p>
+          </article>
+          <article>
+            <h3>Knows where your icons are used</h3>
+            <p>
+              The extension scans your source for references, tells you which icons nothing uses,
+              renames one everywhere at once, and flags a typo before it renders as a blank square.
+            </p>
+          </article>
+          <article>
+            <h3>One core, three shells</h3>
+            <p>
+              The same model, fixer and font writer behind the web app, the desktop app and the
+              extension — so a project opened in one is the same project in the others.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="get">
+        <h2>Get it</h2>
+        <div class="grid three">
+          <article class="card">
+            <h3>Web app</h3>
+            <p>Nothing to install. Projects live in your browser's storage; artwork never leaves the tab.</p>
+            <a class="button primary" href="./app/">Open it</a>
+          </article>
+          <article class="card">
+            <h3>Desktop</h3>
+            <p>Real files, native dialogs, drag-and-drop from Finder or Explorer. macOS, Windows, Linux.</p>
+            <a class="button" href="https://github.com/mguillon/iconotype/releases/latest">Download</a>
+          </article>
+          <article class="card">
+            <h3>VSCode</h3>
+            <p>
+              The sidebar, autocompletion on your icon names, inline previews, usage search, and
+              export straight into <code>app/fonts</code> and <code>app/css</code>.
+            </p>
+            <a class="button" href="https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode">Install</a>
+          </article>
+        </div>
+      </section>
+
+      <section id="cli">
+        <h2>And in CI</h2>
+        <p class="lead narrow">
+          The same build the editor runs, so a font built on a laptop and a font built on a runner
+          are the same bytes.
+        </p>
+        <pre><code># turn an existing IcoMoon project into a committed one
+npx iconotype init --input icomoon/project.json \
+  --fonts-dir app/fonts --styles-dir app/css --style-kind scss-variables
+
+# build it wherever the project file says
+npx iconotype build --input app.iconotype.json
+
+# fail the build if a codepoint moved
+npx iconotype diff --input app.iconotype.json --against origin/main</code></pre>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        <a href="https://github.com/mguillon/iconotype">Source</a> ·
+        <a href="https://github.com/mguillon/iconotype/issues">Issues</a> ·
+        MIT licensed
+      </p>
+      <p class="fine">Not affiliated with IcoMoon. Imports its formats; does not use its service.</p>
+    </footer>
+  </body>
+</html>

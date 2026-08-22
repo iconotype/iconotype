@@ -70,6 +70,12 @@ importers:
         specifier: ^2.11.4
         version: 2.11.4
 
+  apps/site:
+    devDependencies:
+      '@iconotype/build-config':
+        specifier: workspace:*
+        version: link:../../packages/build-config
+
   apps/vscode:
     devDependencies:
       '@iconotype/build-config':
@@ -117,6 +123,9 @@ importers:
       '@iconotype/core-host':
         specifier: workspace:*
         version: link:../../packages/core-host
+      '@iconotype/core-io':
+        specifier: workspace:*
+        version: link:../../packages/core-io
       '@iconotype/core-model':
         specifier: workspace:*
         version: link:../../packages/core-model

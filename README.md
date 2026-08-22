@@ -51,6 +51,7 @@ fixtures/
 ```bash
 pnpm install
 pnpm dev            # web app
+pnpm dev:site       # product page
 pnpm dev:desktop    # tauri window (needs the Rust toolchain)
 pnpm test           # 346 tests, incl. 75-fixture visual regression
 pnpm test:vscode    # 52 integration tests in real VSCode

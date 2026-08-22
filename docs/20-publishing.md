@@ -37,10 +37,17 @@ Not a company account, not a paid one, and nothing to do with Azure the cloud. T
 *Personal access tokens* page does not exist until an organisation does, which is why
 it cannot be found before this step.
 
-1. Go to <https://dev.azure.com> and sign in with any Microsoft account — a personal
-   outlook.com or gmail-backed one is fine. Create one on the spot if you have none.
-2. First sign-in offers to **create an organisation**: any name (it is never shown to
-   anyone), pick a region, *Continue*. Free, no billing, no project needed.
+1. **Check whether you already have one.** Sign in at <https://dev.azure.com>: if you
+   belong to an organisation it drops you straight into it, and the name is in the URL
+   (`dev.azure.com/{org}`). The complete list, including ones you were invited to, is at
+   <https://app.vsaex.visualstudio.com/me>.
+2. **If there is none**, select **New organization** — name (letters, digits and
+   hyphens, starting with a letter or digit), hosting region, *Continue*.
+
+   Microsoft's own documentation now lists *"an active Azure subscription"* as a
+   prerequisite for creating a **new** organisation, though the free tier itself is
+   unchanged. If that stops you, or a card is more than this is worth, skip to Open VSX
+   below — it needs no Microsoft account at all.
 
 ### Then the token
 

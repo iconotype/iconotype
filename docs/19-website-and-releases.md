@@ -33,27 +33,53 @@ Nothing is uploaded anywhere in either case; there is no server.
 
 ## Releasing
 
-`release.yml`, on a `v*` tag or a manual run with a version:
+`release.yml`, run by hand with a choice of `patch`, `minor`, `major` or `test`.
 
-1. **draft** — works out the version, collects the commits since the last tag, opens a
-   *draft* release. A half-uploaded release people can already download is worse than
-   no release, so nothing is public until everything has landed.
-2. **desktop** — four bundles (macOS arm64 and x64, Linux, Windows) via
-   `tauri-action`, uploaded to the draft.
-3. **extension** — `.vsix` attached to the release, and published to the marketplace
-   only if `VSCE_PAT` is set. A fork without secrets still produces something
-   installable.
-4. **cli** — `packages/cli/publish.mjs` assembles an npm package npm can actually
-   take: the workspace manifest cannot be published as it stands, because its
-   `@iconotype/*` dependencies are `workspace:*` and mean nothing outside this
-   repository. The bundle already contains our own modules, so those vanish; the
-   third-party ones stay, for the reasons `build.mjs` explains.
-5. **publish** — flips the draft to latest.
-6. **cleanup** — on failure, deletes the draft and the tag, so the version can be cut
-   again.
+**One version, five places.** The root manifest, the desktop manifest, the Tauri config,
+the Rust crate and the extension all carry it, and a release is one thing even though it
+ships as four. `scripts/version.mjs` is the only writer: it computes the next number,
+writes it everywhere, and generates the changelog entry from the conventional commits
+since the last tag (`feat:`, `fix:`, `perf:`, a `!` or a `BREAKING CHANGE:` trailer).
 
-`secrets` is not a context a step-level `if` can read, so both optional publishes take
-their token through the job environment and test that instead.
+`test` cuts a prerelease — `0.3.0-test.1`, then `-test.2` — and a later `patch`
+*promotes* it to `0.3.0` rather than skipping a number. The VSCode marketplace refuses a
+semver prerelease suffix, so the extension gets the plain `x.y.z` and is published with
+`--pre-release`; npm gets the suffix and the `next` tag; the GitHub release is marked
+prerelease. That mapping lives in the script so the workflow never reasons about it.
+
+**Nothing ships until everything builds.** The four desktop bundles, the `.vsix` and the
+npm package are produced as *artifacts*, and a single final job takes all of them and
+publishes the GitHub release, the marketplace and npm together. There is no window in
+which the desktop app exists and the extension does not.
+
+If any build fails, `rollback` deletes the tag and force-pushes the branch back to the
+commit before the release, so the same number can be cut again once it is fixed.
+
+### Signing is opt-in, and has to be all-or-nothing
+
+The first release attempt died on macOS with:
+
+```
+security: SecKeychainItemImport: One or more parameters passed to a function were not valid.
+failed to bundle project: failed codesign application: failed to run command security import
+```
+
+Passing `APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}` with no such secret does
+not leave the variable unset — it sets it to the empty string. The bundler sees the
+variable, takes the signing path, and hands `security import` an empty certificate.
+
+The variables are now written to `$GITHUB_ENV` by a step that only runs when there is a
+certificate, so without secrets they are genuinely absent and the bundles come out
+unsigned. Linux and Windows were unaffected, which is why two of four matrix legs went
+green and made it look like a macOS toolchain problem.
+
+## Building without releasing
+
+`build.yml` produces the same installables and stops there: the `.vsix` and the assembled
+site on every pull request, and desktop bundles on demand (`all`, `extension`, `desktop`,
+`web`). Artifacts last 14 days, so a change can be handed to someone to try before any
+version number exists. Desktop test builds are deliberately unsigned — trying a branch
+should not require anyone's certificate.
 
 ## Caching
 

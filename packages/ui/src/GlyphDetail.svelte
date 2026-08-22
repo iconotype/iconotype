@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { hex } from '@glyphsmith/core-model'
+  import { hex } from '@iconotype/core-model'
   import { useApp } from './app.svelte.js'
 
   /**
@@ -94,17 +94,17 @@
 <style>
   section { display: grid; grid-template-rows: 1fr auto auto; gap: 10px; padding: 12px; min-height: 0; overflow: auto; }
   .stage { display: grid; place-items: center; min-height: 0; }
-  .stage svg { width: min(100%, 320px); height: auto; background: var(--gs-hover); border-radius: 6px; padding: 12px; box-sizing: border-box; }
+  .stage svg { width: min(100%, 320px); height: auto; background: var(--gs-hover); border-radius: var(--gs-radius-lg); padding: 12px; box-sizing: border-box; }
   .meta { display: grid; gap: 6px; justify-items: start; }
   .name { font-size: 16px; font-weight: 600; background: none; border: 0; color: var(--gs-fg); padding: 0; cursor: text; }
   .rename { font-size: 16px; font-weight: 600; }
   .ref { font-family: var(--gs-mono); font-size: 12px; color: var(--gs-muted); }
   .codes { margin: 0; display: flex; gap: 6px; font-family: var(--gs-mono); font-size: 11px; color: var(--gs-muted); }
-  .warn { margin: 0; font-size: 11px; color: var(--vscode-editorWarning-foreground, #d7a03c); }
+  .warn { margin: 0; font-size: 11px; color: var(--gs-warn); }
   .link { background: none; border: 0; padding: 0; color: var(--gs-accent); cursor: pointer; font: inherit; text-decoration: underline; }
   .swatches { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
   .swatches li { display: flex; align-items: center; gap: 4px; font-size: 10px; }
-  .swatches i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--gs-border); }
+  .swatches i { width: 12px; height: 12px; border-radius: var(--gs-radius); border: 1px solid var(--gs-border); }
   .tags { margin: 0; font-size: 11px; color: var(--gs-muted); }
   .actions { display: flex; flex-wrap: wrap; gap: 6px; }
   .danger { color: var(--gs-error); }

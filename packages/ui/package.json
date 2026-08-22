@@ -1,5 +1,5 @@
 {
-  "name": "@glyphsmith/ui",
+  "name": "@iconotype/ui",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,12 +8,12 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "@glyphsmith/core-host": "workspace:*",
-    "@glyphsmith/core-model": "workspace:*",
-    "@glyphsmith/core-io": "workspace:*",
-    "@glyphsmith/core-svg": "workspace:*",
-    "@glyphsmith/core-font": "workspace:*",
-    "@glyphsmith/core-export": "workspace:*"
+    "@iconotype/core-host": "workspace:*",
+    "@iconotype/core-model": "workspace:*",
+    "@iconotype/core-io": "workspace:*",
+    "@iconotype/core-svg": "workspace:*",
+    "@iconotype/core-font": "workspace:*",
+    "@iconotype/core-export": "workspace:*"
   },
   "peerDependencies": {
     "svelte": "^5.0.0"

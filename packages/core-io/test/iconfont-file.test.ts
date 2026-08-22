@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { emptyProject } from '@glyphsmith/core-model'
+import { emptyProject } from '@iconotype/core-model'
 import { importIcoMoon, parseIconFont, serializeIconFont, selectedGlyphs, toIconFontFile, fromIconFontFile } from '../src/index.js'
 
 const project = () => importIcoMoon(JSON.parse(readFileSync(
   fileURLToPath(new URL('../../../fixtures/icomoon/alpimaps.json', import.meta.url)), 'utf8'))).project
 
-describe('.glyphsmith.json project file', () => {
+describe('.iconotype.json project file', () => {
   it('round-trips a real project', () => {
     const before = project()
     const after = parseIconFont(serializeIconFont(before))
@@ -62,14 +62,14 @@ describe('.glyphsmith.json project file', () => {
     expect(file.credits?.map((c) => c.license)).toContain('Apache License Version 2.0')
   })
 
-  it('refuses a file from a newer Glyphsmith rather than silently misreading it', () => {
+  it('refuses a file from a newer Iconotype rather than silently misreading it', () => {
     const file = toIconFontFile(project())
     file.schemaVersion = 99
-    expect(() => fromIconFontFile(file)).toThrow(/needs a newer Glyphsmith/)
+    expect(() => fromIconFontFile(file)).toThrow(/needs a newer Iconotype/)
   })
 
   it('rejects json that is not an icon font file', () => {
-    expect(() => parseIconFont('{"hello":"world"}')).toThrow(/not a Glyphsmith icon font file/)
+    expect(() => parseIconFont('{"hello":"world"}')).toThrow(/not a Iconotype icon font file/)
   })
 
   it('carries usage prefixes through the file, and omits them when unused', () => {

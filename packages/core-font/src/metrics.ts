@@ -1,4 +1,4 @@
-import type { FontPrefs } from '@glyphsmith/core-model'
+import type { FontPrefs } from '@iconotype/core-model'
 
 export interface FontMetrics {
   unitsPerEm: number

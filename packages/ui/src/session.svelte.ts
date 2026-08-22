@@ -1,11 +1,11 @@
 import { getContext, setContext } from 'svelte'
-import type { Host } from '@glyphsmith/core-host'
+import type { Host } from '@iconotype/core-host'
 import {
   branches, canRedo, canUndo, commit, createHistory, emptyProject, goto, redo, timeline, undo,
   type Op, type Project, type Session,
-} from '@glyphsmith/core-model'
+} from '@iconotype/core-model'
 
-const HOST = Symbol('glyphsmith.host')
+const HOST = Symbol('iconotype.host')
 
 export const setHost = (host: Host) => setContext(HOST, host)
 export const useHost = (): Host => {
@@ -52,7 +52,7 @@ export class SessionStore {
   goto(nodeId: string) { this.#session = goto(this.#session, nodeId) }
 }
 
-const SESSION = Symbol('glyphsmith.session')
+const SESSION = Symbol('iconotype.session')
 export const setSession = (s: SessionStore) => setContext(SESSION, s)
 export const useSession = (): SessionStore => {
   const s = getContext<SessionStore>(SESSION)

@@ -35,22 +35,22 @@ importers:
 
   apps/vscode:
     devDependencies:
-      '@glyphsmith/build-config':
+      '@iconotype/build-config':
         specifier: workspace:*
         version: link:../../packages/build-config
-      '@glyphsmith/core-export':
+      '@iconotype/core-export':
         specifier: workspace:*
         version: link:../../packages/core-export
-      '@glyphsmith/core-host':
+      '@iconotype/core-host':
         specifier: workspace:*
         version: link:../../packages/core-host
-      '@glyphsmith/core-model':
+      '@iconotype/core-model':
         specifier: workspace:*
         version: link:../../packages/core-model
-      '@glyphsmith/core-svg':
+      '@iconotype/core-svg':
         specifier: workspace:*
         version: link:../../packages/core-svg
-      '@glyphsmith/ui':
+      '@iconotype/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@types/vscode':
@@ -77,17 +77,17 @@ importers:
 
   apps/web:
     dependencies:
-      '@glyphsmith/core-host':
+      '@iconotype/core-host':
         specifier: workspace:*
         version: link:../../packages/core-host
-      '@glyphsmith/core-model':
+      '@iconotype/core-model':
         specifier: workspace:*
         version: link:../../packages/core-model
-      '@glyphsmith/ui':
+      '@iconotype/ui':
         specifier: workspace:*
         version: link:../../packages/ui
     devDependencies:
-      '@glyphsmith/build-config':
+      '@iconotype/build-config':
         specifier: workspace:*
         version: link:../../packages/build-config
 
@@ -99,19 +99,19 @@ importers:
 
   packages/cli:
     dependencies:
-      '@glyphsmith/core-export':
+      '@iconotype/core-export':
         specifier: workspace:*
         version: link:../core-export
-      '@glyphsmith/core-font':
+      '@iconotype/core-font':
         specifier: workspace:*
         version: link:../core-font
-      '@glyphsmith/core-io':
+      '@iconotype/core-io':
         specifier: workspace:*
         version: link:../core-io
-      '@glyphsmith/core-model':
+      '@iconotype/core-model':
         specifier: workspace:*
         version: link:../core-model
-      '@glyphsmith/core-svg':
+      '@iconotype/core-svg':
         specifier: workspace:*
         version: link:../core-svg
       '@resvg/resvg-js':
@@ -151,20 +151,20 @@ importers:
 
   packages/core-export:
     dependencies:
-      '@glyphsmith/core-font':
+      '@iconotype/core-font':
         specifier: workspace:*
         version: link:../core-font
-      '@glyphsmith/core-model':
+      '@iconotype/core-model':
         specifier: workspace:*
         version: link:../core-model
     devDependencies:
-      '@glyphsmith/core-io':
+      '@iconotype/core-io':
         specifier: workspace:*
         version: link:../core-io
 
   packages/core-font:
     dependencies:
-      '@glyphsmith/core-model':
+      '@iconotype/core-model':
         specifier: workspace:*
         version: link:../core-model
       svg2ttf:
@@ -180,7 +180,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
     devDependencies:
-      '@glyphsmith/core-io':
+      '@iconotype/core-io':
         specifier: workspace:*
         version: link:../core-io
       opentype.js:
@@ -191,13 +191,13 @@ importers:
 
   packages/core-io:
     dependencies:
-      '@glyphsmith/core-host':
+      '@iconotype/core-host':
         specifier: workspace:*
         version: link:../core-host
-      '@glyphsmith/core-model':
+      '@iconotype/core-model':
         specifier: workspace:*
         version: link:../core-model
-      '@glyphsmith/core-svg':
+      '@iconotype/core-svg':
         specifier: workspace:*
         version: link:../core-svg
       fflate:
@@ -248,22 +248,22 @@ importers:
 
   packages/ui:
     dependencies:
-      '@glyphsmith/core-export':
+      '@iconotype/core-export':
         specifier: workspace:*
         version: link:../core-export
-      '@glyphsmith/core-font':
+      '@iconotype/core-font':
         specifier: workspace:*
         version: link:../core-font
-      '@glyphsmith/core-host':
+      '@iconotype/core-host':
         specifier: workspace:*
         version: link:../core-host
-      '@glyphsmith/core-io':
+      '@iconotype/core-io':
         specifier: workspace:*
         version: link:../core-io
-      '@glyphsmith/core-model':
+      '@iconotype/core-model':
         specifier: workspace:*
         version: link:../core-model
-      '@glyphsmith/core-svg':
+      '@iconotype/core-svg':
         specifier: workspace:*
         version: link:../core-svg
       svelte:

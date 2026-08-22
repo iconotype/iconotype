@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { AppShell, AppStore, SessionStore, setApp, setHost, setSession } from '@glyphsmith/ui'
-  import { createHistory, emptyProject, type Project } from '@glyphsmith/core-model'
+  import { AppShell, AppStore, SessionStore, setApp, setHost, setSession } from '@iconotype/ui'
+  import { createHistory, emptyProject, type Project } from '@iconotype/core-model'
   import { createWebviewHost, vscodeApi } from './host.js'
 
   const now = () => Date.now()
@@ -11,7 +11,7 @@
     now,
   )
   const app = new AppStore(session, host, now)
-  // the extension owns the .glyphsmith.json; the Host project store is not ours to write
+  // the extension owns the .iconotype.json; the Host project store is not ours to write
   app.autosave = false
 
   setHost(host)
@@ -135,7 +135,7 @@
     }
   })
 
-  // every edit in the editor is written back to the .glyphsmith.json
+  // every edit in the editor is written back to the .iconotype.json
   $effect(() => {
     save(session.project)
   })

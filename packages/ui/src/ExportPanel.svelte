@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FontFormat } from '@glyphsmith/core-font'
+  import type { FontFormat } from '@iconotype/core-font'
   import QuickExport from './QuickExport.svelte'
   import { useApp } from './app.svelte.js'
 
@@ -78,16 +78,16 @@
 </aside>
 
 <style>
-  aside { border-left: 1px solid var(--gs-border); padding: 10px; overflow: auto; display: grid; gap: 10px; align-content: start; }
+  aside { border-left: var(--gs-divider); padding: 10px; overflow: auto; display: grid; gap: 10px; align-content: start; }
   h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--gs-muted); margin: 4px 0 0; }
-  fieldset { border: 1px solid var(--gs-border); border-radius: 4px; padding: 6px 8px; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  fieldset { border: 1px solid var(--gs-border); border-radius: var(--gs-radius); padding: 6px 8px; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
   legend { font-size: 10px; color: var(--gs-muted); text-transform: uppercase; letter-spacing: .05em; }
   label { font-size: 12px; display: flex; align-items: center; gap: 5px; }
   .stack { flex-direction: column; align-items: stretch; gap: 3px; }
   .stack span { color: var(--gs-muted); font-size: 11px; }
   input[type='number'], .stack input {
-    font: inherit; font-size: 12px; background: var(--vscode-input-background, #14141a);
-    color: var(--gs-fg); border: 1px solid var(--gs-border); border-radius: 3px; padding: 3px 6px; width: 100%;
+    font: inherit; font-size: 12px; background: var(--gs-input);
+    color: var(--gs-fg); border: 1px solid var(--gs-border); border-radius: var(--gs-radius); padding: 3px 6px; width: 100%;
   }
   .actions { display: grid; gap: 6px; }
   .preview { border-top: 1px solid var(--gs-border); padding-top: 8px; }

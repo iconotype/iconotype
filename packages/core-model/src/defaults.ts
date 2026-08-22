@@ -2,7 +2,7 @@ import type { FontPrefs, IconSet, Preferences, Project } from './types.js'
 
 /** Matches IcoMoon's defaults so imported projects round-trip without surprises. */
 export const defaultFontPrefs = (): FontPrefs => ({
-  family: 'glyphsmith',
+  family: 'iconotype',
   prefix: 'icon-',
   postfix: '',
   majorVersion: 1,

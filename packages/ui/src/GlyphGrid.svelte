@@ -17,6 +17,14 @@
   const heightOf = (key: string) => app.session.project.sets.find((s) => s.id === key)?.height ?? 1024
   const empty = $derived(app.session.glyphCount === 0)
 
+  /**
+   * A sample to open with.
+   *
+   * A first visit to the hosted app has nothing in it, and "drop a file here" asks for
+   * something a visitor may not have. Hosts that ship one point at it.
+   */
+  const sample = $derived(host.sampleProjectUrl?.())
+
   async function onDrop(e: DragEvent) {
     e.preventDefault()
     dragging = false
@@ -39,7 +47,12 @@
   {#if empty}
     <div class="empty">
       <p>Drop an <strong>IcoMoon project</strong> (.json), a <strong>font package</strong> (.zip) or <strong>SVG files</strong> here.</p>
-      <button onclick={() => app.pickAndImport()}>Choose files…</button>
+      <div class="cta">
+        <button onclick={() => app.pickAndImport()}>Choose files…</button>
+        {#if sample}
+          <button class="ghost" onclick={() => app.importUrl(sample!)}>Load a sample set</button>
+        {/if}
+      </div>
       <p class="muted">host: {host.name} · storage: {host.capabilities.realFs ? 'filesystem' : 'browser (OPFS)'}</p>
     </div>
   {:else if app.matchCount === 0}
@@ -65,6 +78,7 @@
     display: flex; gap: 8px; align-items: baseline; margin: 0; padding: 10px 0 6px;
     font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--gs-muted);
   }
+  .cta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
   .empty { margin: auto; text-align: center; padding: 40px; display: grid; gap: 12px; justify-items: center; }
   .muted { color: var(--gs-muted); font-weight: 400; font-size: 12px; }
   .overlay {

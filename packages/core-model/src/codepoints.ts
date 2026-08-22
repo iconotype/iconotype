@@ -67,7 +67,7 @@ export function serializeLock(project: Project): string {
     return av - bv
   })
   const lines = [
-    '# glyphsmith codepoint lock — append-only.',
+    '# iconotype codepoint lock — append-only.',
     '# Changing an existing line is a BREAKING change for every consumer of this font.',
     '',
     ...rows.map(([name, v]) =>

@@ -26,7 +26,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       # Pages serves from /<repo>/ — the web app reads BASE_PATH into vite's `base`
-      - run: pnpm --filter @glyphsmith/web build
+      - run: pnpm --filter @iconotype/web build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
       - uses: actions/configure-pages@v5

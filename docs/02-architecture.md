@@ -85,9 +85,9 @@ icons/
   sets/custom/altitude.svg
 icons.json          # manifest: sets, metadata, per-glyph name/tags/license/source
 codepoints.lock     # name → codepoint, append-only, hand-editable
-glyphsmith.config.ts# build config (formats, prefix, metrics, outputs)
+iconotype.config.ts# build config (formats, prefix, metrics, outputs)
 ```
 
-**B. Single-file `.glyphsmith` (web, sharing)** — a zip of the above. Also the download artifact from the web app.
+**B. Single-file `.iconotype` (web, sharing)** — a zip of the above. Also the download artifact from the web app.
 
 Rationale: a designer edits `walk.svg` in Illustrator, git shows a real diff, CI rebuilds the font. IcoMoon's blob makes all of that impossible.

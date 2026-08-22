@@ -7,7 +7,7 @@ import { PaperOffset } from 'paperjs-offset'
  * `paperjs-offset` does `import paper from 'paper'` and type-guards with
  * `instanceof paper.Path`. Import 'paper/dist/paper-core.js' anywhere and you get a
  * second instance → every offset call throws "Offset source must be a Paper.js Path".
- * Bundlers alias 'paper' → 'paper/dist/paper-core.js' (see @glyphsmith/build-config);
+ * Bundlers alias 'paper' → 'paper/dist/paper-core.js' (see @iconotype/build-config);
  * because the alias is global, paperjs-offset resolves to the same module. Never
  * deep-import paper here.
  *

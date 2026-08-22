@@ -9,25 +9,25 @@
 | CLI end-to-end | built a real project from a folder of SVGs, added an icon, and had `diff` catch a moved codepoint with exit 1 |
 | browser | every quick-copy format verified against the real project |
 
-Acceptance from [08](08-roadmap.md) was "a repo can regenerate its font in CI with a breaking-change gate". The gate is `glyphsmith diff`, and [`examples/icons-ci.yml`](../examples/icons-ci.yml) is the workflow that uses it.
+Acceptance from [08](08-roadmap.md) was "a repo can regenerate its font in CI with a breaking-change gate". The gate is `iconotype diff`, and [`examples/icons-ci.yml`](../examples/icons-ci.yml) is the workflow that uses it.
 
 ## The CLI
 
 ```
-glyphsmith build   build the font package from a project or a folder of SVGs
-glyphsmith lint    report what the fixer would have to change; non-zero exit on errors
-glyphsmith fix     rewrite source SVGs through the fixer pipeline
-glyphsmith diff    compare two projects; non-zero exit when the change is BREAKING
-glyphsmith scan    find which icons a codebase actually references
-glyphsmith info    summarise a project
+iconotype build   build the font package from a project or a folder of SVGs
+iconotype lint    report what the fixer would have to change; non-zero exit on errors
+iconotype fix     rewrite source SVGs through the fixer pipeline
+iconotype diff    compare two projects; non-zero exit when the change is BREAKING
+iconotype scan    find which icons a codebase actually references
+iconotype info    summarise a project
 ```
 
-Input is whatever you point it at: a Glyphsmith or IcoMoon project JSON, an IcoMoon zip, or a directory of SVGs. Argument parsing is `node:util`'s `parseArgs` — no dependency.
+Input is whatever you point it at: a Iconotype or IcoMoon project JSON, an IcoMoon zip, or a directory of SVGs. Argument parsing is `node:util`'s `parseArgs` — no dependency.
 
 ### The gate
 
 ```
-$ glyphsmith diff before.json after/selection.json
+$ iconotype diff before.json after/selection.json
 added    shape-polygon U+e905
 MOVED    shape-circle U+e902 -> U+e950
 1 added, 0 removed, 1 moved, 0 redrawn
@@ -46,7 +46,7 @@ The lock lives *inside* a folder of SVGs and *beside* a project file. Getting th
 
 ## A bug only the end-to-end run found
 
-`glyphsmith diff` reported "0 added, 0 removed" for a project that had visibly gained an icon.
+`iconotype diff` reported "0 added, 0 removed" for a project that had visibly gained an icon.
 
 `exportIcoMoonSelection` assigned `id: foreign.icoMoonId ?? 0` — fine for glyphs imported from IcoMoon, but every glyph that came from an SVG file has no such origin, so they **all got id 0**. IcoMoon joins `icons[]` to `selection[]` *by id*, so re-importing collapsed every glyph onto a single selection entry, and the diff of two collapsed projects is empty.
 
@@ -85,4 +85,4 @@ Final shape: bundle our own sources into one CJS file, leave third-party package
 - `--only` is suggested by `scan` but not implemented yet, so subsetting is manual.
 - No `.ico` container — the favicon set ships PNGs and an SVG, which is what modern browsers use.
 - Components are emitted as one file switching on a name. Per-icon modules would tree-shake better for very large sets.
-- The CLI has no config file; everything is flags. A `glyphsmith.config.json` would help once there are more knobs than fit on a line.
+- The CLI has no config file; everything is flags. A `iconotype.config.json` would help once there are more knobs than fit on a line.

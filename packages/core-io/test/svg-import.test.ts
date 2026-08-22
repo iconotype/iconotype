@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { importSvg, importSvgZip, writeZip } from '../src/index.js'
-import { getPaper } from '@glyphsmith/core-svg'
+import { getPaper } from '@iconotype/core-svg'
 
 const area = (paths: string[]) => {
   const p = getPaper()

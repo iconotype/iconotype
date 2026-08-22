@@ -28,13 +28,13 @@ Full [04](04-svg-normalization.md) pipeline (all 13 stages), lint findings UI, b
 **Verified**: **75** fixtures, all producing valid geometry; 60 pixel comparisons at **0.005 % mean / 0.098 % max** against a 1.5 % threshold, 52 of them pixel-exact. Browser run: 8 pathological SVGs dropped into the built app all became correct glyphs with findings attached. See [13-m3-fixer.md](13-m3-fixer.md).
 
 ## M4 — Exports & CLI ✅ **done**
-Export formats (sprite, `<use>`, PNG, favicon, React/Vue/Svelte/Web Component/Elm, `icons.d.ts`, quick-copy panel), format options, `glyphsmith` CLI (build/lint/fix/diff/scan/info), GitHub Action example.
+Export formats (sprite, `<use>`, PNG, favicon, React/Vue/Svelte/Web Component/Elm, `icons.d.ts`, quick-copy panel), format options, `iconotype` CLI (build/lint/fix/diff/scan/info), GitHub Action example.
 **Done when:** a repo can regenerate its font in CI with a breaking-change gate.
 
 **Verified**: end-to-end CLI run — built from a folder of SVGs, added an icon (codepoints held), and `diff` caught a moved codepoint with exit 1. Workflow in [examples/icons-ci.yml](../examples/icons-ci.yml). See [14-m4-exports-cli.md](14-m4-exports-cli.md).
 
 ## M5 — VSCode extension v1 ✅ **done**
-A committed `.glyphsmith.json` per font, quick export straight to configured paths, autocompletion, inline previews, hover, an icon grid sidebar, a fonts tree, a usage view, and workspace settings for the layout.
+A committed `.iconotype.json` per font, quick export straight to configured paths, autocompletion, inline previews, hover, an icon grid sidebar, a fonts tree, a usage view, and workspace settings for the layout.
 **Done when:** open a repo, see icons inline in code, add one from the picker, font rebuilds on save.
 
 **Verified**: 27 integration tests in real VSCode 1.134.0 — discovery, export to `app/fonts` + `app/css`, completion excluding deselected icons, hover, decorations, usage scanning, SVG import and selection round-tripping to disk. Followed by M5.1: the editor now persists its edits, plus diagnostics with quick fixes, rename-with-references, go-to-definition and incremental usage indexing. See [15-m5-vscode.md](15-m5-vscode.md).

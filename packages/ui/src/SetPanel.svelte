@@ -45,17 +45,17 @@
 </aside>
 
 <style>
-  aside { border-right: 1px solid var(--gs-border); padding: 10px; overflow: auto; }
+  aside { border-right: var(--gs-divider); padding: 10px; overflow: auto; }
   h2 { display: flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase;
        letter-spacing: .06em; color: var(--gs-muted); margin: 4px 0 8px; }
   ul { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 2px; }
   li { display: flex; align-items: center; gap: 4px; }
   .hidden .name { opacity: .5; text-decoration: line-through; }
   .name { flex: 1; text-align: left; background: transparent; color: var(--gs-fg); border: none;
-          padding: 3px 6px; border-radius: 3px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          padding: 3px 6px; border-radius: var(--gs-radius); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .name:hover { background: var(--gs-hover); }
   .muted { color: var(--gs-muted); }
   .tiny { padding: 0 5px; font-size: 11px; line-height: 18px; }
-  .rename { flex: 1; font: inherit; font-size: 12px; background: var(--vscode-input-background, #14141a);
-            color: var(--gs-fg); border: 1px solid var(--gs-accent); border-radius: 3px; padding: 2px 5px; }
+  .rename { flex: 1; font: inherit; font-size: 12px; background: var(--gs-input);
+            color: var(--gs-fg); border: 1px solid var(--gs-accent); border-radius: var(--gs-radius); padding: 2px 5px; }
 </style>

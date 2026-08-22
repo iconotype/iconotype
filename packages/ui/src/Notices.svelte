@@ -28,7 +28,7 @@
   .spacer { flex: 1; }
   ul { list-style: none; margin: 0; padding: 0 10px 8px; overflow: auto; font-size: 12px; font-family: var(--gs-mono); }
   li { padding: 1px 0; color: var(--gs-muted); }
-  li.warn { color: var(--vscode-editorWarning-foreground, #d7a03c); }
+  li.warn { color: var(--gs-warn); }
   li.error { color: var(--gs-error); }
   .tiny { padding: 0 5px; font-size: 11px; }
 </style>

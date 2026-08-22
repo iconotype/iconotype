@@ -75,7 +75,7 @@
 </aside>
 
 <style>
-  aside { border-left: 1px solid var(--gs-border); padding: 10px; overflow: auto; display: grid; gap: 10px; align-content: start; }
+  aside { border-left: var(--gs-divider); padding: 10px; overflow: auto; display: grid; gap: 10px; align-content: start; }
   h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--gs-muted); margin: 4px 0 0; }
   .opts { display: grid; gap: 4px; }
   .row { display: grid; grid-template-columns: 62px 1fr 28px; align-items: center; gap: 6px; font-size: 11px; color: var(--gs-muted); }
@@ -85,8 +85,8 @@
   .actions { display: grid; gap: 6px; }
   .summary { font-size: 11px; margin: 0; color: var(--gs-muted); }
   .err { color: var(--gs-error); }
-  .warn { color: var(--vscode-editorWarning-foreground, #d7a03c); }
-  .preview svg { width: 100%; max-width: 150px; display: block; margin: 0 auto; background: var(--gs-hover); border-radius: 4px; }
+  .warn { color: var(--gs-warn); }
+  .preview svg { width: 100%; max-width: 150px; display: block; margin: 0 auto; background: var(--gs-hover); border-radius: var(--gs-radius); }
   .preview .before { fill: var(--gs-error); opacity: .45; }
   .preview .after { fill: var(--gs-fg); }
   .legend { list-style: none; display: flex; gap: 10px; justify-content: center; padding: 0; margin: 6px 0 0; font-size: 10px; color: var(--gs-muted); }
@@ -98,6 +98,6 @@
   .findings li { display: grid; gap: 1px; }
   .findings code { font-size: 9px; letter-spacing: .04em; color: var(--gs-muted); }
   .findings li.error code { color: var(--gs-error); }
-  .findings li.warning code { color: var(--vscode-editorWarning-foreground, #d7a03c); }
+  .findings li.warning code { color: var(--gs-warn); }
   .muted { color: var(--gs-muted); font-size: 11px; }
 </style>

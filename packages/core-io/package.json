@@ -1,5 +1,5 @@
 {
-  "name": "@glyphsmith/core-io",
+  "name": "@iconotype/core-io",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,11 +9,11 @@
     "./icomoon-import": "./src/icomoon-import.ts"
   },
   "dependencies": {
-    "@glyphsmith/core-model": "workspace:*",
-    "@glyphsmith/core-svg": "workspace:*",
+    "@iconotype/core-model": "workspace:*",
+    "@iconotype/core-svg": "workspace:*",
     "fflate": "^0.8.3",
     "svgson": "^5.3.1",
-    "@glyphsmith/core-host": "workspace:*",
+    "@iconotype/core-host": "workspace:*",
     "svgpath": "^2.6.0"
   }
 }

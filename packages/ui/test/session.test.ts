@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyProject, createHistory, type Glyph } from '@glyphsmith/core-model'
+import { emptyProject, createHistory, type Glyph } from '@iconotype/core-model'
 import { SessionStore } from '../src/session.svelte.js'
 
 const glyph = (name: string): Glyph => ({

@@ -2,20 +2,20 @@ import * as vscode from 'vscode'
 import {
   allocate, apply, emptyProject, emptySet,
   type Glyph, type Project, type StyleOutputKind,
-} from '@glyphsmith/core-model'
+} from '@iconotype/core-model'
 import {
   fromIconFontFile, isIconFontFile, serializeIconFont, ICONFONT_EXTENSION,
-} from '@glyphsmith/core-io/iconfont-file'
+} from '@iconotype/core-io/iconfont-file'
 import { heavy } from './lazy.js'
-import { outputConfigFor, styleFileName } from '@glyphsmith/core-export/layout'
+import { outputConfigFor, styleFileName } from '@iconotype/core-export/layout'
 import type { IconFont, IconFontRegistry } from './registry.js'
 
 /**
  * Importing an existing project, from the UI.
  *
- * The CLI's `glyphsmith init` does the same job, but nobody should have to learn six
+ * The CLI's `iconotype init` does the same job, but nobody should have to learn six
  * flags to open their own icon font. This asks the same questions as a wizard, with
- * the workspace settings as defaults, and writes the identical `.glyphsmith.json`
+ * the workspace settings as defaults, and writes the identical `.iconotype.json`
  * — the layout logic is shared (`outputConfigFor`) rather than reimplemented here.
  */
 
@@ -44,7 +44,7 @@ async function svgFilesIn(dir: vscode.Uri): Promise<vscode.Uri[]> {
 
 /**
  * Reads whatever the user pointed at: an IcoMoon project or selection JSON, a
- * Glyphsmith file, an IcoMoon download zip, a zip of loose SVGs, or a folder of SVGs.
+ * Iconotype file, an IcoMoon download zip, a zip of loose SVGs, or a folder of SVGs.
  *
  * Everything here is the same pure importer the CLI uses; only the reading differs,
  * because an extension must go through `workspace.fs` rather than `node:fs` (a remote
@@ -52,7 +52,7 @@ async function svgFilesIn(dir: vscode.Uri): Promise<vscode.Uri[]> {
  */
 export async function readImportable(uri: vscode.Uri, targetHeight = 1024): Promise<ImportedSource> {
   const { importIcoMoon, importIcoMoonZip, importSvg, importSvgZip } = await heavy()
-  const { isIcoMoonFile } = await import('@glyphsmith/core-io/icomoon-import')
+  const { isIcoMoonFile } = await import('@iconotype/core-io/icomoon-import')
   const label = vscode.workspace.asRelativePath(uri)
   const stat = await vscode.workspace.fs.stat(uri)
 
@@ -106,7 +106,7 @@ export async function readImportable(uri: vscode.Uri, targetHeight = 1024): Prom
   if (isIconFontFile(data)) return { project: fromIconFontFile(data, uri.toString()), warnings: [], label }
   if (isIcoMoonFile(data)) return { ...importIcoMoon(data, { projectId: uri.toString() }), label }
   if (Array.isArray((data as Project).sets)) return { project: data as Project, warnings: [], label }
-  throw new Error(`${label}: not an IcoMoon or Glyphsmith project`)
+  throw new Error(`${label}: not an IcoMoon or Iconotype project`)
 }
 
 /** Fills in codepoints for anything the source did not carry one for. */
@@ -181,7 +181,7 @@ async function pickSource(): Promise<vscode.Uri | undefined> {
 }
 
 async function ask(source: ImportedSource, folder: vscode.Uri): Promise<Answers | undefined> {
-  const settings = vscode.workspace.getConfiguration('glyphsmith', folder)
+  const settings = vscode.workspace.getConfiguration('iconotype', folder)
   const suggested = source.project.preferences.font.family || source.project.name || 'icons'
 
   const name = await vscode.window.showInputBox({
@@ -260,7 +260,7 @@ export function prepareImported(
     stylesDir: answers.stylesDir,
     styleKind: answers.styleKind,
     formats: vscode.workspace
-      .getConfiguration('glyphsmith', scope)
+      .getConfiguration('iconotype', scope)
       .get<Array<'woff2' | 'woff' | 'ttf' | 'svg'>>('defaults.formats') ?? ['woff2', 'woff', 'ttf'],
   })
 
@@ -284,7 +284,7 @@ export async function runImportWizard(
 ): Promise<WizardResult | undefined> {
   const folder = vscode.workspace.workspaceFolders?.[0]?.uri
   if (!folder) {
-    vscode.window.showErrorMessage('Glyphsmith: open a folder before importing')
+    vscode.window.showErrorMessage('Iconotype: open a folder before importing')
     return undefined
   }
 
@@ -392,5 +392,5 @@ export const describeMerge = (font: IconFont, result: MergeResult): string => {
   const parts = [`added ${result.added.length} icon(s) to ${font.name}`]
   if (result.skipped.length) parts.push(`${result.skipped.length} already there (${result.skipped.slice(0, 3).join(', ')}${result.skipped.length > 3 ? '…' : ''})`)
   if (result.warnings.length) parts.push(`${result.warnings.length} warning(s), see the output panel`)
-  return `Glyphsmith: ${parts.join(' · ')}`
+  return `Iconotype: ${parts.join(' · ')}`
 }

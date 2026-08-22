@@ -1,4 +1,4 @@
-import type { Glyph, IconSet, Project } from '@glyphsmith/core-model'
+import type { Glyph, IconSet, Project } from '@iconotype/core-model'
 import { finish, indent, resolveFormat, xmlEscape, type FormatOptions } from './options.js'
 
 export interface IconEntry { glyph: Glyph; set: IconSet }

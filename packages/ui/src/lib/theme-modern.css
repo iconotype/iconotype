@@ -1,0 +1,87 @@
+/*
+ * The app palette: the web build and the desktop app.
+ *
+ * Free of the editor's constraints, so this is a product rather than a panel — more
+ * air, softer corners, real elevation, and a light mode that follows the system. The
+ * token names are identical to the extension's, so no component knows which it got.
+ */
+:root {
+  color-scheme: dark light;
+
+  --gs-bg: #0e1014;
+  --gs-surface: #15181e;
+  --gs-surface-2: #1b1f27;
+  --gs-fg: #e9eaee;
+  --gs-muted: #969db0;
+  --gs-border: #262b36;
+  --gs-accent: #6366f1;
+  --gs-accent-hover: #7c7ff5;
+  --gs-accent-fg: #fff;
+  --gs-accent-weak: rgba(99, 102, 241, .18);
+  --gs-hover: rgba(255, 255, 255, .045);
+  --gs-active: rgba(99, 102, 241, .2);
+  --gs-error: #f4707a;
+  --gs-warn: #e6a94a;
+  --gs-ok: #4ec98a;
+  --gs-input: #0b0d11;
+  --gs-ring: 0 0 0 3px var(--gs-accent-weak);
+  --gs-shadow: 0 1px 2px rgba(0, 0, 0, .28), 0 8px 24px rgba(0, 0, 0, .22);
+  --gs-radius: 8px;
+  --gs-radius-lg: 14px;
+
+  /* the system UI stack, with Inter ahead of it where it exists */
+  --gs-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --gs-mono: ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+  --gs-size: 14px;
+  --gs-size-sm: 12px;
+  --gs-pad: 12px;
+  --gs-header: 52px;
+  --gs-divider: 0;
+  --gs-gap: 10px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --gs-bg: #f6f7f9;
+    --gs-surface: #fff;
+    --gs-surface-2: #f1f2f6;
+    --gs-fg: #171a21;
+    --gs-muted: #626a7b;
+    --gs-border: #e2e5ec;
+    --gs-accent: #4f46e5;
+    --gs-accent-hover: #4338ca;
+    --gs-accent-weak: rgba(79, 70, 229, .12);
+    --gs-hover: rgba(17, 20, 26, .04);
+    --gs-active: rgba(79, 70, 229, .1);
+    --gs-error: #d92d3c;
+    --gs-warn: #a86a10;
+    --gs-ok: #17864f;
+    --gs-input: #fff;
+    --gs-shadow: 0 1px 2px rgba(16, 20, 30, .06), 0 8px 24px rgba(16, 20, 30, .07);
+  }
+}
+
+/* an app window, not a document: the shell scrolls its panes, never the page */
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  letter-spacing: -0.005em;
+  /* a barely-there wash so the panels read as surfaces above a ground */
+  background:
+    radial-gradient(1200px 600px at 15% -10%, var(--gs-accent-weak), transparent 60%),
+    var(--gs-bg);
+}
+
+button { padding: 6px 14px; font-weight: 500; }
+button.ghost:hover:not(:disabled) { border-color: var(--gs-accent); color: var(--gs-accent); }
+input, select, textarea { padding: 6px 10px; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: var(--gs-border);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--gs-muted); background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }

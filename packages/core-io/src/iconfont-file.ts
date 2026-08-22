@@ -1,17 +1,17 @@
 import {
   defaultPreferences, emptySet,
   type Glyph, type IconSet, type OutputConfig, type Project,
-} from '@glyphsmith/core-model'
+} from '@iconotype/core-model'
 
 /**
- * The `.glyphsmith.json` project file.
+ * The `.iconotype.json` project file.
  *
  * One committed file per icon font. It holds the artwork, the codepoints AND where a
  * build writes its output, so the editor, the CLI and CI all agree without a second
  * config. Deliberately flat and stable: this file lands in pull requests, so a one-icon
  * change should be a one-hunk diff.
  */
-export const ICONFONT_EXTENSION = '.glyphsmith.json'
+export const ICONFONT_EXTENSION = '.iconotype.json'
 export const ICONFONT_SCHEMA_VERSION = 1
 
 export interface IconFontIcon {
@@ -125,7 +125,7 @@ export function toIconFontFile(project: Project): IconFontFile {
     }))
 
   return {
-    $schema: 'https://glyphsmith.dev/schema/iconfont-1.json',
+    $schema: 'https://iconotype.dev/schema/iconfont-1.json',
     schemaVersion: ICONFONT_SCHEMA_VERSION,
     name: prefs.family,
     font: {
@@ -156,7 +156,7 @@ export function toIconFontFile(project: Project): IconFontFile {
 export function fromIconFontFile(file: IconFontFile, id = 'p0'): Project {
   if (file.schemaVersion > ICONFONT_SCHEMA_VERSION) {
     throw new Error(
-      `this project needs a newer Glyphsmith: file schemaVersion ${file.schemaVersion}, this build understands ${ICONFONT_SCHEMA_VERSION}`,
+      `this project needs a newer Iconotype: file schemaVersion ${file.schemaVersion}, this build understands ${ICONFONT_SCHEMA_VERSION}`,
     )
   }
   const prefs = defaultPreferences()
@@ -234,7 +234,7 @@ export const serializeIconFont = (project: Project): string =>
 export function parseIconFont(text: string, id?: string): Project {
   const data = JSON.parse(text) as IconFontFile
   if (typeof data?.schemaVersion !== 'number' || !Array.isArray(data.icons)) {
-    throw new Error('not a Glyphsmith icon font file (expected schemaVersion and icons)')
+    throw new Error('not a Iconotype icon font file (expected schemaVersion and icons)')
   }
   return fromIconFontFile(data, id)
 }

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { run } from '../src/cli.js'
 import { diffProjects, loadProject } from '../src/commands.js'
-import { importIcoMoon } from '@glyphsmith/core-io'
+import { importIcoMoon } from '@iconotype/core-io'
 
 const FIXTURE = fileURLToPath(new URL('../../../fixtures/icomoon/alpimaps.json', import.meta.url))
 const SVG_FIXTURES = fileURLToPath(new URL('../../../fixtures/svg/', import.meta.url))
@@ -15,11 +15,11 @@ let err: string[] = []
 const io = { log: (m: string) => out.push(m), error: (m: string) => err.push(m) }
 const exec = (...argv: string[]) => run(argv, io)
 
-const tmp = () => mkdtempSync(join(tmpdir(), 'glyphsmith-'))
+const tmp = () => mkdtempSync(join(tmpdir(), 'iconotype-'))
 
 beforeEach(() => { out = []; err = [] })
 
-describe('glyphsmith build', () => {
+describe('iconotype build', () => {
   it('builds a full package from a real IcoMoon project', async () => {
     const dir = tmp()
     expect(await exec('build', '--input', FIXTURE, '--out', dir, '--types', '--components', 'svelte,react')).toBe(0)
@@ -89,10 +89,10 @@ describe('glyphsmith build', () => {
   })
 })
 
-describe('glyphsmith init', () => {
-  it('turns an IcoMoon project into a committed .glyphsmith.json', async () => {
+describe('iconotype init', () => {
+  it('turns an IcoMoon project into a committed .iconotype.json', async () => {
     const dir = tmp()
-    const out = join(dir, 'app.glyphsmith.json')
+    const out = join(dir, 'app.iconotype.json')
     expect(await exec(
       'init', '--input', FIXTURE, '--out', out, '--name', 'app', '--prefix', 'app-',
       '--fonts-dir', 'app/fonts', '--styles-dir', 'app/css', '--style-kind', 'scss-variables',
@@ -109,7 +109,7 @@ describe('glyphsmith init', () => {
     })
     // codepoints come across untouched — they are the font's API
     expect(file.icons.find((i: { name: string }) => i.name === 'directions_walk').code).toBe('e910')
-    expect(out).toContain('.glyphsmith.json')
+    expect(out).toContain('.iconotype.json')
   })
 
   /**
@@ -119,7 +119,7 @@ describe('glyphsmith init', () => {
    */
   it('writes to the paths the project file names, with no --out', async () => {
     const dir = tmp()
-    const project = join(dir, 'app.glyphsmith.json')
+    const project = join(dir, 'app.iconotype.json')
     await exec(
       'init', '--input', FIXTURE, '--out', project, '--name', 'app',
       '--fonts-dir', 'app/fonts', '--styles-dir', 'app/css', '--style-kind', 'scss-variables',
@@ -140,7 +140,7 @@ describe('glyphsmith init', () => {
 
   it('--out still produces the packaged layout', async () => {
     const dir = tmp()
-    const project = join(dir, 'kit.glyphsmith.json')
+    const project = join(dir, 'kit.iconotype.json')
     await exec('init', '--input', FIXTURE, '--out', project, '--name', 'kit', '--fonts-dir', 'assets/fonts')
     expect(await exec('build', '--input', project, '--out', join(dir, 'dist'), '--quiet')).toBe(0)
     expect(existsSync(join(dir, 'dist', 'fonts', 'kit.woff2'))).toBe(true)
@@ -150,10 +150,10 @@ describe('glyphsmith init', () => {
   })
 
   // Regression: the CLI must read the very file format it writes. It first mistook a
-  // .glyphsmith.json for a raw internal Project because both carry schemaVersion: 1.
+  // .iconotype.json for a raw internal Project because both carry schemaVersion: 1.
   it('round-trips: init writes it, every other command reads it', async () => {
     const dir = tmp()
-    const project = join(dir, 'kit.glyphsmith.json')
+    const project = join(dir, 'kit.iconotype.json')
     await exec('init', '--input', FIXTURE, '--out', project, '--name', 'kit')
 
     out = []
@@ -170,7 +170,7 @@ describe('glyphsmith init', () => {
   it('works from a folder of SVGs too', async () => {
     const src = tmp()
     writeFileSync(join(src, 'star.svg'), readFileSync(join(SVG_FIXTURES, 'shape-polygon.svg')))
-    const out = join(tmp(), 'icons.glyphsmith.json')
+    const out = join(tmp(), 'icons.iconotype.json')
     expect(await exec('init', '--input', src, '--out', out, '--name', 'icons')).toBe(0)
     const file = JSON.parse(readFileSync(out, 'utf8'))
     expect(file.icons.map((i: { name: string }) => i.name)).toEqual(['star'])
@@ -178,7 +178,7 @@ describe('glyphsmith init', () => {
   })
 })
 
-describe('glyphsmith lint', () => {
+describe('iconotype lint', () => {
   it('reports what the fixer would change in a folder of SVGs', async () => {
     const src = tmp()
     writeFileSync(join(src, 'masked.svg'), readFileSync(join(SVG_FIXTURES, 'mask-black-cuts.svg')))
@@ -211,7 +211,7 @@ describe('glyphsmith lint', () => {
   })
 })
 
-describe('glyphsmith fix', () => {
+describe('iconotype fix', () => {
   it('is a dry run unless --write is passed', async () => {
     const src = tmp()
     const file = join(src, 'stroke.svg')
@@ -230,7 +230,7 @@ describe('glyphsmith fix', () => {
   })
 })
 
-describe('glyphsmith diff', () => {
+describe('iconotype diff', () => {
   const base = () => importIcoMoon(JSON.parse(readFileSync(FIXTURE, 'utf8'))).project
 
   it('sees an addition as non-breaking', () => {
@@ -282,7 +282,7 @@ describe('glyphsmith diff', () => {
   })
 })
 
-describe('glyphsmith scan', () => {
+describe('iconotype scan', () => {
   it('finds which icons a codebase references', async () => {
     const source = tmp()
     mkdirSync(join(source, 'components'), { recursive: true })
@@ -305,7 +305,7 @@ describe('glyphsmith scan', () => {
    */
   it('ignores the stylesheet it generated itself', async () => {
     const dir = tmp()
-    const project = join(dir, 'app.glyphsmith.json')
+    const project = join(dir, 'app.iconotype.json')
     await exec('init', '--input', FIXTURE, '--out', project, '--name', 'app', '--prefix', 'app-',
       '--fonts-dir', 'app/fonts', '--styles-dir', 'app/css', '--style-kind', 'scss-variables')
     await exec('build', '--input', project)
@@ -327,7 +327,7 @@ describe('glyphsmith scan', () => {
   })
 })
 
-describe('glyphsmith info and usage', () => {
+describe('iconotype info and usage', () => {
   it('summarises a project', async () => {
     expect(await exec('info', '--input', FIXTURE, '--json')).toBe(0)
     const summary = JSON.parse(out.join('\n'))
@@ -339,7 +339,7 @@ describe('glyphsmith info and usage', () => {
 
   it('prints usage and exits non-zero with no command', async () => {
     expect(await exec()).toBe(1)
-    expect(out.join()).toMatch(/usage: glyphsmith/)
+    expect(out.join()).toMatch(/usage: iconotype/)
   })
 
   it('rejects an unknown command', async () => {

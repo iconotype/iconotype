@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Glyph } from '@glyphsmith/core-model'
-  import { hex } from '@glyphsmith/core-model'
+  import type { Glyph } from '@iconotype/core-model'
+  import { hex } from '@iconotype/core-model'
   import { useApp } from './app.svelte.js'
 
   let { glyph, height, size }: { glyph: Glyph; height: number; size: number } = $props()
@@ -39,7 +39,7 @@
     position: relative;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
     background: transparent; color: var(--gs-fg);
-    border: 1px solid var(--gs-border); border-radius: 4px; padding: 8px 4px 5px;
+    border: 1px solid var(--gs-border); border-radius: var(--gs-radius); padding: 8px 4px 5px;
     overflow: hidden; cursor: pointer;
   }
   .cell:hover { background: var(--gs-hover); }
@@ -47,7 +47,7 @@
   svg { display: block; }
   .badge { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; }
   .badge.error { background: var(--gs-error); }
-  .badge.warning { background: var(--vscode-editorWarning-foreground, #d7a03c); }
+  .badge.warning { background: var(--gs-warn); }
   .name, .code { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .name { color: var(--gs-fg); }
   .code { color: var(--gs-muted); font-family: var(--gs-mono); font-size: 9px; }

@@ -11,7 +11,7 @@ Legend: **P0** = required for first useful release · **P1** = parity completion
 | 1.1 | Multiple projects, list view, duplicate, rename, delete | P0 | new IcoMoon "Projects" screen |
 | 1.2 | Import IcoMoon project `.json` | P0 | see [06](06-import-export.md); real-world file verified |
 | 1.3 | Import IcoMoon `selection.json` / downloaded zip | P0 | |
-| 1.4 | Export project (`.glyphsmith` zip / folder) | P0 | |
+| 1.4 | Export project (`.iconotype` zip / folder) | P0 | |
 | 1.5 | Open folder project (watch mode) | P1 | desktop + VSCode only |
 | 1.6 | Named history list, undo/redo | P0 | ops model, [02](02-architecture.md) |
 | 1.7 | History **branches** | P2 | new IcoMoon has this; falls out of the tree model |
@@ -159,12 +159,12 @@ Modeled on new IcoMoon's editor, but glyph-constrained.
 ## 11. CLI
 
 ```bash
-glyphsmith build            # icons/ + config → dist fonts, deterministic
-glyphsmith lint             # SVG problems, exit code for CI
-glyphsmith fix --write      # apply normalization to source SVGs
-glyphsmith diff old new     # added/removed/changed/moved codepoints; breaking?
-glyphsmith scan ./src       # find used icon names → unused report / subset
-glyphsmith import icomoon.json
+iconotype build            # icons/ + config → dist fonts, deterministic
+iconotype lint             # SVG problems, exit code for CI
+iconotype fix --write      # apply normalization to source SVGs
+iconotype diff old new     # added/removed/changed/moved codepoints; breaking?
+iconotype scan ./src       # find used icon names → unused report / subset
+iconotype import icomoon.json
 ```
 
 ## 12. VSCode — see [07](07-vscode-extension.md)

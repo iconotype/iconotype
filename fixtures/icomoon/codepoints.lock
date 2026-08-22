@@ -1,4 +1,4 @@
-# glyphsmith codepoint lock — append-only.
+# iconotype codepoint lock — append-only.
 # Changing an existing line is a BREAKING change for every consumer of this font.
 
 change_left	U+e900

@@ -12,7 +12,7 @@
  * Import it ONLY through `heavy()` in `lazy.ts`, never directly, or the boundary is
  * gone and the split silently stops working.
  */
-export { fixSvg, fixPaths } from '@glyphsmith/core-svg'
-export { importSvg, importIcoMoon, importIcoMoonZip, importSvgZip } from '@glyphsmith/core-io'
-export { resolveOutputs } from '@glyphsmith/core-export'
-export type { OutputFile } from '@glyphsmith/core-export'
+export { fixSvg, fixPaths } from '@iconotype/core-svg'
+export { importSvg, importIcoMoon, importIcoMoonZip, importSvgZip } from '@iconotype/core-io'
+export { resolveOutputs } from '@iconotype/core-export'
+export type { OutputFile } from '@iconotype/core-export'

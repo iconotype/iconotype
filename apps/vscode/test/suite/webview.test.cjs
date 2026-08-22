@@ -11,21 +11,21 @@ const waitFor = (panel, type, ms = 20000) =>
     })
   })
 
-suite('glyphsmith webview', function () {
+suite('iconotype webview', function () {
   this.timeout(90000)
 
-  // M5 moved panel creation behind the `glyphsmith.open` command, so the CSP and RPC
+  // M5 moved panel creation behind the `iconotype.open` command, so the CSP and RPC
   // guarantees are re-verified through the same path a user takes.
-  const ext = () => vscode.extensions.all.find((e) => e.id === 'glyphsmith.glyphsmith-vscode')
+  const ext = () => vscode.extensions.all.find((e) => e.id === 'iconotype.iconotype-vscode')
 
   const boot = async () => {
-    const ext = vscode.extensions.all.find((e) => e.id === 'glyphsmith.glyphsmith-vscode')
+    const ext = vscode.extensions.all.find((e) => e.id === 'iconotype.iconotype-vscode')
     await ext.activate()
 
     // do not depend on another suite having run first: make sure a font exists
     if (!ext.exports.registry.fonts.some((f) => !f.error)) {
       const root = vscode.workspace.workspaceFolders[0].uri.fsPath
-      const file = path.join(root, 'webview-fixture.glyphsmith.json')
+      const file = path.join(root, 'webview-fixture.iconotype.json')
       fs.writeFileSync(file, JSON.stringify({
         schemaVersion: 1,
         name: 'wv',
@@ -39,8 +39,8 @@ suite('glyphsmith webview', function () {
     // otherwise open a quick pick that nothing can answer in a headless run
     const font = ext.exports.registry.fonts.find((f) => !f.error)
     assert.ok(font, 'no icon font in the test workspace')
-    const panel = await vscode.commands.executeCommand('glyphsmith.open', font.uri)
-    assert.ok(panel, 'glyphsmith.open did not return a webview panel')
+    const panel = await vscode.commands.executeCommand('iconotype.open', font.uri)
+    assert.ok(panel, 'iconotype.open did not return a webview panel')
     const ready = await waitFor(panel, 'ready')
     return { panel, ready }
   }
@@ -111,14 +111,14 @@ suite('glyphsmith webview', function () {
     const beforeIcons = JSON.parse(before).icons.length
     assert.ok(beforeIcons > 0, 'the fixture must have icons for this to prove anything')
 
-    const panel = await vscode.commands.executeCommand('glyphsmith.open', font.uri)
+    const panel = await vscode.commands.executeCommand('iconotype.open', font.uri)
     await waitFor(panel, 'ready')
     // long enough for a save effect to have fired and been written
     await new Promise((r) => setTimeout(r, 1500))
 
     const after = JSON.parse(fs.readFileSync(font.uri.fsPath, 'utf8'))
     assert.strictEqual(after.icons.length, beforeIcons, 'the artwork was wiped by opening the editor')
-    assert.notStrictEqual(after.name, 'glyphsmith', 'the placeholder project was written over the real one')
+    assert.notStrictEqual(after.name, 'iconotype', 'the placeholder project was written over the real one')
     panel.dispose()
   })
 
@@ -126,7 +126,7 @@ suite('glyphsmith webview', function () {
     const font = ext().exports.registry.fonts.find((f) => !f.error)
     const before = fs.readFileSync(font.uri.fsPath, 'utf8')
 
-    const panel = await vscode.commands.executeCommand('glyphsmith.open', font.uri)
+    const panel = await vscode.commands.executeCommand('iconotype.open', font.uri)
     await waitFor(panel, 'ready')
     await panel.webview.postMessage({
       type: 'test:rawSave',

@@ -19,6 +19,8 @@ export function createWebHost(assetBase = '/'): Host {
     name: 'web',
     capabilities: { realFs: false, watch: false, saveDialog: false },
     assetBase: () => assetBase,
+    // shipped in the app's own public/ so it works offline and on a Pages subpath
+    sampleProjectUrl: () => `${assetBase.replace(/\/?$/, '/')}sample/alpimaps.json`,
     fs: {
       async read(path) {
         const { dirPath, file } = split(path)

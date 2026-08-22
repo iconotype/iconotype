@@ -1,13 +1,13 @@
 import { parseArgs } from 'node:util'
 import { build, diff, fix, info, init, lint, scan, type Io } from './commands.js'
-import type { ComponentTarget } from '@glyphsmith/core-export'
+import type { ComponentTarget } from '@iconotype/core-export'
 
-const USAGE = `glyphsmith — icon font toolchain
+const USAGE = `iconotype — icon font toolchain
 
-usage: glyphsmith <command> [options]
+usage: iconotype <command> [options]
 
 commands:
-  init      create a committed .glyphsmith.json from an existing project or SVG folder
+  init      create a committed .iconotype.json from an existing project or SVG folder
   build     build the font package from a project or a folder of SVGs
   lint      report what the fixer would have to change; non-zero exit on errors
   fix       rewrite source SVGs through the fixer pipeline
@@ -32,7 +32,7 @@ build options:
       --types            emit icons.d.ts with a union of every icon name
 
 init options:
-      --out <file>       where to write it                (default: <name>.glyphsmith.json)
+      --out <file>       where to write it                (default: <name>.iconotype.json)
       --name <name>      font family, class prefix root   (default: from the source)
       --prefix <p>       class prefix, e.g. app- — this is what autocompletion triggers
                          on. Defaults to the source project's, so existing markup keeps
@@ -60,12 +60,12 @@ scan options:
       --fail-on-unused   exit non-zero when an icon is never referenced
 
 examples:
-  glyphsmith init --input icomoon/selection.json --name app \
+  iconotype init --input icomoon/selection.json --name app \
       --fonts-dir app/fonts --styles-dir app/css --style-kind scss-variables
-  glyphsmith build --input icons --out dist --components svelte --types
-  glyphsmith lint --input icons --max-warnings 0
-  glyphsmith diff dist/selection.json icons --allow-breaking
-  glyphsmith scan --input icons --source src --json
+  iconotype build --input icons --out dist --components svelte --types
+  iconotype lint --input icons --max-warnings 0
+  iconotype diff dist/selection.json icons --allow-breaking
+  iconotype scan --input icons --source src --json
 `
 
 const list = (v: string | undefined): string[] | undefined =>
@@ -148,7 +148,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
         const before = v.input ?? positionals[0]
         const after = v.input ? positionals[0] : positionals[1]
         if (!before || !after) {
-          io.error('error: diff needs two projects — glyphsmith diff <before> <after>')
+          io.error('error: diff needs two projects — iconotype diff <before> <after>')
           return 2
         }
         return await diff({ before, after, json: v.json, allowBreaking: v['allow-breaking'] }, io)
@@ -175,7 +175,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
  * is therefore unavailable here, hence the argv check.
  * The commands themselves are covered by tests that call run() directly.
  */
-if (process.argv[1]?.includes('glyphsmith')) {
+if (process.argv[1]?.includes('iconotype')) {
   const io: Io = { log: (m) => console.log(m), error: (m) => console.error(m) }
   run(process.argv.slice(2), io).then((code) => { process.exitCode = code })
 }

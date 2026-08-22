@@ -1,5 +1,5 @@
 {
-  "name": "@glyphsmith/core-font",
+  "name": "@iconotype/core-font",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@glyphsmith/core-model": "workspace:*",
+    "@iconotype/core-model": "workspace:*",
     "svg2ttf": "^6.1.0",
     "ttf2woff": "^3.0.0",
     "woff2-encoder": "^2.0.0",
@@ -15,6 +15,6 @@
   },
   "devDependencies": {
     "opentype.js": "^2.0.0",
-    "@glyphsmith/core-io": "workspace:*"
+    "@iconotype/core-io": "workspace:*"
   }
 }

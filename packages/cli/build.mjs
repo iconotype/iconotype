@@ -18,7 +18,7 @@ await build({
   platform: 'node',
   target: 'node20',
   format: 'cjs',
-  outfile: 'bin/glyphsmith.cjs',
+  outfile: 'bin/iconotype.cjs',
   packages: 'external',
   banner: { js: '#!/usr/bin/env node' },
   logLevel: 'info',

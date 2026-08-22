@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createMemoryHost } from '@glyphsmith/core-host'
-import { emptyProject } from '@glyphsmith/core-model'
+import { createMemoryHost } from '@iconotype/core-host'
+import { emptyProject } from '@iconotype/core-model'
 import { deleteProject, listProjects, loadProject, saveProject } from '../src/persistence.js'
 
 describe('project persistence', () => {

@@ -33,7 +33,7 @@ function distance(a: string, b: string): number {
 }
 
 export class IconDiagnostics implements vscode.Disposable {
-  #collection = vscode.languages.createDiagnosticCollection('glyphsmith')
+  #collection = vscode.languages.createDiagnosticCollection('iconotype')
   #timer?: ReturnType<typeof setTimeout>
 
   constructor(private registry: IconFontRegistry) {}
@@ -47,7 +47,7 @@ export class IconDiagnostics implements vscode.Disposable {
 
   refresh(document: vscode.TextDocument): void {
     if (!SUPPORTED_LANGUAGES.includes(document.languageId)) return
-    const enabled = vscode.workspace.getConfiguration('glyphsmith').get<boolean>('diagnostics.enabled', true)
+    const enabled = vscode.workspace.getConfiguration('iconotype').get<boolean>('diagnostics.enabled', true)
     this.#collection.set(document.uri, enabled ? this.diagnosticsFor(document) : [])
   }
 
@@ -81,7 +81,7 @@ export class IconDiagnostics implements vscode.Disposable {
           vscode.DiagnosticSeverity.Warning,
         )
         diagnostic.code = 'excluded-icon'
-        diagnostic.source = 'glyphsmith'
+        diagnostic.source = 'iconotype'
         out.push(diagnostic)
         continue
       }
@@ -100,7 +100,7 @@ export class IconDiagnostics implements vscode.Disposable {
         vscode.DiagnosticSeverity.Warning,
       )
       diagnostic.code = 'unknown-icon'
-      diagnostic.source = 'glyphsmith'
+      diagnostic.source = 'iconotype'
       // carried so the quick fix does not have to recompute it
       ;(diagnostic as vscode.Diagnostic & { suggestion?: string }).suggestion =
         suggestion ? `${hit.prefix}${suggestion}` : undefined
@@ -126,7 +126,7 @@ export class IconQuickFixes implements vscode.CodeActionProvider {
   ): vscode.CodeAction[] {
     const actions: vscode.CodeAction[] = []
     for (const diagnostic of context.diagnostics) {
-      if (diagnostic.source !== 'glyphsmith') continue
+      if (diagnostic.source !== 'iconotype') continue
       const suggestion = (diagnostic as vscode.Diagnostic & { suggestion?: string }).suggestion
       if (!suggestion) continue
 

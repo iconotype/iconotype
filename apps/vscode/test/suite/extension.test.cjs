@@ -38,19 +38,19 @@ const uri = (...parts) => vscode.Uri.file(path.join(workspace, ...parts))
 const readText = (p) => fs.readFileSync(path.join(workspace, p), 'utf8')
 const exists = (p) => fs.existsSync(path.join(workspace, p))
 
-suite('glyphsmith extension', function () {
+suite('iconotype extension', function () {
   this.timeout(120000)
 
   suiteSetup(async () => {
     workspace = vscode.workspace.workspaceFolders[0].uri.fsPath
     fs.mkdirSync(path.join(workspace, 'src'), { recursive: true })
-    fs.writeFileSync(path.join(workspace, 'app.glyphsmith.json'), JSON.stringify(FIXTURE, null, 2))
+    fs.writeFileSync(path.join(workspace, 'app.iconotype.json'), JSON.stringify(FIXTURE, null, 2))
     fs.writeFileSync(
       path.join(workspace, 'src', 'page.html'),
       '<i class="app-home"></i>\n<i class="app-home"></i>\n<span class="app-user"></span>\n',
     )
 
-    const extension = vscode.extensions.all.find((e) => e.id === 'glyphsmith.glyphsmith-vscode')
+    const extension = vscode.extensions.all.find((e) => e.id === 'iconotype.iconotype-vscode')
     assert.ok(extension, 'extension not found')
     api = await extension.activate()
     await api.registry.initialize()
@@ -222,17 +222,17 @@ suite('glyphsmith extension', function () {
     // and the existing ones must not move
     assert.strictEqual(font.project.codepoints.home, 0xe900)
 
-    const onDisk = JSON.parse(readText('app.glyphsmith.json'))
+    const onDisk = JSON.parse(readText('app.iconotype.json'))
     assert.ok(onDisk.icons.some((i) => i.name === 'star'), 'the project file was not updated')
   })
 
   test('toggling selection is written to the project file', async () => {
     const font = appFont()
     const legacy = font.project.sets[0].glyphs.find((g) => g.name === 'legacy')
-    await vscode.commands.executeCommand('glyphsmith.toggleIcon', { font, glyph: legacy })
+    await vscode.commands.executeCommand('iconotype.toggleIcon', { font, glyph: legacy })
     await wait(400)
 
-    const onDisk = JSON.parse(readText('app.glyphsmith.json'))
+    const onDisk = JSON.parse(readText('app.iconotype.json'))
     const entry = onDisk.icons.find((i) => i.name === 'legacy')
     assert.ok(!('selected' in entry) || entry.selected === true, 'legacy should now be included')
     assert.ok(api.registry.selected(appFont()).some((g) => g.name === 'legacy'))
@@ -240,7 +240,7 @@ suite('glyphsmith extension', function () {
 
   // The knobs IcoMoon exposes on its export panel, driven from the project file.
   test('honours the font export settings', async () => {
-    const file = path.join(workspace, 'settings.glyphsmith.json')
+    const file = path.join(workspace, 'settings.iconotype.json')
     fs.writeFileSync(file, JSON.stringify({
       schemaVersion: 1,
       name: 'kit',
@@ -281,7 +281,7 @@ suite('glyphsmith extension', function () {
     // set the state this test asserts on, rather than inheriting it from another test
     const font = appFont()
     const user = font.project.sets[0].glyphs.find((g) => g.name === 'user')
-    await vscode.commands.executeCommand('glyphsmith.toggleIcon', { font, glyph: { ...user, selected: true } })
+    await vscode.commands.executeCommand('iconotype.toggleIcon', { font, glyph: { ...user, selected: true } })
     await wait(400)
 
     const html = api.grid.renderHtml({ cspSource: 'vscode-resource:' })
@@ -326,7 +326,7 @@ suite('glyphsmith extension', function () {
   test('flags an icon that exists but is excluded from the built font', async () => {
     const font = appFont()
     const user = font.project.sets[0].glyphs.find((g) => g.name === 'user')
-    await vscode.commands.executeCommand('glyphsmith.toggleIcon', { font, glyph: { ...user, selected: true } })
+    await vscode.commands.executeCommand('iconotype.toggleIcon', { font, glyph: { ...user, selected: true } })
     await wait(400)
 
     const document = await vscode.workspace.openTextDocument({
@@ -338,7 +338,7 @@ suite('glyphsmith extension', function () {
     assert.match(found[0].message, /will render nothing/)
 
     // put it back for the tests that follow
-    await vscode.commands.executeCommand('glyphsmith.toggleIcon', {
+    await vscode.commands.executeCommand('iconotype.toggleIcon', {
       font: appFont(), glyph: { ...user, selected: false },
     })
     await wait(400)
@@ -395,7 +395,7 @@ suite('glyphsmith extension', function () {
     assert.match(html, /app-profile/, 'the reference was not renamed')
     assert.doesNotMatch(html, /app-user/, 'an old reference was left behind')
 
-    const onDisk = JSON.parse(readText('app.glyphsmith.json'))
+    const onDisk = JSON.parse(readText('app.iconotype.json'))
     const renamed = onDisk.icons.find((i) => i.name === 'profile')
     assert.ok(renamed, 'the project file was not updated')
     assert.strictEqual(renamed.code, 'e901', 'the codepoint must NOT move on a rename')
@@ -419,7 +419,7 @@ suite('glyphsmith extension', function () {
     )
     assert.ok(targets.length >= 1)
     const target = targets[0].uri ?? targets[0].targetUri
-    assert.match(target.path, /app\.glyphsmith\.json$/)
+    assert.match(target.path, /app\.iconotype\.json$/)
   })
 
   test('keeps the usage index current when a file is saved', async () => {
@@ -434,7 +434,7 @@ suite('glyphsmith extension', function () {
 
   test('registers every contributed command', async () => {
     const commands = await vscode.commands.getCommands(true)
-    const extension = vscode.extensions.all.find((e) => e.id === 'glyphsmith.glyphsmith-vscode')
+    const extension = vscode.extensions.all.find((e) => e.id === 'iconotype.iconotype-vscode')
     // read the manifest rather than a hand-kept list: a contributed-but-unregistered
     // command is a silent "command not found" the first time a user clicks it
     const contributed = extension.packageJSON.contributes.commands.map((c) => c.command)
@@ -445,7 +445,7 @@ suite('glyphsmith extension', function () {
   })
 
   test('keeps a broken project file visible instead of dropping it', async () => {
-    const broken = path.join(workspace, 'broken.glyphsmith.json')
+    const broken = path.join(workspace, 'broken.iconotype.json')
     fs.writeFileSync(broken, '{ not json')
     const font = await api.registry.load(vscode.Uri.file(broken))
     assert.ok(font.error, 'a parse failure must be reported on the font')
@@ -503,7 +503,7 @@ suite('glyphsmith extension', function () {
     fs.writeFileSync(file, '{"hello":"world"}')
     await assert.rejects(
       () => api.readImportable(vscode.Uri.file(file)),
-      (e) => /not-a-project\.json: not an IcoMoon or Glyphsmith project/.test(e.message),
+      (e) => /not-a-project\.json: not an IcoMoon or Iconotype project/.test(e.message),
     )
   })
 
@@ -567,13 +567,13 @@ suite('glyphsmith extension', function () {
       fontsDir: 'app/fonts/',
       stylesDir: 'app/css/',
       styleKind: 'scss-variables',
-      target: uri('brand.glyphsmith.json'),
+      target: uri('brand.iconotype.json'),
     })
 
     assert.strictEqual(project.name, 'brand')
     assert.strictEqual(project.preferences.font.family, 'brand')
     assert.strictEqual(project.preferences.font.prefix, 'brand-')
-    // the same layout `glyphsmith init` writes, from the same helper
+    // the same layout `iconotype init` writes, from the same helper
     assert.strictEqual(project.output.fonts.dir, 'app/fonts')
     assert.deepStrictEqual(project.output.styles, [{ kind: 'scss-variables', path: 'app/css/_brand.scss' }])
     // renaming the font must not renumber anything
@@ -607,7 +607,7 @@ suite('glyphsmith extension', function () {
       path.join(workspace, 'src', 'legacy.html'),
       ['<i class="mdi-home"></i>', '<i class="mdi-user"></i>', '<i class="mdi-home"></i>'].join('\n'),
     )
-    const other = path.join(workspace, 'other.glyphsmith.json')
+    const other = path.join(workspace, 'other.iconotype.json')
     fs.writeFileSync(other, JSON.stringify({
       schemaVersion: 1,
       name: 'other',
@@ -674,7 +674,7 @@ suite('glyphsmith extension', function () {
     const shown = vscode.window.showOpenDialog
     vscode.window.showOpenDialog = async () => [vscode.Uri.file(svg)]
     try {
-      await vscode.commands.executeCommand('glyphsmith.replaceIcon', { font, glyph: before })
+      await vscode.commands.executeCommand('iconotype.replaceIcon', { font, glyph: before })
     } finally {
       vscode.window.showOpenDialog = shown
     }
@@ -688,7 +688,7 @@ suite('glyphsmith extension', function () {
   })
 
   test('flattens a multicolor icon and releases its extra codepoints', async () => {
-    const file = path.join(workspace, 'multi.glyphsmith.json')
+    const file = path.join(workspace, 'multi.iconotype.json')
     fs.writeFileSync(file, JSON.stringify({
       schemaVersion: 1,
       name: 'multi',
@@ -709,7 +709,7 @@ suite('glyphsmith extension', function () {
     const shown = vscode.window.showWarningMessage
     vscode.window.showWarningMessage = async () => 'Flatten'
     try {
-      await vscode.commands.executeCommand('glyphsmith.flattenIcon', { font, glyph })
+      await vscode.commands.executeCommand('iconotype.flattenIcon', { font, glyph })
     } finally {
       vscode.window.showWarningMessage = shown
     }
@@ -734,7 +734,7 @@ suite('glyphsmith extension', function () {
   })
 
   test('honours a usage prefix that differs from the class prefix', async () => {
-    const file = path.join(workspace, 'aliased.glyphsmith.json')
+    const file = path.join(workspace, 'aliased.iconotype.json')
     fs.writeFileSync(file, JSON.stringify({
       schemaVersion: 1,
       name: 'aliased',
@@ -784,8 +784,8 @@ suite('glyphsmith extension', function () {
     assert.strictEqual(excludeGlobFor([]), '')
 
     // and the declared default matches what the code actually uses
-    const extension = vscode.extensions.all.find((e) => e.id === 'glyphsmith.glyphsmith-vscode')
-    const declared = extension.packageJSON.contributes.configuration.properties['glyphsmith.usage.excludeDirs'].default
+    const extension = vscode.extensions.all.find((e) => e.id === 'iconotype.iconotype-vscode')
+    const declared = extension.packageJSON.contributes.configuration.properties['iconotype.usage.excludeDirs'].default
     assert.deepStrictEqual(declared, DEFAULT_EXCLUDE_DIRS)
   })
 
@@ -793,7 +793,7 @@ suite('glyphsmith extension', function () {
     const font = appFont()
     await api.exports.refresh()
 
-    await vscode.commands.executeCommand('glyphsmith.export', font.uri)
+    await vscode.commands.executeCommand('iconotype.export', font.uri)
     await wait(400)
     await api.exports.refresh()
     assert.strictEqual(api.exports.isStale(appFont()), false, 'a font is not stale right after exporting it')
@@ -812,14 +812,14 @@ suite('glyphsmith extension', function () {
     assert.strictEqual(api.exports.isStale(appFont()), true, 'changed artwork must mark the font as pending')
 
     // and exporting clears it again
-    await vscode.commands.executeCommand('glyphsmith.exportPending')
+    await vscode.commands.executeCommand('iconotype.exportPending')
     await wait(400)
     await api.exports.refresh()
     assert.strictEqual(api.exports.isStale(appFont()), false)
   })
 
   test('an edit that cannot change the output does not mark it pending', async () => {
-    await vscode.commands.executeCommand('glyphsmith.export', appFont().uri)
+    await vscode.commands.executeCommand('iconotype.export', appFont().uri)
     await wait(400)
     await api.exports.refresh()
     assert.strictEqual(api.exports.isStale(appFont()), false)
@@ -838,7 +838,7 @@ suite('glyphsmith extension', function () {
   })
 
   test('a missing output file is stale whatever the stamp says', async () => {
-    await vscode.commands.executeCommand('glyphsmith.export', appFont().uri)
+    await vscode.commands.executeCommand('iconotype.export', appFont().uri)
     await wait(400)
     await api.exports.refresh()
     assert.strictEqual(api.exports.isStale(appFont()), false)
@@ -848,7 +848,7 @@ suite('glyphsmith extension', function () {
     await api.exports.refresh()
     assert.strictEqual(api.exports.isStale(appFont()), true)
 
-    await vscode.commands.executeCommand('glyphsmith.exportPending')
+    await vscode.commands.executeCommand('iconotype.exportPending')
     await wait(400)
     await api.exports.refresh()
     assert.ok(exists('app/fonts/app.woff2'))
@@ -885,15 +885,15 @@ suite('glyphsmith extension', function () {
     const item = await api.fontTree.getTreeItem(node)
     assert.match(item.description, /export pending/)
 
-    await vscode.commands.executeCommand('glyphsmith.exportPending')
+    await vscode.commands.executeCommand('iconotype.exportPending')
     await wait(400)
   })
 
   test('the generated stylesheet is a link, not a use', async () => {
-    await vscode.commands.executeCommand('glyphsmith.export', appFont().uri)
+    await vscode.commands.executeCommand('iconotype.export', appFont().uri)
     await wait(400)
 
-    // a stylesheet from BEFORE this was a Glyphsmith project: not at a configured
+    // a stylesheet from BEFORE this was a Iconotype project: not at a configured
     // output path, but still generated, and it names every icon
     fs.mkdirSync(path.join(workspace, 'legacy-css'), { recursive: true })
     fs.writeFileSync(path.join(workspace, 'legacy-css', 'icomoon.css'), [

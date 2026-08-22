@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
-import { apply } from '@glyphsmith/core-model'
-import { serializeIconFont } from '@glyphsmith/core-io/iconfont-file'
+import { apply } from '@iconotype/core-model'
+import { serializeIconFont } from '@iconotype/core-io/iconfont-file'
 import type { IconFontRegistry, IconRef } from './registry.js'
 import type { UsageIndex } from './usage.js'
 

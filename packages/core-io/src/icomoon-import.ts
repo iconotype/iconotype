@@ -1,7 +1,7 @@
 import {
   defaultPreferences, emptySet,
   type Glyph, type IconSet, type Preferences, type Project,
-} from '@glyphsmith/core-model'
+} from '@iconotype/core-model'
 import { capture } from './preserve.js'
 import {
   detectIcoMoon,

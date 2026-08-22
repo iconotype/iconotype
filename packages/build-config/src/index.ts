@@ -31,7 +31,7 @@ export const paperAlias = { paper: 'paper/dist/paper-core.js' } as const
  */
 export function assertNoInlineAssets(): Plugin {
   return {
-    name: 'glyphsmith:assert-no-inline-assets',
+    name: 'iconotype:assert-no-inline-assets',
     enforce: 'post',
     generateBundle(_opts, bundle) {
       for (const [file, chunk] of Object.entries(bundle)) {

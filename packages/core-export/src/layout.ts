@@ -1,4 +1,4 @@
-import type { OutputConfig, Project, StyleOutputKind } from '@glyphsmith/core-model'
+import type { OutputConfig, Project, StyleOutputKind } from '@iconotype/core-model'
 
 /**
  * Paths, names and fingerprints — everything about an export that can be decided

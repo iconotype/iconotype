@@ -157,7 +157,7 @@ export class IconDecorator implements vscode.Disposable {
 
   refresh(editor: vscode.TextEditor | undefined): void {
     if (!editor) return
-    const enabled = vscode.workspace.getConfiguration('glyphsmith').get<boolean>('decorations.enabled', true)
+    const enabled = vscode.workspace.getConfiguration('iconotype').get<boolean>('decorations.enabled', true)
     if (!enabled) {
       editor.setDecorations(this.#type, [])
       return

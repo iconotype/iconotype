@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path'
-import { emptyProject, emptySet, allocate, parseLock, type Project } from '@glyphsmith/core-model'
+import { emptyProject, emptySet, allocate, parseLock, type Project } from '@iconotype/core-model'
 import {
   fromIconFontFile, importIcoMoon, importIcoMoonZip, importSvg, isIcoMoonFile, isIconFontFile,
-} from '@glyphsmith/core-io'
+} from '@iconotype/core-io'
 
 export interface LoadResult {
   project: Project
@@ -23,7 +23,7 @@ const svgFilesIn = (dir: string): string[] => {
 }
 
 /**
- * Loads a project from whatever the user points at: an IcoMoon or Glyphsmith JSON
+ * Loads a project from whatever the user points at: an IcoMoon or Iconotype JSON
  * file, an IcoMoon zip, or a directory of SVGs.
  *
  * A `codepoints.lock` next to the input is applied BEFORE allocation, which is what
@@ -56,7 +56,7 @@ export function loadProject(input: string, opts: { lock?: string; targetHeight?:
   } else {
     const data = JSON.parse(readFileSync(input, 'utf8')) as unknown
     if (isIconFontFile(data)) {
-      // the committed `.glyphsmith.json` the editor extension reads and writes
+      // the committed `.iconotype.json` the editor extension reads and writes
       project = fromIconFontFile(data, input)
     } else if (isIcoMoonFile(data)) {
       const result = importIcoMoon(data)
@@ -65,7 +65,7 @@ export function loadProject(input: string, opts: { lock?: string; targetHeight?:
     } else if (Array.isArray((data as Project).sets)) {
       project = data as Project
     } else {
-      throw new Error(`${input}: not a Glyphsmith or IcoMoon project`)
+      throw new Error(`${input}: not a Iconotype or IcoMoon project`)
     }
   }
 

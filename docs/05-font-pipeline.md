@@ -66,7 +66,7 @@ flag        U+E902..U+E904
 ```
 
 - Never reuse a freed codepoint by default (a stale CSS build would render the wrong icon). `--reclaim` opt-in for the brave.
-- `glyphsmith diff` classifies: `added`, `removed`, `path-changed`, `codepoint-moved`. Any `codepoint-moved` or `removed` = **breaking**, non-zero exit in CI.
+- `iconotype diff` classifies: `added`, `removed`, `path-changed`, `codepoint-moved`. Any `codepoint-moved` or `removed` = **breaking**, non-zero exit in CI.
 
 ## Ligatures
 

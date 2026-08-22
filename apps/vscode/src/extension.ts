@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
-import { apply, allocate, emptyProject, type Op, type Project } from '@glyphsmith/core-model'
-import { serializeIconFont, ICONFONT_EXTENSION } from '@glyphsmith/core-io/iconfont-file'
+import { apply, allocate, emptyProject, type Op, type Project } from '@iconotype/core-model'
+import { serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io/iconfont-file'
 import { heavy, heavyLoaded } from './lazy.js'
-import { webviewCsp } from '@glyphsmith/build-config'
+import { webviewCsp } from '@iconotype/build-config'
 import { IconFontRegistry, type IconFont } from './registry.js'
 import { GlyphIconCache } from './render.js'
 import { describeResult, exportFont, resolveOutputConfig } from './export.js'
@@ -82,18 +82,18 @@ export async function activate(context: vscode.ExtensionContext) {
   const usage = new UsageIndex(registry)
   const decorator = new IconDecorator(registry, icons)
   const diagnostics = new IconDiagnostics(registry)
-  const output = vscode.window.createOutputChannel('Glyphsmith')
+  const output = vscode.window.createOutputChannel('Iconotype')
   const exports = new ExportState(registry, context.workspaceState)
   context.subscriptions.push(registry, icons, usage, decorator, diagnostics, output, exports)
 
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
-  status.command = 'glyphsmith.exportAll'
+  status.command = 'iconotype.exportAll'
   context.subscriptions.push(status)
 
   const refreshStatus = () => {
     const fonts = registry.fonts
     // drives the welcome views: an empty workspace should offer importing, not scanning
-    void vscode.commands.executeCommand('setContext', 'glyphsmith.hasFonts', fonts.length > 0)
+    void vscode.commands.executeCommand('setContext', 'iconotype.hasFonts', fonts.length > 0)
     if (!fonts.length) { status.hide(); return }
     const total = fonts.reduce((n, f) => n + registry.selected(f).length, 0)
     const stale = exports.staleFonts
@@ -108,7 +108,7 @@ export async function activate(context: vscode.ExtensionContext) {
     status.backgroundColor = stale.length
       ? new vscode.ThemeColor('statusBarItem.warningBackground')
       : undefined
-    status.command = stale.length ? 'glyphsmith.exportPending' : 'glyphsmith.exportAll'
+    status.command = stale.length ? 'iconotype.exportPending' : 'iconotype.exportAll'
     status.show()
   }
 
@@ -121,8 +121,8 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     decorations,
     vscode.window.registerFileDecorationProvider(decorations),
-    vscode.window.registerTreeDataProvider('glyphsmith.fonts', fontTree),
-    vscode.window.registerTreeDataProvider('glyphsmith.usage', usageTree),
+    vscode.window.registerTreeDataProvider('iconotype.fonts', fontTree),
+    vscode.window.registerTreeDataProvider('iconotype.usage', usageTree),
     vscode.window.registerWebviewViewProvider(IconGridViewProvider.viewType, grid),
   )
 
@@ -135,7 +135,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // a font that failed to parse is never the one the user meant
     const fonts = registry.fonts.filter((f) => !f.error)
     if (fonts.length === 0) {
-      vscode.window.showWarningMessage('No icon fonts in this workspace. Run "Glyphsmith: New Icon Font" to create one.')
+      vscode.window.showWarningMessage('No icon fonts in this workspace. Run "Iconotype: New Icon Font" to create one.')
       return undefined
     }
     if (fonts.length === 1) return fonts[0]
@@ -155,7 +155,7 @@ export async function activate(context: vscode.ExtensionContext) {
       else vscode.window.setStatusBarMessage(`$(check) ${describeResult(result)}`, 4000)
     } catch (e) {
       output.appendLine(`${font.name}: export failed — ${(e as Error).message}`)
-      vscode.window.showErrorMessage(`Glyphsmith: export failed — ${(e as Error).message}`)
+      vscode.window.showErrorMessage(`Iconotype: export failed — ${(e as Error).message}`)
     }
   }
 
@@ -177,7 +177,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
     }
     if (!glyphs.length) {
-      vscode.window.showErrorMessage(`Glyphsmith: nothing importable.\n${warnings.join('\n')}`)
+      vscode.window.showErrorMessage(`Iconotype: nothing importable.\n${warnings.join('\n')}`)
       return
     }
     const withGlyphs = apply(font.project, { t: 'glyph.add', setId: set.id, glyphs }).next
@@ -188,9 +188,9 @@ export async function activate(context: vscode.ExtensionContext) {
     await mutate(registry, { ...font, project: withGlyphs }, { t: 'codepoint.assign', assignments })
 
     for (const warning of warnings) output.appendLine(warning)
-    if (overflow.length) vscode.window.showErrorMessage(`Glyphsmith: no codepoint available for ${overflow.join(', ')}`)
+    if (overflow.length) vscode.window.showErrorMessage(`Iconotype: no codepoint available for ${overflow.join(', ')}`)
     vscode.window.showInformationMessage(
-      `Glyphsmith: added ${glyphs.length} icon(s) to ${font.name}${warnings.length ? ` (${warnings.length} warning(s), see the output panel)` : ''}`)
+      `Iconotype: added ${glyphs.length} icon(s) to ${font.name}${warnings.length ? ` (${warnings.length} warning(s), see the output panel)` : ''}`)
   }
 
   /**
@@ -239,10 +239,10 @@ export async function activate(context: vscode.ExtensionContext) {
     const font = grid.activeFont
     switch (message.type) {
       case 'export': if (font) await runExport(font); return
-      case 'create': await vscode.commands.executeCommand('glyphsmith.newFont'); return
-      case 'importProject': await vscode.commands.executeCommand('glyphsmith.importProject'); return
-      case 'import': if (font) await vscode.commands.executeCommand('glyphsmith.addIcons', font.uri); return
-      case 'importIcons': if (font) await vscode.commands.executeCommand('glyphsmith.importIcons', font.uri); return
+      case 'create': await vscode.commands.executeCommand('iconotype.newFont'); return
+      case 'importProject': await vscode.commands.executeCommand('iconotype.importProject'); return
+      case 'import': if (font) await vscode.commands.executeCommand('iconotype.addIcons', font.uri); return
+      case 'importIcons': if (font) await vscode.commands.executeCommand('iconotype.importIcons', font.uri); return
       case 'toggle': {
         if (!font) return
         const glyph = font.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === message.id)
@@ -250,7 +250,7 @@ export async function activate(context: vscode.ExtensionContext) {
         await mutate(registry, font, { t: 'glyph.select', ids: [glyph.id], selected: glyph.selected === false })
         return
       }
-      case 'open': if (font) await vscode.commands.executeCommand('glyphsmith.open', font.uri, message.id); return
+      case 'open': if (font) await vscode.commands.executeCommand('iconotype.open', font.uri, message.id); return
       case 'settings': {
         // the collapsed panel in the grid is the quick path; this is the full file
         if (font) await vscode.window.showTextDocument(font.uri)
@@ -266,10 +266,10 @@ export async function activate(context: vscode.ExtensionContext) {
         const glyph = font.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === message.id)
         if (!glyph) return
         switch (message.action) {
-          case 'open': await vscode.commands.executeCommand('glyphsmith.open', font.uri, glyph.id); return
-          case 'usage': await vscode.commands.executeCommand('glyphsmith.showUsage', font.uri, glyph.name); return
-          case 'replace': await vscode.commands.executeCommand('glyphsmith.replaceIcon', { font, glyph }); return
-          case 'remove': await vscode.commands.executeCommand('glyphsmith.removeIcon', { font, glyph }); return
+          case 'open': await vscode.commands.executeCommand('iconotype.open', font.uri, glyph.id); return
+          case 'usage': await vscode.commands.executeCommand('iconotype.showUsage', font.uri, glyph.name); return
+          case 'replace': await vscode.commands.executeCommand('iconotype.replaceIcon', { font, glyph }); return
+          case 'remove': await vscode.commands.executeCommand('iconotype.removeIcon', { font, glyph }); return
           case 'toggle':
             await mutate(registry, font, { t: 'glyph.select', ids: [glyph.id], selected: glyph.selected === false })
             return
@@ -295,26 +295,26 @@ export async function activate(context: vscode.ExtensionContext) {
   const command = (name: string, handler: (...args: never[]) => unknown) =>
     context.subscriptions.push(vscode.commands.registerCommand(name, handler as never))
 
-  command('glyphsmith.export', async (uri?: vscode.Uri) => {
+  command('iconotype.export', async (uri?: vscode.Uri) => {
     const font = await pickFont(uri)
     if (font) await runExport(font)
   })
 
-  command('glyphsmith.exportPending', async () => {
+  command('iconotype.exportPending', async () => {
     const stale = exports.staleFonts
     if (!stale.length) {
-      vscode.window.setStatusBarMessage('$(check) Glyphsmith: everything is up to date', 3000)
+      vscode.window.setStatusBarMessage('$(check) Iconotype: everything is up to date', 3000)
       return
     }
     for (const font of stale) await runExport(font)
   })
 
-  command('glyphsmith.exportAll', async () => {
+  command('iconotype.exportAll', async () => {
     for (const font of registry.fonts) await runExport(font)
-    if (registry.fonts.length > 1) vscode.window.showInformationMessage(`Glyphsmith: exported ${registry.fonts.length} fonts`)
+    if (registry.fonts.length > 1) vscode.window.showInformationMessage(`Iconotype: exported ${registry.fonts.length} fonts`)
   })
 
-  command('glyphsmith.addIcons', async (uri?: vscode.Uri) => {
+  command('iconotype.addIcons', async (uri?: vscode.Uri) => {
     const font = await pickFont(uri)
     if (!font) return
     const files = await vscode.window.showOpenDialog({
@@ -325,7 +325,7 @@ export async function activate(context: vscode.ExtensionContext) {
     if (files?.length) await addSvgFiles(font, files)
   })
 
-  command('glyphsmith.removeIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
+  command('iconotype.removeIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
     if (!node?.font || !node.glyph) return
     const confirm = await vscode.window.showWarningMessage(
       `Remove "${node.glyph.name}" from ${node.font.name}?`,
@@ -336,32 +336,32 @@ export async function activate(context: vscode.ExtensionContext) {
     await mutate(registry, node.font, { t: 'glyph.remove', ids: [node.glyph.id] })
   })
 
-  command('glyphsmith.toggleIcon', async (node?: { font?: IconFont; glyph?: { id: string; selected?: boolean } }) => {
+  command('iconotype.toggleIcon', async (node?: { font?: IconFont; glyph?: { id: string; selected?: boolean } }) => {
     if (!node?.font || !node.glyph) return
     await mutate(registry, node.font, {
       t: 'glyph.select', ids: [node.glyph.id], selected: node.glyph.selected === false,
     })
   })
 
-  command('glyphsmith.revealIcon', (uriString?: string, glyphId?: string) => {
+  command('iconotype.revealIcon', (uriString?: string, glyphId?: string) => {
     const font = uriString ? registry.get(vscode.Uri.parse(uriString)) : undefined
     if (font) grid.show(font, glyphId)
   })
 
-  command('glyphsmith.showUsage', async (uri?: vscode.Uri, name?: string) => {
+  command('iconotype.showUsage', async (uri?: vscode.Uri, name?: string) => {
     const font = await pickFont(uri)
     if (!font || !name) return
     const icon = registry.icons().find((i) => i.font === font && i.glyph.name === name)
     if (!icon) return
     if (!usage.for(icon)) {
       await vscode.window.withProgress(
-        { location: { viewId: 'glyphsmith.usage' }, title: 'Scanning for icon usage' },
+        { location: { viewId: 'iconotype.usage' }, title: 'Scanning for icon usage' },
         () => usage.scan(),
       )
     }
     const sites = usage.for(icon)?.sites ?? []
     if (!sites.length) {
-      vscode.window.showInformationMessage(`Glyphsmith: "${font.prefix}${name}" is not referenced anywhere.`)
+      vscode.window.showInformationMessage(`Iconotype: "${font.prefix}${name}" is not referenced anywhere.`)
       return
     }
     // one hit goes straight there; several are worth choosing between
@@ -380,7 +380,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   })
 
-  command('glyphsmith.replaceIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
+  command('iconotype.replaceIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
     if (!node?.font || !node.glyph) return
     const font = registry.get(node.font.uri) ?? node.font
     const picked = await vscode.window.showOpenDialog({
@@ -408,13 +408,13 @@ export async function activate(context: vscode.ExtensionContext) {
         },
       })
       for (const warning of result.warnings) output.appendLine(`${node.glyph.name}: ${warning}`)
-      vscode.window.showInformationMessage(`Glyphsmith: replaced the artwork for "${node.glyph.name}"`)
+      vscode.window.showInformationMessage(`Iconotype: replaced the artwork for "${node.glyph.name}"`)
     } catch (e) {
-      vscode.window.showErrorMessage(`Glyphsmith: replace failed — ${(e as Error).message}`)
+      vscode.window.showErrorMessage(`Iconotype: replace failed — ${(e as Error).message}`)
     }
   })
 
-  command('glyphsmith.flattenIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
+  command('iconotype.flattenIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
     if (!node?.font || !node.glyph) return
     const font = registry.get(node.font.uri) ?? node.font
     const glyph = font.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === node.glyph!.id)
@@ -441,7 +441,7 @@ export async function activate(context: vscode.ExtensionContext) {
     await registry.save(font, project)
   })
 
-  command('glyphsmith.insertIcon', async () => {
+  command('iconotype.insertIcon', async () => {
     const editor = vscode.window.activeTextEditor
     if (!editor) return
     const all = registry.icons().filter((i) => i.selected)
@@ -460,9 +460,9 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   })
 
-  command('glyphsmith.scanUsage', async () => {
+  command('iconotype.scanUsage', async () => {
     await vscode.window.withProgress(
-      { location: { viewId: 'glyphsmith.usage' }, title: 'Scanning for icon usage' },
+      { location: { viewId: 'iconotype.usage' }, title: 'Scanning for icon usage' },
       () => usage.scan(),
     )
     const all = usage.all()
@@ -477,7 +477,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const guess = usage.likelyPrefix(font.name)
       if (!guess) continue
       const choice = await vscode.window.showWarningMessage(
-        `Glyphsmith: nothing references "${font.prefix}…", but "${guess.prefix}" appears ${guess.count}× with your icon names.`,
+        `Iconotype: nothing references "${font.prefix}…", but "${guess.prefix}" appears ${guess.count}× with your icon names.`,
         'Also look for it', 'Rename the class prefix', 'Leave it',
       )
       /**
@@ -505,18 +505,18 @@ export async function activate(context: vscode.ExtensionContext) {
     // a truncated scan reporting "unused" is worse than no answer at all
     if (report.truncated) {
       vscode.window.showWarningMessage(
-        `Glyphsmith: stopped after ${report.files} files, so "unused" is not trustworthy. Narrow it with glyphsmith.usage.include / .exclude.`,
+        `Iconotype: stopped after ${report.files} files, so "unused" is not trustworthy. Narrow it with iconotype.usage.include / .exclude.`,
       )
       return
     }
     vscode.window.showInformationMessage(
       used.length
-        ? `Glyphsmith: ${used.length}/${all.length} icon(s) referenced, ${references} time(s) across ${report.files} file(s); ${all.length - used.length} unused`
-        : `Glyphsmith: none of the ${all.length} icon(s) are referenced in ${report.files} file(s)`,
+        ? `Iconotype: ${used.length}/${all.length} icon(s) referenced, ${references} time(s) across ${report.files} file(s); ${all.length - used.length} unused`
+        : `Iconotype: none of the ${all.length} icon(s) are referenced in ${report.files} file(s)`,
     )
   })
 
-  command('glyphsmith.importProject', async (uri?: vscode.Uri) => {
+  command('iconotype.importProject', async (uri?: vscode.Uri) => {
     try {
       const result = await runImportWizard(registry, uri)
       if (!result) return
@@ -527,7 +527,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       const relative = vscode.workspace.asRelativePath(result.uri)
       const choice = await vscode.window.showInformationMessage(
-        `Glyphsmith: imported ${result.iconCount} icon(s) into ${relative}` +
+        `Iconotype: imported ${result.iconCount} icon(s) into ${relative}` +
           (result.warnings.length ? ` (${result.warnings.length} warning(s), see the output panel)` : ''),
         'Export now', 'Open file',
       )
@@ -535,11 +535,11 @@ export async function activate(context: vscode.ExtensionContext) {
       if (choice === 'Open file') await vscode.window.showTextDocument(result.uri)
     } catch (e) {
       output.appendLine(`import failed — ${(e as Error).message}`)
-      vscode.window.showErrorMessage(`Glyphsmith: import failed — ${(e as Error).message}`)
+      vscode.window.showErrorMessage(`Iconotype: import failed — ${(e as Error).message}`)
     }
   })
 
-  command('glyphsmith.importIcons', async (uri?: vscode.Uri) => {
+  command('iconotype.importIcons', async (uri?: vscode.Uri) => {
     const font = await pickFont(uri)
     if (!font) return
     const picked = await vscode.window.showOpenDialog({
@@ -553,20 +553,20 @@ export async function activate(context: vscode.ExtensionContext) {
       const result = await mergeIntoFont(registry, font, source)
       for (const warning of result.warnings) output.appendLine(warning)
       if (!result.added.length) {
-        vscode.window.showWarningMessage(`Glyphsmith: nothing new to add — ${font.name} already has all ${result.skipped.length} icon(s)`)
+        vscode.window.showWarningMessage(`Iconotype: nothing new to add — ${font.name} already has all ${result.skipped.length} icon(s)`)
         return
       }
       vscode.window.showInformationMessage(describeMerge(font, result))
     } catch (e) {
       output.appendLine(`import failed — ${(e as Error).message}`)
-      vscode.window.showErrorMessage(`Glyphsmith: import failed — ${(e as Error).message}`)
+      vscode.window.showErrorMessage(`Iconotype: import failed — ${(e as Error).message}`)
     }
   })
 
-  command('glyphsmith.newFont', async () => {
+  command('iconotype.newFont', async () => {
     const folder = vscode.workspace.workspaceFolders?.[0]
     if (!folder) {
-      vscode.window.showErrorMessage('Glyphsmith: open a folder first')
+      vscode.window.showErrorMessage('Iconotype: open a folder first')
       return
     }
     const name = await vscode.window.showInputBox({
@@ -585,14 +585,14 @@ export async function activate(context: vscode.ExtensionContext) {
     await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(serializeIconFont(project)))
     await registry.load(target)
     await vscode.window.showTextDocument(target)
-    vscode.window.showInformationMessage(`Glyphsmith: created ${name}${ICONFONT_EXTENSION}. Add SVGs with "Glyphsmith: Add Icons".`)
+    vscode.window.showInformationMessage(`Iconotype: created ${name}${ICONFONT_EXTENSION}. Add SVGs with "Iconotype: Add Icons".`)
   })
 
-  command('glyphsmith.open', async (uri?: vscode.Uri, focus?: string) => {
+  command('iconotype.open', async (uri?: vscode.Uri, focus?: string) => {
     const font = await pickFont(uri)
     if (!font) return undefined
     const panel = vscode.window.createWebviewPanel(
-      'glyphsmith.editor', `${font.name} — Glyphsmith`, vscode.ViewColumn.Active,
+      'iconotype.editor', `${font.name} — Iconotype`, vscode.ViewColumn.Active,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
@@ -626,7 +626,7 @@ export async function activate(context: vscode.ExtensionContext) {
     panel.webview.onDidReceiveMessage(async (message: { type?: string; project?: Project; token?: string }) => {
       // the editor asks for its project once it has booted
       if (message?.type === 'ready') { send(focus); return }
-      // and writes every edit straight back to the .glyphsmith.json
+      // and writes every edit straight back to the .iconotype.json
       if (message?.type === 'save' && message.project) {
         if (!sentOnce || message.token !== token) {
           output.appendLine(`${font.name}: ignored a save from an editor that was never given this project`)
@@ -636,7 +636,7 @@ export async function activate(context: vscode.ExtensionContext) {
         try {
           await registry.save(current, message.project)
         } catch (e) {
-          vscode.window.showErrorMessage(`Glyphsmith: could not save — ${(e as Error).message}`)
+          vscode.window.showErrorMessage(`Iconotype: could not save — ${(e as Error).message}`)
         }
       }
     })
@@ -679,7 +679,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidSaveTextDocument(async (document) => {
       // keep the usage index current without rescanning the whole workspace
       usage.updateFile(document.uri, document.getText())
-      if (!document.uri.path.endsWith(ICONFONT_EXTENSION)) return
+      if (!document.uri.path.endsWith(ICONFONT_EXTENSION) && !document.uri.path.endsWith('.glyphsmith.json')) return
       if (autoExportMode(document.uri) !== 'onSave') return
       const font = registry.get(document.uri)
       if (font) await runExport(font)
@@ -723,7 +723,7 @@ export async function activate(context: vscode.ExtensionContext) {
   void exports.refresh()
   void decorator.render(vscode.window.activeTextEditor)
   if (vscode.window.activeTextEditor) diagnostics.refresh(vscode.window.activeTextEditor.document)
-  if (vscode.workspace.getConfiguration('glyphsmith').get<boolean>('usage.scanOnStartup', false)) {
+  if (vscode.workspace.getConfiguration('iconotype').get<boolean>('usage.scanOnStartup', false)) {
     void usage.scan()
   }
 

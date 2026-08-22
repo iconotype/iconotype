@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
-import type { OutputConfig, StyleOutputKind } from '@glyphsmith/core-model'
-import { defaultOutputConfig, outputConfigFor } from '@glyphsmith/core-export/layout'
-import type { OutputFile } from '@glyphsmith/core-export'
+import type { OutputConfig, StyleOutputKind } from '@iconotype/core-model'
+import { defaultOutputConfig, outputConfigFor } from '@iconotype/core-export/layout'
+import type { OutputFile } from '@iconotype/core-export'
 import { heavy } from './lazy.js'
 import type { IconFont, IconFontRegistry } from './registry.js'
 
@@ -25,7 +25,7 @@ const workspaceRoot = (font: IconFont): vscode.Uri =>
 export function resolveOutputConfig(font: IconFont): OutputConfig {
   if (font.project.output) return font.project.output
 
-  const settings = vscode.workspace.getConfiguration('glyphsmith', font.uri)
+  const settings = vscode.workspace.getConfiguration('iconotype', font.uri)
   const fontsDir = settings.get<string>('defaults.fontsDir')
   const stylesDir = settings.get<string>('defaults.stylesDir')
   const formats = settings.get<NonNullable<OutputConfig['fonts']>['formats']>('defaults.formats')

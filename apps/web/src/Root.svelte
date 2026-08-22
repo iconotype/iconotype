@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { AppShell, AppStore, SessionStore, listProjects, loadProject, setApp, setHost, setSession } from '@glyphsmith/ui'
-  import { createWebHost } from '@glyphsmith/core-host/web'
-  import { createHistory, emptyProject } from '@glyphsmith/core-model'
+  import { AppShell, AppStore, SessionStore, listProjects, loadProject, setApp, setHost, setSession } from '@iconotype/ui'
+  import { createWebHost } from '@iconotype/core-host/web'
+  import { createHistory, emptyProject } from '@iconotype/core-model'
 
   // The shell owns the clock; core stays deterministic.
   const now = () => Date.now()

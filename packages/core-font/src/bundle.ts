@@ -1,5 +1,5 @@
-import type { Project } from '@glyphsmith/core-model'
-import { serializeLock } from '@glyphsmith/core-model'
+import type { Project } from '@iconotype/core-model'
+import { serializeLock } from '@iconotype/core-model'
 import { buildFont, type BuildOptions, type FontBuild } from './build.js'
 import { buildCss, buildDemoHtml, buildVariables, groupIcons, type CssOptions } from './css.js'
 

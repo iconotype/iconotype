@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { Glyph } from '@glyphsmith/core-model'
+import type { Glyph } from '@iconotype/core-model'
 import type { IconFont, IconRef } from './registry.js'
 
 /**

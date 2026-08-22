@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import opentype from 'opentype.js'
 import { describe, expect, it } from 'vitest'
-import { defaultFontPrefs, emptySet, type Glyph, type Project } from '@glyphsmith/core-model'
-import { emptyProject } from '@glyphsmith/core-model'
-import { importIcoMoon } from '@glyphsmith/core-io'
+import { defaultFontPrefs, emptySet, type Glyph, type Project } from '@iconotype/core-model'
+import { emptyProject } from '@iconotype/core-model'
+import { importIcoMoon } from '@iconotype/core-io'
 import { advanceFor, buildBundle, buildCss, buildDemoHtml, buildFont, buildSvgFont, buildVariables, metricsFrom, svgToFontMatrix } from '../src/index.js'
 
 const glyph = (name: string, over: Partial<Glyph> = {}): Glyph => ({

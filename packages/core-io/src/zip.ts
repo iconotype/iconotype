@@ -1,8 +1,8 @@
 import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate'
-import type { Bytes } from '@glyphsmith/core-host'
+import type { Bytes } from '@iconotype/core-host'
 import { importIcoMoon, type ImportResult } from './icomoon-import.js'
 import { importSvg, type SvgImportResult } from './svg-import.js'
-import type { Glyph } from '@glyphsmith/core-model'
+import type { Glyph } from '@iconotype/core-model'
 
 export interface ZipEntry { path: string; data: Uint8Array }
 
@@ -12,7 +12,7 @@ export const readZip = (data: Uint8Array): ZipEntry[] =>
 /**
  * The zip epoch (1980-01-01). fflate defaults every entry's mtime to Date.now(), which
  * makes two identical builds differ — the same trap svg2ttf's `ts` option avoids for the
- * font itself. Reproducible packages are the whole point of `glyphsmith build` in CI.
+ * font itself. Reproducible packages are the whole point of `iconotype build` in CI.
  */
 export const ZIP_EPOCH = new Date(Date.UTC(1980, 0, 1))
 

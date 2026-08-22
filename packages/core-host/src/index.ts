@@ -45,6 +45,14 @@ export interface Host {
    */
   assetBase(): string
   pickFiles(opts?: { accept?: string[]; multiple?: boolean }): Promise<Array<{ name: string; data: Bytes }>>
+  /**
+   * A project to open with, for a shell that ships one.
+   *
+   * The hosted app opens empty, and "drop a file here" asks a first-time visitor for
+   * something they may not have. The extension has the workspace's own fonts and
+   * needs no sample, so this is optional.
+   */
+  sampleProjectUrl?(): string | undefined
   saveAs(name: string, data: Bytes | string): Promise<void>
   clipboard: { readText(): Promise<string>; writeText(text: string): Promise<void> }
 }

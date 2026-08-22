@@ -6,7 +6,7 @@ Extension host runs `core-*` directly (Node). The webview runs the same Svelte U
 
 ## Discovery
 
-On activation, find the project: `glyphsmith.config.*`, `icons.json`, a folder of `.svg`, an IcoMoon `selection.json`, or a `.woff2` + CSS pair in the workspace. Multi-root aware. Build an in-memory index: `name → { codepoint, svg, set, license, ligatures }`.
+On activation, find the project: `iconotype.config.*`, `icons.json`, a folder of `.svg`, an IcoMoon `selection.json`, or a `.woff2` + CSS pair in the workspace. Multi-root aware. Build an in-memory index: `name → { codepoint, svg, set, license, ligatures }`.
 
 ## A. Reading code
 
@@ -34,10 +34,10 @@ On activation, find the project: `glyphsmith.config.*`, `icons.json`, a folder o
 | # | Feature | How |
 |---|---|---|
 | C1 | **Diagnostics**: unknown icon name, typo with did-you-mean, deprecated icon, duplicate codepoint, icon referenced but missing from font | `DiagnosticCollection` + quick fixes |
-| C2 | **Unused icon report** — in the font but referenced nowhere; offer subset build | `glyphsmith scan` |
+| C2 | **Unused icon report** — in the font but referenced nowhere; offer subset build | `iconotype scan` |
 | C3 | **Rename refactor** — rename a glyph, update every reference workspace-wide, keep the codepoint | `RenameProvider` on the manifest + workspace edit |
 | C4 | **Find all references** of a glyph | `ReferenceProvider` |
-| C5 | Breaking-change guard — regenerating with moved/removed codepoints warns before writing | `glyphsmith diff` |
+| C5 | Breaking-change guard — regenerating with moved/removed codepoints warns before writing | `iconotype diff` |
 | C6 | CodeLens on `icons.json`: "42 icons · 12 unused · 3 lint errors · Rebuild" | |
 
 ## D. Editing & build
@@ -46,10 +46,10 @@ On activation, find the project: `glyphsmith.config.*`, `icons.json`, a folder o
 |---|---|---|
 | D1 | **Custom editor for `.svg`** — glyph fixer with lint list + autofix buttons | `CustomTextEditorProvider` |
 | D2 | **Custom editor for font files** (`.ttf/.otf/.woff/.woff2`) — glyph grid browser of any font in the repo | `CustomReadonlyEditorProvider` |
-| D3 | **Custom editor for `.glyphsmith` / `icons.json`** — the full app in a tab | `CustomEditorProvider` |
+| D3 | **Custom editor for `.iconotype` / `icons.json`** — the full app in a tab | `CustomEditorProvider` |
 | D4 | **Tree view** — sets → glyphs, with icon thumbnails, context menus | `TreeDataProvider` |
 | D5 | **Watch & rebuild** — SVG changes → font rebuilt → dev server hot-reloads | `FileSystemWatcher` |
-| D6 | Task provider + problem matcher, so `glyphsmith lint` errors land in the Problems panel | |
+| D6 | Task provider + problem matcher, so `iconotype lint` errors land in the Problems panel | |
 | D7 | Status bar: font version, build state, error count | |
 
 ## E. Nice extras

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { Glyph } from '@glyphsmith/core-model'
+import type { Glyph } from '@iconotype/core-model'
 import { GlyphIconCache, glyphDataUri } from './render.js'
 import type { IconFont, IconFontRegistry } from './registry.js'
 
@@ -19,7 +19,7 @@ import type { IconFont, IconFontRegistry } from './registry.js'
  */
 export const glyphDecorationUri = (font: IconFont, glyph: Glyph): vscode.Uri =>
   vscode.Uri.from({
-    scheme: 'glyphsmith-icon',
+    scheme: 'iconotype-icon',
     path: `/${font.name}/${glyph.name}`,
     query: glyph.selected === false ? 'excluded' : 'included',
   })
@@ -35,7 +35,7 @@ export class IconDecorationProvider implements vscode.FileDecorationProvider, vs
   }
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
-    if (uri.scheme !== 'glyphsmith-icon') return undefined
+    if (uri.scheme !== 'iconotype-icon') return undefined
     if (uri.query !== 'excluded') return undefined
     return {
       badge: '⊘',
@@ -85,7 +85,7 @@ export class FontTreeProvider implements vscode.TreeDataProvider<FontNode> {
         pending ? new vscode.ThemeColor('list.warningForeground') : undefined,
       )
       item.resourceUri = node.font.uri
-      item.contextValue = 'glyphsmith.font'
+      item.contextValue = 'iconotype.font'
       item.tooltip = new vscode.MarkdownString(
         `**${node.font.name}** — prefix \`${node.font.prefix}\`\n\n${vscode.workspace.asRelativePath(node.font.uri)}`)
       return item
@@ -103,9 +103,9 @@ export class FontTreeProvider implements vscode.TreeDataProvider<FontNode> {
      * made the state invisible until you went looking for it.
      */
     item.resourceUri = glyphDecorationUri(node.font, node.glyph)
-    item.contextValue = excluded ? 'glyphsmith.icon.excluded' : 'glyphsmith.icon'
+    item.contextValue = excluded ? 'iconotype.icon.excluded' : 'iconotype.icon'
     item.command = {
-      command: 'glyphsmith.revealIcon',
+      command: 'iconotype.revealIcon',
       title: 'Show icon',
       arguments: [node.font.uri.toString(), node.glyph.id],
     }
@@ -130,7 +130,7 @@ export class FontTreeProvider implements vscode.TreeDataProvider<FontNode> {
  * inline styles beyond the one stylesheet, data: images allowed.
  */
 export class IconGridViewProvider implements vscode.WebviewViewProvider {
-  static readonly viewType = 'glyphsmith.iconGrid'
+  static readonly viewType = 'iconotype.iconGrid'
   #view?: vscode.WebviewView
   #activeFont?: IconFont
   /** the icon to scroll to and outline after the next render */

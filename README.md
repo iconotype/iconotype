@@ -1,4 +1,4 @@
-# Glyphsmith *(codename — rename before public repo)*
+# Iconotype *(codename — rename before public repo)*
 
 Open-source IcoMoon alternative: create, manage, fix and export icon fonts.
 
@@ -36,7 +36,7 @@ packages/
   core-font/     metrics, SVG font → TTF/WOFF/WOFF2, CSS + demo + zip bundle
   core-io/       IcoMoon import/export (lossless), SVG import, zip
   core-export/   sprite, components, types, favicons, quick-copy formats
-  cli/           glyphsmith build | lint | fix | diff | scan | info
+  cli/           iconotype build | lint | fix | diff | scan | info
   ui/            Svelte 5 components, stores, OPFS persistence
 apps/
   web/           Vite SPA → GitHub Pages

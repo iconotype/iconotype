@@ -42,6 +42,7 @@
 
 <div class="shell">
   <header>
+    {#if !embedded}<span class="brand">Iconotype</span>{/if}
     <strong>{session.project.name}</strong>
     <span class="muted">{session.project.sets.length} set(s) · {session.glyphCount} glyph(s)</span>
     {#if app.busy}<span class="muted">importing…</span>
@@ -62,9 +63,16 @@
     {:else}
       <SetPanel />
       <GlyphGrid />
-      <FixPanel />
-      <ExportPanel />
-      <HistoryPanel />
+      <!--
+        One rail, not three columns. Five equal-weight panes fought for width and left
+        the artwork — the thing you came to look at — squeezed between two lists of
+        controls. The panels stack and scroll together instead.
+      -->
+      <div class="rail">
+        <FixPanel />
+        <ExportPanel />
+        <HistoryPanel />
+      </div>
     {/if}
   </main>
 
@@ -73,11 +81,40 @@
 
 <style>
   .shell { display: flex; flex-direction: column; height: 100vh; }
-  header { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--gs-border); }
+  header {
+    display: flex; align-items: center; gap: 10px;
+    min-height: var(--gs-header); padding: 0 var(--gs-pad);
+    background: var(--gs-surface); border-bottom: 1px solid var(--gs-border);
+  }
+  header strong { font-size: calc(var(--gs-size) + 1px); letter-spacing: -0.01em; }
   .spacer { flex: 1; }
-  .muted { color: var(--gs-muted); font-size: 12px; }
+  .muted { color: var(--gs-muted); font-size: var(--gs-size-sm); }
   .host { font-family: var(--gs-mono); }
-  main { flex: 1; display: grid; grid-template-columns: 170px 1fr 190px 190px 200px; min-height: 0; }
+  main { flex: 1; display: grid; grid-template-columns: 200px minmax(0, 1fr) 300px; min-height: 0;
+         gap: var(--gs-gap); padding: var(--gs-gap); }
+  .rail { display: flex; flex-direction: column; gap: var(--gs-gap); min-height: 0; overflow: auto;
+          background: transparent !important; box-shadow: none !important; }
+  /* the rail scrolls; a card inside it is as tall as its content, never clipped */
+  .rail > :global(*) {
+    background: var(--gs-surface); border-radius: var(--gs-radius-lg); box-shadow: var(--gs-shadow);
+    flex: 0 0 auto; overflow: visible;
+  }
+  .brand {
+    font-weight: 650; letter-spacing: -0.02em; padding-right: 10px; margin-right: 2px;
+    border-right: 1px solid var(--gs-border); color: var(--gs-accent);
+  }
+  @media (max-width: 1100px) { main { grid-template-columns: 170px minmax(0, 1fr) 260px; } }
+  /*
+   * Each pane is a surface. With --gs-gap: 0 and a hairline divider that reads as one
+   * flat split, which is what an editor panel should look like; with air between them
+   * and a shadow it reads as cards, which is what an app should look like. Same markup.
+   */
+  main > :global(*) {
+    background: var(--gs-surface);
+    border-radius: var(--gs-radius-lg);
+    box-shadow: var(--gs-shadow);
+    min-height: 0;
+  }
   main.embedded { grid-template-columns: 1fr 220px 200px; }
   @media (max-width: 720px) {
     main.embedded { grid-template-columns: 1fr; grid-template-rows: 1fr auto auto; overflow: auto; }

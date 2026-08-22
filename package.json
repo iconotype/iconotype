@@ -1,5 +1,5 @@
 {
-  "name": "glyphsmith",
+  "name": "iconotype",
   "private": true,
   "type": "module",
   "version": "0.0.0",
@@ -7,12 +7,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "pnpm --filter @glyphsmith/web dev",
+    "dev": "pnpm --filter @iconotype/web dev",
     "build": "pnpm -r --filter './apps/*' build",
-    "build:vscode": "pnpm --filter glyphsmith-vscode build",
+    "build:vscode": "pnpm --filter iconotype-vscode build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:vscode": "pnpm --filter glyphsmith-vscode test",
+    "test:vscode": "pnpm --filter iconotype-vscode test",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.json --noEmit",
     "spike:paper": "node spikes/01-paper-headless/spike.mjs"
   },

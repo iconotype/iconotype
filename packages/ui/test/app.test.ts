@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { Host } from '@glyphsmith/core-host'
-import { createHistory, emptyProject, type Glyph } from '@glyphsmith/core-model'
+import type { Host } from '@iconotype/core-host'
+import { createHistory, emptyProject, type Glyph } from '@iconotype/core-model'
 import { AppStore } from '../src/app.svelte.js'
 import { SessionStore } from '../src/session.svelte.js'
 

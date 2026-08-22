@@ -1,0 +1,34 @@
+/*
+ * The extension palette: whatever theme the user has chosen, we inherit.
+ *
+ * Loaded only by the VSCode webview. Density stays tight and the corners stay square,
+ * because a panel that does not look like the editor around it reads as a bug.
+ */
+:root {
+  --gs-bg: var(--vscode-editor-background, #1e1e22);
+  --gs-surface: var(--vscode-sideBar-background, #202027);
+  --gs-surface-2: var(--vscode-editorWidget-background, #26262e);
+  --gs-fg: var(--vscode-foreground, #e6e6e6);
+  --gs-muted: var(--vscode-descriptionForeground, #9a9aa2);
+  --gs-border: var(--vscode-panel-border, #33333a);
+  --gs-accent: var(--vscode-button-background, #3b6fd4);
+  --gs-accent-hover: var(--vscode-button-hoverBackground, #4a7ce0);
+  --gs-accent-fg: var(--vscode-button-foreground, #fff);
+  --gs-accent-weak: var(--vscode-list-activeSelectionBackground, #33415e);
+  --gs-hover: var(--vscode-list-hoverBackground, #2a2a30);
+  --gs-active: var(--vscode-list-activeSelectionBackground, #33415e);
+  --gs-error: var(--vscode-errorForeground, #f14c4c);
+  --gs-warn: var(--vscode-editorWarning-foreground, #d7a03c);
+  --gs-ok: var(--vscode-testing-iconPassed, #4ec98a);
+  --gs-input: var(--vscode-input-background, #14141a);
+  --gs-ring: 0 0 0 1px var(--vscode-focusBorder, #4a7ce0);
+  --gs-shadow: none;
+  --gs-radius: 3px;
+  --gs-radius-lg: 4px;
+  --gs-font: var(--vscode-font-family, ui-sans-serif, system-ui, sans-serif);
+  --gs-mono: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, monospace);
+  --gs-size: var(--vscode-font-size, 13px);
+  --gs-size-sm: 11px;
+  --gs-pad: 8px;
+  --gs-header: 34px;
+}

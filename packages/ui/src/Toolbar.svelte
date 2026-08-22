@@ -32,8 +32,8 @@
   .muted { color: var(--gs-muted); font-size: 12px; }
   .count { min-width: 70px; }
   input[type='search'] {
-    font: inherit; background: var(--vscode-input-background, #14141a); color: var(--gs-fg);
-    border: 1px solid var(--gs-border); border-radius: 3px; padding: 3px 8px; min-width: 180px;
+    font: inherit; background: var(--gs-input); color: var(--gs-fg);
+    border: 1px solid var(--gs-border); border-radius: var(--gs-radius); padding: 3px 8px; min-width: 180px;
   }
   .size { display: flex; align-items: center; gap: 6px; }
   .size input { width: 90px; }

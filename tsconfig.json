@@ -24,13 +24,13 @@
       "vite/client"
     ],
     "paths": {
-      "@glyphsmith/core-io/*": [
+      "@iconotype/core-io/*": [
         "./packages/core-io/src/*.ts"
       ],
-      "@glyphsmith/core-export/*": [
+      "@iconotype/core-export/*": [
         "./packages/core-export/src/*.ts"
       ],
-      "@glyphsmith/*": [
+      "@iconotype/*": [
         "./packages/*/src/index.ts"
       ]
     }

@@ -1,4 +1,4 @@
-import type { Glyph, IconSet, Preferences, Project } from '@glyphsmith/core-model'
+import type { Glyph, IconSet, Preferences, Project } from '@iconotype/core-model'
 import { rebuild, reorderByOriginalIndex, type Preserved } from './preserve.js'
 import type {
   IcoMoonIcon, IcoMoonPreferences, IcoMoonProjectFile, IcoMoonSelectionEntry,

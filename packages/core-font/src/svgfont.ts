@@ -1,5 +1,5 @@
 import svgpath from 'svgpath'
-import type { Glyph, IconSet, Project } from '@glyphsmith/core-model'
+import type { Glyph, IconSet, Project } from '@iconotype/core-model'
 import { advanceFor, metricsFrom, svgToFontMatrix, type FontMetrics } from './metrics.js'
 
 export interface BuiltGlyph {

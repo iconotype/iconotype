@@ -1,4 +1,4 @@
-import type { Project } from '@glyphsmith/core-model'
+import type { Project } from '@iconotype/core-model'
 import { resolveFormat, xmlEscape, type FormatOptions } from './options.js'
 import { exportSvg, iconsOf, type IconEntry } from './svg.js'
 

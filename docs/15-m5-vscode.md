@@ -12,7 +12,7 @@ Everything below is exercised through the real extension host: discovery from di
 
 ## The project file
 
-One committed file per icon font: **`<name>.glyphsmith.json`**. It holds the artwork, the codepoints **and** where a build writes its output, so the editor, the CLI and CI need no second config.
+One committed file per icon font: **`<name>.iconotype.json`**. It holds the artwork, the codepoints **and** where a build writes its output, so the editor, the CLI and CI need no second config.
 
 ```jsonc
 {
@@ -40,13 +40,13 @@ Design choices that matter in a pull request:
 - **Icons are sorted by codepoint**, so adding one is a one-hunk diff instead of a reshuffle.
 - **`selected` is only written when false.** A file full of `"selected": true` is noise.
 - **`code` is hex without `U+`** and is the font's API — the schema says so in its description, which surfaces as a tooltip in the editor.
-- A **JSON schema** ships with the extension and is registered for `*.glyphsmith.json`, so the file is completed and validated as you type it.
+- A **JSON schema** ships with the extension and is registered for `*.iconotype.json`, so the file is completed and validated as you type it.
 
 Ships with `$schema`, and refuses to open a file whose `schemaVersion` is newer than the build understands rather than silently misreading it.
 
 ## Quick export
 
-`Glyphsmith: Export Font` builds and writes straight to the configured paths — no zip, no unpacking:
+`Iconotype: Export Font` builds and writes straight to the configured paths — no zip, no unpacking:
 
 ```
 app/fonts/app.woff2      app/fonts/app.woff      app/fonts/app.ttf
@@ -69,7 +69,7 @@ $icon-home: "\e900";
 
 with one deliberate difference: IcoMoon hardcodes `$icomoon-font-family` whatever the font is called, so **two IcoMoon exports in one project collide on that variable**. Ours is namespaced by the family. The font path is the same relative path the CSS uses, not a project-root path.
 
-Settings supply defaults for projects that do not configure their own — `glyphsmith.defaults.fontsDir`, `.stylesDir`, `.styleKind`, `.formats` — and they live in `.vscode/settings.json`, so a team shares one layout. `glyphsmith.exportOnSave` rebuilds whenever the project file is saved.
+Settings supply defaults for projects that do not configure their own — `iconotype.defaults.fontsDir`, `.stylesDir`, `.styleKind`, `.formats` — and they live in `.vscode/settings.json`, so a team shares one layout. `iconotype.exportOnSave` rebuilds whenever the project file is saved.
 
 ## Export settings
 
@@ -161,9 +161,9 @@ index quietly reports icons as unused after you delete their last reference.
 
 ### Importing from the UI (M5.2)
 
-`glyphsmith init --input alpimaps.json --name app --prefix app- --fonts-dir app/fonts
+`iconotype init --input alpimaps.json --name app --prefix app- --fonts-dir app/fonts
 --styles-dir app/css --style-kind scss-variables` is a fine CI command and a hostile
-first impression. `Glyphsmith: Import IcoMoon Project…` asks the same six things as a
+first impression. `Iconotype: Import IcoMoon Project…` asks the same six things as a
 wizard, defaults them from the workspace settings, and writes the identical file.
 
 The source picker takes an IcoMoon project or `selection.json`, a font-package `.zip`,
@@ -197,7 +197,7 @@ Two things the tests pinned down, neither of which unit tests would have:
 
 Found by a user, in their own repo, on the first day: import worked, then alt-clicking
 an icon left an empty font and a blank editor. The evidence was a 297-byte
-`alpimaps.glyphsmith.json` — `family: "glyphsmith"`, `prefix: "icon-"`, `icons: []`,
+`alpimaps.iconotype.json` — `family: "iconotype"`, `prefix: "icon-"`, `icons: []`,
 which is exactly `defaultFontPrefs()`.
 
 The editor webview boots holding `emptyProject('p0', 'Loading…')` and its save effect
@@ -218,7 +218,7 @@ The same report also fixed:
 
 - **Alt-click did not open the icon.** The grid sent `open` without the glyph id, so
   the editor opened on nothing in particular. The id now travels through
-  `glyphsmith.open(uri, glyphId)` into the `project` message as `focus`, and the
+  `iconotype.open(uri, glyphId)` into the `project` message as `focus`, and the
   sidebar grid outlines and scrolls to it too.
 - **A broken project file crashed the usage scan.** The registry's placeholder for an
   unparseable file carried `preferences: {}`, and `resolveOutputConfig` reads
@@ -251,7 +251,7 @@ class, flatten to one colour, remove.
 It also fixed a bug the panel announced on every keystroke:
 `save failed: Error: EROFS: read-only file system, mkdir '/projects'`. `AppShell`
 autosaves through the Host's project store, which is right for the web and desktop
-shells and wrong here — the extension owns the `.glyphsmith.json`. `AppStore.autosave`
+shells and wrong here — the extension owns the `.iconotype.json`. `AppStore.autosave`
 turns it off, and the webview sets it.
 
 ### Colour, and why a glyph should not have any (M5.4)
@@ -293,10 +293,10 @@ with a real repo layout:
 
 | setting | |
 |---|---|
-| `glyphsmith.usage.excludeDirs` | the directory list itself, **defaulted** so it shows in the settings UI and can be trimmed as well as extended |
-| `glyphsmith.usage.useWorkspaceExcludes` | also honour `search.exclude`/`files.exclude` — a repo that told VSCode to ignore its build output has told us too |
-| `glyphsmith.usage.maxFiles` | the cap |
-| `glyphsmith.usage.exclude` | a raw glob that overrides the lot, for what a directory list cannot express |
+| `iconotype.usage.excludeDirs` | the directory list itself, **defaulted** so it shows in the settings UI and can be trimmed as well as extended |
+| `iconotype.usage.useWorkspaceExcludes` | also honour `search.exclude`/`files.exclude` — a repo that told VSCode to ignore its build output has told us too |
+| `iconotype.usage.maxFiles` | the cap |
+| `iconotype.usage.exclude` | a raw glob that overrides the lot, for what a directory list cannot express |
 
 ### The prefix in the code is not always the prefix in the CSS (M5.5)
 
@@ -324,7 +324,7 @@ offered second.
 - `contributes.icons`, which would let a user's own font supply `$(app-home)` icons to VSCode's own tree views and status bar, is still just an idea from [07](07-vscode-extension.md).
 - The rename provider rescans the workspace to find references; on a very large repo that is a noticeable pause before the edit appears.
 - The wizard's own prompting is not covered by a test: `showQuickPick`/`showInputBox` cannot be driven from the extension host. Everything either side of it is — reading a source, applying answers, writing the file.
-- Diagnostics only cover open documents, so a typo in a file you never open is not reported until you do. `glyphsmith lint` in CI is the backstop.
+- Diagnostics only cover open documents, so a typo in a file you never open is not reported until you do. `iconotype lint` in CI is the backstop.
 
 ### Pending exports (M5.6)
 
@@ -354,7 +354,7 @@ pushed every icon down the moment you changed one — so the next tick you meant
 had moved. The dot is always in the layout and only its paint changes, so flipping
 state resizes nothing. A test asserts nothing new appears between the toolbar and the
 grid. And
-`glyphsmith.autoExport` (`off` / `onSave` / `onChange`) removes the step entirely.
+`iconotype.autoExport` (`off` / `onSave` / `onChange`) removes the step entirely.
 `onChange` is debounced and only builds fonts that are actually stale.
 
 ### What a click means (M5.6)
@@ -372,7 +372,7 @@ Alt- and ctrl-click still toggle, for anyone who learned the old gesture.
 ### Generated stylesheets are a link, not a use (M5.6)
 
 The usage scan already skipped the paths its own output config names. It did not skip a
-stylesheet generated *before* the project became a Glyphsmith one — an IcoMoon
+stylesheet generated *before* the project became a Iconotype one — an IcoMoon
 `style.css`, a stale `icons.scss` — and those name every icon in the font, so the whole
 thing read as used.
 
@@ -419,8 +419,8 @@ esbuild's own code splitting is ESM-only, hence two passes rather than a flag.
 load and now does so on the first import, fix or export.
 
 Making that stick needed the light halves of two packages to be reachable without the
-heavy ones: `@glyphsmith/core-export/layout` (paths, names and `buildStamp`, no
-core-font) and `@glyphsmith/core-io/iconfont-file` (the project file format, no
+heavy ones: `@iconotype/core-export/layout` (paths, names and `buildStamp`, no
+core-font) and `@iconotype/core-io/iconfont-file` (the project file format, no
 core-svg). Importing the barrel from either would have dragged the whole toolchain back
 in, so an integration test asserts paper.js is absent from the entry bundle and present
 in the deferred one.
@@ -434,6 +434,6 @@ Two other activation costs went with it:
 - **Activation no longer awaits** the staleness check or the first decoration pass.
 
 And `activationEvents` narrowed from `onStartupFinished` to
-`workspaceContains:**/*.glyphsmith.json`: in a repo with no icon font the extension is
+`workspaceContains:**/*.iconotype.json`: in a repo with no icon font the extension is
 not loaded at all. Contributed commands and views activate it implicitly, so creating
 or importing a first font still works.

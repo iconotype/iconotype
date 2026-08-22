@@ -1,5 +1,5 @@
-import type { Host } from '@glyphsmith/core-host'
-import type { Project } from '@glyphsmith/core-model'
+import type { Host } from '@iconotype/core-host'
+import type { Project } from '@iconotype/core-model'
 
 /**
  * Projects live under `projects/<id>/project.json`, with a small index for the

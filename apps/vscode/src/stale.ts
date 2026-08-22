@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { buildStamp, outputPaths } from '@glyphsmith/core-export/layout'
+import { buildStamp, outputPaths } from '@iconotype/core-export/layout'
 import { resolveOutputConfig } from './export.js'
 import type { IconFont, IconFontRegistry } from './registry.js'
 
@@ -76,7 +76,7 @@ export type AutoExport = 'off' | 'onSave' | 'onChange'
 
 /** The configured policy, honouring the older boolean setting. */
 export function autoExportMode(scope?: vscode.Uri): AutoExport {
-  const config = vscode.workspace.getConfiguration('glyphsmith', scope)
+  const config = vscode.workspace.getConfiguration('iconotype', scope)
   const mode = config.get<AutoExport>('autoExport')
   if (mode && mode !== 'off') return mode
   // `exportOnSave` predates the three-way setting; true still means onSave

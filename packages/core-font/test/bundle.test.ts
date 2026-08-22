@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import opentype from 'opentype.js'
 import { describe, expect, it } from 'vitest'
-import { exportIcoMoonSelection, importIcoMoon, readZip, writeZip } from '@glyphsmith/core-io'
+import { exportIcoMoonSelection, importIcoMoon, readZip, writeZip } from '@iconotype/core-io'
 import { buildBundle } from '../src/index.js'
 
 const fixture = () => JSON.parse(readFileSync(

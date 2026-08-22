@@ -1,35 +1,35 @@
-# Glyphsmith — icon fonts in VSCode
+# Iconotype — icon fonts in VSCode
 
 Manage a project's icon fonts without leaving the editor: see them, complete them,
 find them, and export straight into your build.
 
 ## Getting started
 
-**Already have an IcoMoon project?** Run `Glyphsmith: Import IcoMoon Project…` — the
+**Already have an IcoMoon project?** Run `Iconotype: Import IcoMoon Project…` — the
 button on the Icons panel and the Fonts panel's welcome view do the same thing. It
 takes an IcoMoon project or `selection.json`, a downloaded font package `.zip`, an
 SVG-only archive, or a folder of `.svg` files, then asks five questions: the font name,
 the class prefix, where fonts go, where the stylesheet goes, and which stylesheet
-flavour. The result is a committed `<name>.glyphsmith.json` wired to your build.
+flavour. The result is a committed `<name>.iconotype.json` wired to your build.
 
 Codepoints come across exactly as they were. That is the point: a font you already
 shipped has its codepoints baked into every built stylesheet, and renumbering them
 would silently change which glyph each existing class renders.
 
 Right-clicking a `.json` or `.zip` in the explorer offers the same import, skipping the
-file picker. The CLI equivalent is `glyphsmith init`.
+file picker. The CLI equivalent is `iconotype init`.
 
 Starting from nothing instead:
 
-1. **Create a font** — `Glyphsmith: New Icon Font…` writes `<name>.glyphsmith.json`
+1. **Create a font** — `Iconotype: New Icon Font…` writes `<name>.iconotype.json`
    at the workspace root. Commit it: it holds the artwork, the codepoints and where the
    build writes.
-2. **Add icons** — `Glyphsmith: Add Icons from SVG…`, or the `+ SVG` button in the
+2. **Add icons** — `Iconotype: Add Icons from SVG…`, or the `+ SVG` button in the
    Icons panel. Every SVG runs through the fixer: strokes are outlined, transforms are
    baked, even-odd fills become non-zero, and anything a font cannot represent is
    reported rather than silently mangled.
 
-   To pull icons out of *another* icon font, use `+ Project` (`Glyphsmith: Add Icons
+   To pull icons out of *another* icon font, use `+ Project` (`Iconotype: Add Icons
    from Project or Zip…`). Names you already have are skipped rather than overwritten,
    and an incoming codepoint is honoured only when it is free — the font you are adding
    to always keeps its own.
@@ -42,14 +42,14 @@ Starting from nothing instead:
    }
    ```
 
-4. **Export** — the Export button in the Icons panel, or `Glyphsmith: Export Font`.
+4. **Export** — the Export button in the Icons panel, or `Iconotype: Export Font`.
    Files are written in place; identical bytes are not rewritten, so a no-op export
    leaves your working tree clean.
 
    You are told when they are out of date rather than having to remember: the status
    bar turns amber with `export pending`, the font is marked in the Fonts panel, and
    the Icons panel shows a banner with a button. Clicking any of them exports only what
-   changed. Set `glyphsmith.autoExport` to `onSave` or `onChange` to skip the step.
+   changed. Set `iconotype.autoExport` to `onSave` or `onChange` to skip the step.
 
 ## The Icons panel
 
@@ -81,19 +81,19 @@ for fonts whose project file does not configure its own `output`.
 
 | setting | meaning |
 |---|---|
-| `glyphsmith.defaults.fontsDir` | where font files go, e.g. `app/fonts` |
-| `glyphsmith.defaults.stylesDir` | where the stylesheet goes, e.g. `app/css` |
-| `glyphsmith.defaults.styleKind` | `css`, `scss-variables`, `css-variables`, `dart`, … |
-| `glyphsmith.defaults.formats` | `woff2`, `woff`, `ttf`, `svg` |
-| `glyphsmith.autoExport` | `off` (default), `onSave`, or `onChange` |
-| `glyphsmith.decorations.enabled` | inline glyph previews |
-| `glyphsmith.diagnostics.enabled` | warn about unknown or excluded icons |
-| `glyphsmith.usage.scanOnStartup` | scan for usage when the window opens |
-| `glyphsmith.usage.include` | glob of files to search for references |
-| `glyphsmith.usage.excludeDirs` | directory names to skip, at any depth — trim it to scan one |
-| `glyphsmith.usage.useWorkspaceExcludes` | also skip what `search.exclude`/`files.exclude` hide |
-| `glyphsmith.usage.maxFiles` | cap on one scan; hitting it is reported, never silent |
-| `glyphsmith.usage.exclude` | a raw glob that overrides the directory list entirely |
+| `iconotype.defaults.fontsDir` | where font files go, e.g. `app/fonts` |
+| `iconotype.defaults.stylesDir` | where the stylesheet goes, e.g. `app/css` |
+| `iconotype.defaults.styleKind` | `css`, `scss-variables`, `css-variables`, `dart`, … |
+| `iconotype.defaults.formats` | `woff2`, `woff`, `ttf`, `svg` |
+| `iconotype.autoExport` | `off` (default), `onSave`, or `onChange` |
+| `iconotype.decorations.enabled` | inline glyph previews |
+| `iconotype.diagnostics.enabled` | warn about unknown or excluded icons |
+| `iconotype.usage.scanOnStartup` | scan for usage when the window opens |
+| `iconotype.usage.include` | glob of files to search for references |
+| `iconotype.usage.excludeDirs` | directory names to skip, at any depth — trim it to scan one |
+| `iconotype.usage.useWorkspaceExcludes` | also skip what `search.exclude`/`files.exclude` hide |
+| `iconotype.usage.maxFiles` | cap on one scan; hitting it is reported, never silent |
+| `iconotype.usage.exclude` | a raw glob that overrides the directory list entirely |
 
 ### When the code writes a different prefix
 
@@ -111,6 +111,6 @@ code uses that the font does not.
 
 ## The same build, in CI
 
-`glyphsmith build` produces byte-identical output from the same project file, and
-`glyphsmith diff` fails a pull request that moves or removes a codepoint — the change
+`iconotype build` produces byte-identical output from the same project file, and
+`iconotype diff` fails a pull request that moves or removes a codepoint — the change
 that silently makes every already-shipped stylesheet render the wrong icon.

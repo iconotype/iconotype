@@ -1,10 +1,10 @@
 {
-  "name": "@glyphsmith/cli",
+  "name": "@iconotype/cli",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "bin": {
-    "glyphsmith": "./bin/glyphsmith.cjs"
+    "iconotype": "./bin/iconotype.cjs"
   },
   "exports": {
     ".": "./src/index.ts"
@@ -13,11 +13,11 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@glyphsmith/core-export": "workspace:*",
-    "@glyphsmith/core-font": "workspace:*",
-    "@glyphsmith/core-io": "workspace:*",
-    "@glyphsmith/core-model": "workspace:*",
-    "@glyphsmith/core-svg": "workspace:*",
+    "@iconotype/core-export": "workspace:*",
+    "@iconotype/core-font": "workspace:*",
+    "@iconotype/core-io": "workspace:*",
+    "@iconotype/core-model": "workspace:*",
+    "@iconotype/core-svg": "workspace:*",
     "@resvg/resvg-js": "^2.6.2",
     "css-tree": "^3.2.1",
     "fflate": "^0.8.3",

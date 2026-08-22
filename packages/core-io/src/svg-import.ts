@@ -1,5 +1,5 @@
-import { fixSvg, type FixOptions, type Finding } from '@glyphsmith/core-svg'
-import type { Glyph } from '@glyphsmith/core-model'
+import { fixSvg, type FixOptions, type Finding } from '@iconotype/core-svg'
+import type { Glyph } from '@iconotype/core-model'
 
 export interface SvgImportOptions extends FixOptions {
   /** source grid recorded on the glyph (0 = none) */
@@ -21,7 +21,7 @@ export const glyphNameFrom = (filename: string): string =>
     .toLowerCase()
 
 /**
- * SVG file to glyph. All the work happens in @glyphsmith/core-svg's pipeline
+ * SVG file to glyph. All the work happens in @iconotype/core-svg's pipeline
  * (docs/04); this just names the result and shapes it as a Glyph.
  */
 export function importSvg(source: string, name: string, opts: SvgImportOptions = {}): SvgImportResult {

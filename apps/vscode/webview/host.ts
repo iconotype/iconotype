@@ -1,4 +1,4 @@
-import type { Bytes, Host } from '@glyphsmith/core-host'
+import type { Bytes, Host } from '@iconotype/core-host'
 
 interface VsCodeApi { postMessage(msg: unknown): void; getState(): unknown; setState(s: unknown): void }
 declare function acquireVsCodeApi(): VsCodeApi

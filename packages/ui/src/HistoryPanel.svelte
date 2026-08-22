@@ -29,13 +29,13 @@
 </aside>
 
 <style>
-  aside { border-left: 1px solid var(--gs-border); padding: 12px; overflow: auto; }
+  aside { border-left: var(--gs-divider); padding: 12px; overflow: auto; }
   h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--gs-muted); margin: 4px 0 8px; }
   ol, ul { list-style: none; margin: 0 0 16px; padding: 0; }
   li { display: flex; align-items: center; gap: 4px; }
   .entry {
     flex: 1; text-align: left; background: transparent; color: var(--gs-fg);
-    border: none; padding: 3px 6px; border-radius: 3px; font-size: 12px;
+    border: none; padding: 3px 6px; border-radius: var(--gs-radius); font-size: 12px;
   }
   .entry:hover { background: var(--gs-hover); }
   .current { background: var(--gs-active); }

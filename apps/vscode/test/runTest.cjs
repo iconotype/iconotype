@@ -18,7 +18,7 @@ const cachePath = path.resolve(__dirname, '../../../.vscode-test')
       // a scratch folder to act as the workspace: discovery, export and the usage
       // scan all need real files to work on
       launchArgs: [
-        fs.mkdtempSync(path.join(os.tmpdir(), 'glyphsmith-ws-')),
+        fs.mkdtempSync(path.join(os.tmpdir(), 'iconotype-ws-')),
         '--disable-extensions', '--disable-gpu', '--no-sandbox',
       ],
     })

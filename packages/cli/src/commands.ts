@@ -1,15 +1,15 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
-import { hex, serializeLock, type Project, type StyleOutputKind } from '@glyphsmith/core-model'
-import { exportIcoMoonSelection, serializeIconFont, ICONFONT_EXTENSION } from '@glyphsmith/core-io'
-import { buildBundle, buildFont } from '@glyphsmith/core-font'
+import { hex, serializeLock, type Project, type StyleOutputKind } from '@iconotype/core-model'
+import { exportIcoMoonSelection, serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io'
+import { buildBundle, buildFont } from '@iconotype/core-font'
 import {
   buildFavicons, buildPngs, buildSpriteSheet, componentFilename, exportComponent,
   exportSpriteSymbols, exportSvg, exportTypes, iconsOf, outputConfigFor, resolveOutputs,
   type ComponentTarget, type Rasterizer,
-} from '@glyphsmith/core-export'
-import { fixSvg, fixPaths } from '@glyphsmith/core-svg'
+} from '@iconotype/core-export'
+import { fixSvg, fixPaths } from '@iconotype/core-svg'
 import { loadProject } from './load.js'
 
 export interface Io {
@@ -133,7 +133,7 @@ export interface InitArgs {
 
 /**
  * Converts anything importable — an IcoMoon project, a font zip, a folder of SVGs —
- * into a committed `.glyphsmith.json`, wired to where your build wants the output.
+ * into a committed `.iconotype.json`, wired to where your build wants the output.
  * This is the on-ramp for the editor extension and for CI.
  */
 export async function init(args: InitArgs, io: Io): Promise<number> {
@@ -162,7 +162,7 @@ export async function init(args: InitArgs, io: Io): Promise<number> {
 
   const icons = project.sets.reduce((n, s) => n + s.glyphs.length, 0)
   io.log(`wrote ${out} — ${icons} icon(s), fonts to ${project.output.fonts!.dir}/, styles to ${stylesDir}/`)
-  io.log(`next: open the folder in VSCode and run "Glyphsmith: Export Font", or: glyphsmith build --input ${out}`)
+  io.log(`next: open the folder in VSCode and run "Iconotype: Export Font", or: iconotype build --input ${out}`)
   return 0
 }
 
@@ -401,7 +401,7 @@ export async function scan(args: ScanArgs, io: Io): Promise<number> {
   } else {
     for (const name of unused) io.log(`unused   ${name}`)
     io.log(`${names.length - unused.length}/${names.length} icon(s) referenced in ${args.source}`)
-    if (unused.length) io.log(`subset with: glyphsmith build --input ${args.input} --only ${names.filter((n) => !unused.includes(n)).join(',')}`)
+    if (unused.length) io.log(`subset with: iconotype build --input ${args.input} --only ${names.filter((n) => !unused.includes(n)).join(',')}`)
   }
   return args.failOnUnused && unused.length ? 1 : 0
 }

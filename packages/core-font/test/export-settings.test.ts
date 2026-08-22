@@ -1,6 +1,6 @@
 import opentype from 'opentype.js'
 import { describe, expect, it } from 'vitest'
-import { defaultFontPrefs, emptyProject, emptySet, type Glyph, type Project } from '@glyphsmith/core-model'
+import { defaultFontPrefs, emptyProject, emptySet, type Glyph, type Project } from '@iconotype/core-model'
 import { buildCss, buildDemoHtml, buildFont, buildPaletteRules, buildVariables, classNameOf, interpolate } from '../src/index.js'
 
 const glyph = (name: string, over: Partial<Glyph> = {}): Glyph => ({

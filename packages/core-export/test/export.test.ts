@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { importIcoMoon } from '@glyphsmith/core-io'
+import { importIcoMoon } from '@iconotype/core-io'
 import {
   buildFavicons, buildPngs, buildSpriteSheet, componentFilename, exportCharacter, exportComponent,
   exportDataUri, exportEscape, exportSpriteSymbols, exportSvg, exportTypes, exportUseSnippet,
@@ -85,7 +85,7 @@ describe('component export', () => {
 
   it.each(targets)('%s output names every icon and carries its geometry', (target) => {
     const source = exportComponent(target, project, entries)
-    expect(source).toContain('Glyphsmith')
+    expect(source).toContain('Iconotype')
     expect(source).toContain('hiking')
     expect(source).toContain(hiking.glyph.paths[0]!.slice(0, 40))
     expect(componentFilename(target, project)).toMatch(/Alpimaps\.|alpimaps-/)

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { importIcoMoon } from '@glyphsmith/core-io'
+import { importIcoMoon } from '@iconotype/core-io'
 import {
   buildStamp, defaultOutputConfig, outputConfigFor, outputPaths, relativeFontPath, resolveOutputs, styleFileName,
 } from '../src/index.js'

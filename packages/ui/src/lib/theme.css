@@ -1,27 +1,86 @@
 /*
- * One stylesheet, three hosts.
- * VSCode overrides --vscode-*; web and desktop fall through to the second value.
- * No inline <style> anywhere — that is what buys the strict style-src CSP.
+ * The token contract, and the element styles built on it.
+ *
+ * This file never names a colour. A host loads exactly one palette next to it —
+ * `theme-vscode.css` inside the extension, `theme-modern.css` in the web and desktop
+ * apps — and everything here reads from that. No inline <style> anywhere, which is
+ * what buys the strict style-src CSP.
  */
 :root {
-  --gs-bg: var(--vscode-editor-background, #1e1e22);
-  --gs-fg: var(--vscode-foreground, #e6e6e6);
-  --gs-muted: var(--vscode-descriptionForeground, #9a9aa2);
-  --gs-border: var(--vscode-panel-border, #33333a);
-  --gs-accent: var(--vscode-button-background, #3b6fd4);
-  --gs-accent-fg: var(--vscode-button-foreground, #fff);
-  --gs-hover: var(--vscode-list-hoverBackground, #2a2a30);
-  --gs-active: var(--vscode-list-activeSelectionBackground, #33415e);
-  --gs-error: var(--vscode-errorForeground, #f14c4c);
-  --gs-font: var(--vscode-font-family, ui-sans-serif, system-ui, sans-serif);
-  --gs-mono: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, monospace);
-  --gs-size: var(--vscode-font-size, 13px);
+  /* fallbacks so a page that forgets to load a palette is still legible */
+  --gs-bg: #16181d;
+  --gs-surface: #1b1e25;
+  --gs-surface-2: #21252e;
+  --gs-fg: #e7e8ec;
+  --gs-muted: #9aa0ad;
+  --gs-border: #2b303a;
+  --gs-accent: #6366f1;
+  --gs-accent-fg: #fff;
+  --gs-accent-weak: rgba(99, 102, 241, .16);
+  --gs-hover: rgba(255, 255, 255, .05);
+  --gs-active: rgba(99, 102, 241, .18);
+  --gs-error: #f4707a;
+  --gs-warn: #e0a33e;
+  --gs-ok: #4ec98a;
+  --gs-input: #14161b;
+  --gs-ring: 0 0 0 2px var(--gs-accent-weak);
+  --gs-shadow: none;
+  --gs-radius: 4px;
+  --gs-radius-lg: 6px;
+  --gs-font: ui-sans-serif, system-ui, sans-serif;
+  --gs-mono: ui-monospace, SFMono-Regular, monospace;
+  --gs-size: 13px;
+  --gs-size-sm: 11px;
+  --gs-pad: 8px;
+  --gs-header: 40px;
+  --gs-transition: 120ms ease;
+  /* how panes are separated: a hairline in an editor, air between cards in an app */
+  --gs-divider: 1px solid var(--gs-border);
+  --gs-gap: 0px;
 }
+
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--gs-bg); color: var(--gs-fg); font: var(--gs-size)/1.5 var(--gs-font); }
-button {
-  font: inherit; border: 1px solid transparent; border-radius: 3px; padding: 3px 10px;
-  background: var(--gs-accent); color: var(--gs-accent-fg); cursor: pointer;
+
+body {
+  margin: 0;
+  background: var(--gs-bg);
+  color: var(--gs-fg);
+  font: var(--gs-size)/1.5 var(--gs-font);
+  -webkit-font-smoothing: antialiased;
 }
-button.ghost { background: transparent; color: var(--gs-fg); border-color: var(--gs-border); }
+
+button {
+  font: inherit;
+  border: 1px solid transparent;
+  border-radius: var(--gs-radius);
+  padding: 4px 12px;
+  background: var(--gs-accent);
+  color: var(--gs-accent-fg);
+  cursor: pointer;
+  transition: background var(--gs-transition), border-color var(--gs-transition), opacity var(--gs-transition);
+}
+button:hover:not(:disabled) { background: var(--gs-accent-hover, var(--gs-accent)); }
+button.ghost {
+  background: transparent;
+  color: var(--gs-fg);
+  border-color: var(--gs-border);
+}
+button.ghost:hover:not(:disabled) { background: var(--gs-hover); border-color: var(--gs-accent); }
 button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--gs-ring);
+}
+
+input, select, textarea {
+  font: inherit;
+  color: var(--gs-fg);
+  background: var(--gs-input);
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  padding: 4px 8px;
+}
+input:focus, select:focus { border-color: var(--gs-accent); }
+
+/* codepoints and hex read as columns, not as prose */
+code, .mono { font-family: var(--gs-mono); font-variant-numeric: tabular-nums; }

@@ -1,8 +1,8 @@
-import type { Host } from '@glyphsmith/core-host'
-import { allocate, emptySet, type Glyph, type GlyphId, type SetId } from '@glyphsmith/core-model'
-import type { FontFormat } from '@glyphsmith/core-font'
-import type { Finding } from '@glyphsmith/core-svg'
-import type { FontPrefs } from '@glyphsmith/core-model'
+import type { Host } from '@iconotype/core-host'
+import { allocate, emptySet, type Glyph, type GlyphId, type SetId } from '@iconotype/core-model'
+import type { FontFormat } from '@iconotype/core-font'
+import type { Finding } from '@iconotype/core-svg'
+import type { FontPrefs } from '@iconotype/core-model'
 
 /**
  * core-io and core-font are loaded ON DEMAND, never at boot.
@@ -12,10 +12,10 @@ import type { FontPrefs } from '@glyphsmith/core-model'
  * screen that shows an empty project; dynamic imports keep first paint small and let
  * Vite emit them as separate chunks fetched on the first import/export.
  */
-const io = () => import('@glyphsmith/core-io')
-const fontkit = () => import('@glyphsmith/core-font')
-const svgkit = () => import('@glyphsmith/core-svg')
-const exportkit = () => import('@glyphsmith/core-export')
+const io = () => import('@iconotype/core-io')
+const fontkit = () => import('@iconotype/core-font')
+const svgkit = () => import('@iconotype/core-svg')
+const exportkit = () => import('@iconotype/core-export')
 import { getContext, setContext } from 'svelte'
 import { SessionStore } from './session.svelte.js'
 import { debounce, saveProject } from './persistence.js'
@@ -38,7 +38,7 @@ export class AppStore {
   /**
    * Whether this shell owns persistence.
    *
-   * The VSCode editor does not: the extension owns the `.glyphsmith.json` and writes
+   * The VSCode editor does not: the extension owns the `.iconotype.json` and writes
    * every edit itself. Left on there, the autosave wrote to the Host's own project
    * store — `/projects/...` through the webview RPC — and failed with EROFS on every
    * keystroke.
@@ -206,6 +206,21 @@ export class AppStore {
     this.busy = true
     try {
       for (const f of files) await this.#importOne(f)
+    } finally {
+      this.busy = false
+    }
+  }
+
+  /** Imports whatever a URL serves — used by the sample project link. */
+  async importUrl(url: string) {
+    this.busy = true
+    try {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+      const name = url.split('/').pop() || 'sample.json'
+      await this.#importOne({ name, data: new Uint8Array(await response.arrayBuffer()) })
+    } catch (e) {
+      this.notify('error', `could not load ${url}: ${(e as Error).message}`)
     } finally {
       this.busy = false
     }
@@ -497,7 +512,7 @@ export class AppStore {
   scheduleSave() { if (this.autosave) this.#save() }
 }
 
-const APP = Symbol('glyphsmith.app')
+const APP = Symbol('iconotype.app')
 export const setApp = (a: AppStore) => setContext(APP, a)
 export const useApp = (): AppStore => {
   const a = getContext<AppStore>(APP)

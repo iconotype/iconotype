@@ -54,7 +54,12 @@ labelled history step.
 pixel preview.
 
 ## M8 — Advanced (ongoing)
-Iconify browser, COLR/CPAL color fonts, usage scan + subsetting, font-file import, attribution roll-up, Figma import, normalization presets, optical centering, CSH export.
+**Icon library ✅ (see [21](21-icon-library.md))** — search 236 open collections
+(334,616 icons) from the app, the extension and the CLI; stroke sets outlined by the
+existing fixer, one set per collection, and the licences printed into the generated
+stylesheet.
+
+Remaining: COLR/CPAL color fonts, usage scan + subsetting, font-file import, Figma import, normalization presets, optical centering, CSH export.
 
 ---
 

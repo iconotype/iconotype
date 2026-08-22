@@ -6,7 +6,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "--filter",
-        "@glyphsmith/web",
+        "@iconotype/web",
         "dev",
         "--port",
         "5178"

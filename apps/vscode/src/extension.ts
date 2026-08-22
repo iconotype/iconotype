@@ -588,7 +588,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage(`Iconotype: created ${name}${ICONFONT_EXTENSION}. Add SVGs with "Iconotype: Add Icons".`)
   })
 
-  command('iconotype.open', async (uri?: vscode.Uri, focus?: string) => {
+  command('iconotype.open', async (uri?: vscode.Uri, focus?: string, library?: boolean) => {
     const font = await pickFont(uri)
     if (!font) return undefined
     const panel = vscode.window.createWebviewPanel(
@@ -613,19 +613,20 @@ export async function activate(context: vscode.ExtensionContext) {
     const token = [...Array(16)].map(() => Math.random().toString(36)[2]).join('')
     let sentOnce = false
 
-    const send = (focusGlyph?: string) => {
+    const send = (focusGlyph?: string, openLibrary?: boolean) => {
       const current = registry.get(font.uri)
       if (current && !current.error) {
         sentOnce = true
         void panel.webview.postMessage({
-          type: 'project', project: current.project, name: current.name, token, focus: focusGlyph,
+          type: 'project', project: current.project, name: current.name, token,
+          focus: focusGlyph, library: openLibrary,
         })
       }
     }
 
     panel.webview.onDidReceiveMessage(async (message: { type?: string; project?: Project; token?: string }) => {
       // the editor asks for its project once it has booted
-      if (message?.type === 'ready') { send(focus); return }
+      if (message?.type === 'ready') { send(focus, library); return }
       // and writes every edit straight back to the .iconotype.json
       if (message?.type === 'save' && message.project) {
         if (!sentOnce || message.token !== token) {
@@ -645,6 +646,18 @@ export async function activate(context: vscode.ExtensionContext) {
     const subscription = registry.onDidChange(() => send())
     panel.onDidDispose(() => subscription.dispose())
     return panel
+  })
+
+  /**
+   * The icon library, from the command palette.
+   *
+   * It rides on `iconotype.open` rather than opening its own panel: the library adds
+   * glyphs to a project, so it needs a project loaded and a panel that can save one.
+   * The flag travels with the `project` message instead of as a second postMessage,
+   * because the webview is not listening yet when the panel is created.
+   */
+  command('iconotype.findIcons', async (uri?: vscode.Uri) => {
+    await vscode.commands.executeCommand('iconotype.open', uri, undefined, true)
   })
 
   // ── editor integration ─────────────────────────────────────────────────────────

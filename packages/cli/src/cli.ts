@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util'
-import { build, diff, fix, info, init, lint, scan, type Io } from './commands.js'
+import { add, build, diff, find, fix, info, init, lint, scan, type Io } from './commands.js'
 import type { ComponentTarget } from '@iconotype/core-export'
 
 const USAGE = `iconotype — icon font toolchain
@@ -7,6 +7,8 @@ const USAGE = `iconotype — icon font toolchain
 usage: iconotype <command> [options]
 
 commands:
+  find      search 230+ open icon libraries — Lucide, Material Symbols, MDI, Tabler…
+  add       add icons from those libraries to a project
   init      create a committed .iconotype.json from an existing project or SVG folder
   build     build the font package from a project or a folder of SVGs
   lint      report what the fixer would have to change; non-zero exit on errors
@@ -19,6 +21,17 @@ common options:
   -i, --input <path>     project .json, IcoMoon .zip, or a directory of .svg  (default: icons)
       --json             machine-readable output
   -h, --help             show this
+
+find options:
+      --limit <n>        how many results                              (default: 48)
+      --prefixes <list>  restrict to these collections, e.g. lucide,mdi
+
+add options:
+      --out <file>       write the result here instead of over --input
+      --qualify          name glyphs <collection>-<icon>, e.g. lucide-house
+
+find / add options:
+      --library <url>    a self-hosted iconify/api instead of the public one
 
 build options:
       --out <dir>        package everything into this directory. Omit it and a project
@@ -66,6 +79,8 @@ examples:
   iconotype lint --input icons --max-warnings 0
   iconotype diff dist/selection.json icons --allow-breaking
   iconotype scan --input icons --source src --json
+  iconotype find chevron --prefixes lucide,tabler
+  iconotype add lucide:house mdi:cog --input app.iconotype.json
 `
 
 const list = (v: string | undefined): string[] | undefined =>
@@ -91,6 +106,10 @@ export async function run(argv: string[], io: Io): Promise<number> {
         components: { type: 'string' },
         favicon: { type: 'string' },
         source: { type: 'string' },
+        limit: { type: 'string' },
+        prefixes: { type: 'string' },
+        library: { type: 'string' },
+        qualify: { type: 'boolean' },
         simplify: { type: 'string' },
         snap: { type: 'string' },
         'max-warnings': { type: 'string' },
@@ -127,6 +146,22 @@ export async function run(argv: string[], io: Io): Promise<number> {
 
   try {
     switch (command) {
+      case 'find': {
+        const query = positionals.join(' ').trim()
+        if (!query) {
+          io.error('error: find needs something to search for — iconotype find chevron')
+          return 2
+        }
+        return await find({ query, limit: num(v.limit), prefixes: list(v.prefixes), json: v.json, host: v.library }, io)
+      }
+      case 'add':
+        // --input defaults to `icons`, which for `add` would silently target the wrong
+        // thing; the refs are the positionals, so the project must be named outright
+        if (!v.input) {
+          io.error('error: add needs --input <project.iconotype.json>')
+          return 2
+        }
+        return await add({ input: v.input, refs: positionals, out: v.out, host: v.library, qualify: v.qualify }, io)
       case 'init':
         return await init({
           input, out: v.out, name: v.name, prefix: v.prefix,

@@ -5,6 +5,11 @@
 
 <div class="bar">
   <button onclick={() => app.pickAndImport()} disabled={app.busy}>Import…</button>
+  <button
+    class="ghost"
+    onclick={() => (app.showLibrary = true)}
+    title="Search Lucide, Material Symbols, MDI and 200+ other open libraries (⌘K)"
+  >Find icons…</button>
 
   <label class="size">
     <input type="range" min="16" max="96" step="8" bind:value={app.cellSize} aria-label="Glyph size" />

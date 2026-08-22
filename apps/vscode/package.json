@@ -40,6 +40,12 @@
         "icon": "$(add)"
       },
       {
+        "command": "iconotype.findIcons",
+        "title": "Find Icons in Open Libraries…",
+        "category": "Iconotype",
+        "icon": "$(search)"
+      },
+      {
         "command": "iconotype.removeIcon",
         "title": "Remove Icon",
         "category": "Iconotype",
@@ -148,6 +154,11 @@
           "command": "iconotype.importProject",
           "when": "view == iconotype.iconGrid",
           "group": "navigation@0"
+        },
+        {
+          "command": "iconotype.findIcons",
+          "when": "view == iconotype.iconGrid",
+          "group": "navigation@1"
         },
         {
           "command": "iconotype.newFont",

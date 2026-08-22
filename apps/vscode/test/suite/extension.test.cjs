@@ -955,4 +955,19 @@ suite('iconotype extension', function () {
     const emptyHtml = empty.renderHtml({ cspSource: 'vscode-resource:' })
     assert.ok(emptyHtml.includes('data-command="importProject"'), 'an empty workspace must offer importing')
   })
+
+  test('offers the icon library, and the CSP lets it reach the API', async () => {
+    const commands = await vscode.commands.getCommands(true)
+    assert.ok(commands.includes('iconotype.findIcons'), 'the library command must be registered')
+
+    /*
+     * The webview CSP is `default-src none`, so a search would be blocked without an
+     * explicit `connect-src` entry — and the failure surfaces in the webview console
+     * as a refused fetch, nowhere the extension can see it.
+     */
+    const { webviewCsp } = require('@iconotype/build-config')
+    const csp = webviewCsp('vscode-resource:', 'nonce123')
+    assert.ok(/connect-src[^;]*https:\/\/api\.iconify\.design/.test(csp), csp)
+    assert.ok(/img-src[^;]*data:/.test(csp), 'previews are data: URIs')
+  })
 })

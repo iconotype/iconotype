@@ -48,10 +48,12 @@
     <div class="empty">
       <p>
         Drop an <strong>Iconotype</strong> or <strong>IcoMoon project</strong> (.json),
-        a <strong>font package</strong> (.zip) or <strong>SVG files</strong> here.
+        a <strong>font package</strong> (.zip) or <strong>SVG files</strong> here —
+        or start from an icon somebody already drew.
       </p>
       <div class="cta">
-        <button onclick={() => app.pickAndImport()}>Choose files…</button>
+        <button onclick={() => (app.showLibrary = true)}>Find icons…</button>
+        <button class="ghost" onclick={() => app.pickAndImport()}>Choose files…</button>
         {#if sample}
           <button class="ghost" onclick={() => app.importUrl(sample!)}>Load a sample set</button>
         {/if}

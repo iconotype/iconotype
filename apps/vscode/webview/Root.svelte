@@ -48,7 +48,7 @@
 
   window.addEventListener('message', (event: MessageEvent) => {
     const message = event.data as
-      { type?: string; project?: Project; name?: string; token?: string; focus?: string }
+      { type?: string; project?: Project; name?: string; token?: string; focus?: string; library?: boolean }
     if (message?.type !== 'project' || !message.project) return
     if (message.token) token = message.token
     const snapshot = JSON.stringify(message.project)
@@ -62,6 +62,8 @@
       // alt-clicking an icon in the sidebar opens the editor ON it, not beside it
       if (glyph) app.edit(glyph.id)
     }
+    // "Iconotype: Find Icons" opens the editor with the library already up
+    if (message.library) app.showLibrary = true
   })
 
   // ask for the project once we are alive; the extension answers with `project`

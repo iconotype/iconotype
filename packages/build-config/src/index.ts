@@ -66,6 +66,16 @@ export const cspSafeBuild = {
  *   - worker-src blob:    → without it blob Workers are blocked
  * Note there is NO 'unsafe-inline' in style-src. Keep it that way.
  */
+/**
+ * The icon library's API.
+ *
+ * Named explicitly rather than opening `connect-src` to `https:` — this is the one
+ * outside host the app ever talks to, and it only ever sends a search string. A
+ * self-hosted `iconify/api` needs its own entry here; there is no way around that
+ * without handing the CSP to configuration, which defeats the point of having one.
+ */
+export const ICON_LIBRARY_ORIGIN = 'https://api.iconify.design'
+
 export function webviewCsp(cspSource: string, nonce: string, mode: 'strict' | 'relaxed' = 'relaxed'): string {
   const base = [
     `default-src 'none'`,
@@ -83,10 +93,10 @@ export function webviewCsp(cspSource: string, nonce: string, mode: 'strict' | 'r
    */
   const rest =
     mode === 'strict'
-      ? [`script-src 'nonce-${nonce}' 'strict-dynamic'`, `connect-src ${cspSource}`]
+      ? [`script-src 'nonce-${nonce}' 'strict-dynamic'`, `connect-src ${cspSource} ${ICON_LIBRARY_ORIGIN}`]
       : [
           `script-src 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'`,
-          `connect-src ${cspSource} blob: data:`,
+          `connect-src ${cspSource} blob: data: ${ICON_LIBRARY_ORIGIN}`,
           `worker-src blob:`,
         ]
   return [...base, ...rest].join('; ') + ';'

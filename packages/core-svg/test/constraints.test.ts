@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PaperOffset } from 'paperjs-offset'
 import paper from 'paper'
-import { bakePath, getPaper, outlineStroke, shapeToPath } from '../src/index.js'
+import { bakePath, fixSvg, getPaper, outlineStroke, shapeToPath } from '../src/index.js'
 
 /**
  * Regression tests for the two traps spike 01 found. These are not academic:
@@ -60,5 +60,21 @@ describe('shape conversion', () => {
   it('rescales from a source height to the set height', () => {
     const out = bakePath('M0 0H24', undefined, { sourceHeight: 24, targetHeight: 1024 })
     expect(out).toContain('1024')
+  })
+})
+
+describe('option merging', () => {
+  /**
+   * A caller writing `{ targetHeight: set?.height }` used to get NaN geometry and
+   * "Use a moveTo() command first" — an error naming a symptom four stages downstream
+   * of the cause. Present-but-undefined must mean "not given", not "override with
+   * undefined".
+   */
+  it('ignores options that are present but undefined', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>'
+    const withUndefined = fixSvg(svg, { targetHeight: undefined, precision: undefined })
+    const omitted = fixSvg(svg, {})
+    expect(withUndefined.paths).toEqual(omitted.paths)
+    expect(withUndefined.stats.bounds!.height).toBeGreaterThan(0)
   })
 })

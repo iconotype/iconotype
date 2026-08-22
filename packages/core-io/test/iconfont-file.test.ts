@@ -87,3 +87,36 @@ describe('.iconotype.json project file', () => {
     expect(parseIconFont(serializeIconFont(plain), 'p2').preferences.font.usagePrefixes).toBeUndefined()
   })
 })
+
+describe('attribution', () => {
+  /**
+   * The file is one flat set by design, so the set it reads back is named after the
+   * FONT and inherits the first credit. Trusting the sets on the way out therefore
+   * rewrote "Lucide — ISC" as "<font name> — ISC" and dropped every other licence —
+   * silent, and for CC BY artwork not a cosmetic loss.
+   */
+  it('keeps every credit across a round trip, names intact', () => {
+    const before = emptyProject('p0', 'demo')
+    before.sets = [
+      { ...before.sets[0]!, name: 'Lucide', metadata: { license: 'ISC', designer: 'Lucide Contributors' } },
+      { ...before.sets[0]!, id: 's1', name: 'Tabler Icons', glyphs: [], metadata: { license: 'MIT', designer: 'Paweł Kuna' } },
+    ]
+
+    const once = parseIconFont(serializeIconFont(before))
+    expect(once.credits?.map((c) => `${c.name}|${c.license}`)).toEqual(['Lucide|ISC', 'Tabler Icons|MIT'])
+
+    // the second trip is where the name used to drift onto the font's own
+    const twice = parseIconFont(serializeIconFont(once))
+    expect(twice.credits).toEqual(once.credits)
+  })
+
+  it('adds a credit a new set brings, without duplicating one already carried', () => {
+    const project = emptyProject('p0', 'demo')
+    project.credits = [{ name: 'Lucide', license: 'ISC', designer: 'Lucide Contributors' }]
+    project.sets = [
+      { ...project.sets[0]!, name: 'Lucide', metadata: { license: 'ISC', designer: 'Lucide Contributors' } },
+      { ...project.sets[0]!, id: 's1', name: 'Phosphor', glyphs: [], metadata: { license: 'MIT', designer: 'Phosphor Icons' } },
+    ]
+    expect(toIconFontFile(project).credits?.map((c) => c.name)).toEqual(['Lucide', 'Phosphor'])
+  })
+})

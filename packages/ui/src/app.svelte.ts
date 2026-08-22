@@ -1,5 +1,6 @@
 import type { Host } from '@iconotype/core-host'
-import { allocate, emptySet, type Glyph, type GlyphId, type SetId } from '@iconotype/core-model'
+import { allocate, emptySet, type Glyph, type GlyphId, type IconSet, type SetId } from '@iconotype/core-model'
+import type { CollectionInfo, IconRef } from '@iconotype/core-io'
 import type { FontFormat } from '@iconotype/core-font'
 import type { AlignMode, Finding, FlipAxis } from '@iconotype/core-svg'
 import type { FontPrefs } from '@iconotype/core-model'
@@ -411,6 +412,99 @@ export class AppStore {
     )
     if (Object.keys(assignments).length) this.session.do({ t: 'codepoint.assign', assignments })
     if (overflow.length) this.notify('error', `Private Use Area exhausted; no codepoint for: ${overflow.join(', ')}`)
+  }
+
+  // ── icon library ─────────────────────────────────────────────────────────────
+  /**
+   * Searching the open icon libraries.
+   *
+   * Every project so far started from artwork you already had. Most do not: you want
+   * a chevron and a trash can, and drawing either one is a worse use of an afternoon
+   * than finding one somebody already drew. The picker searches 230+ open collections
+   * at once and drops the result in as a normal glyph — same pipeline, same codepoint
+   * allocation, same undo step.
+   *
+   * The endpoint is settable so a workspace that cannot reach the public API can point
+   * at a self-hosted `iconify/api`; nothing but the query and the icon names is sent.
+   */
+  showLibrary = $state(false)
+  libraryHost = $state<string | undefined>(undefined)
+  adding = $state(false)
+
+  /**
+   * Adds icons from a library, one set per collection.
+   *
+   * The set is per-collection rather than "wherever you happen to be" because a set
+   * carries a licence: Lucide's icons are ISC and Font Awesome's are CC BY 4.0, and
+   * once they are mixed into one set neither statement is true of it. Kept apart, the
+   * font's attribution writes itself.
+   */
+  async addFromLibrary(refs: IconRef[], collections: Record<string, CollectionInfo>) {
+    if (!refs.length) return
+    this.adding = true
+    try {
+      const { fetchIconRefs, toGlyphs, setMetadataFor, iconRefId } = await io()
+      const icons = await fetchIconRefs(refs, { host: this.libraryHost })
+      const missing = refs.length - icons.length
+      if (missing > 0) this.notify('warn', `${missing} icon(s) were not served by the library`)
+      if (!icons.length) return
+
+      const taken = new Set(this.session.project.sets.flatMap((s) => s.glyphs).map((g) => g.name))
+      const lint = new Map(this.lint)
+      let added = 0
+
+      // grouped by collection so each batch lands in one set, in one history step
+      const byPrefix = new Map<string, typeof icons>()
+      for (const icon of icons) {
+        const group = byPrefix.get(icon.prefix)
+        if (group) group.push(icon)
+        else byPrefix.set(icon.prefix, [icon])
+      }
+
+      for (const [prefix, group] of byPrefix) {
+        const collection = collections[prefix]
+        const set = this.#setForCollection(prefix, collection, setMetadataFor)
+        const results = toGlyphs(group, collections, { targetHeight: set.height, taken })
+        const glyphs = results.map((r) => r.glyph)
+        if (!glyphs.length) continue
+        this.addGlyphs(set.id, glyphs, `Add ${glyphs.length} icon(s) from ${collection?.name ?? prefix}`)
+        for (const r of results) {
+          lint.set(r.glyph.id, r.findings)
+          r.warnings.forEach((w) => this.notify('warn', `${iconRefId(r.ref)}: ${w}`))
+        }
+        added += glyphs.length
+      }
+
+      this.lint = lint
+      if (added) this.notify('info', `Added ${added} icon(s)`)
+    } catch (e) {
+      this.notify('error', `icon library: ${(e as Error).message}`)
+    } finally {
+      this.adding = false
+    }
+  }
+
+  /**
+   * The set a collection's icons belong in, created with its licence if it is new.
+   *
+   * `metadataFor` is handed in rather than imported: it lives in core-io, and a static
+   * import of anything there drags paper.js and the WOFF2 wasm into the boot bundle.
+   */
+  #setForCollection(
+    prefix: string,
+    collection: CollectionInfo | undefined,
+    metadataFor: (c: CollectionInfo) => IconSet['metadata'],
+  ) {
+    const name = collection?.name ?? prefix
+    const existing = this.session.project.sets.find((s) => s.name === name)
+    if (existing) return existing
+    const id = `${this.session.project.id}-set-${this.session.project.sets.length}-${this.#now()}`
+    const set: IconSet = {
+      ...emptySet(id, name),
+      metadata: collection ? metadataFor(collection) : {},
+    }
+    this.session.do({ t: 'set.add', set }, `Add set ${name}`)
+    return this.session.project.sets.find((s) => s.id === id) ?? set
   }
 
   // ── import ───────────────────────────────────────────────────────────────────

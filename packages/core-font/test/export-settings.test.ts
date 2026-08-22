@@ -1,7 +1,7 @@
 import opentype from 'opentype.js'
 import { describe, expect, it } from 'vitest'
 import { defaultFontPrefs, emptyProject, emptySet, type Glyph, type Project } from '@iconotype/core-model'
-import { buildCss, buildDemoHtml, buildFont, buildPaletteRules, buildVariables, classNameOf, interpolate } from '../src/index.js'
+import { buildCss, buildDemoHtml, buildFont, buildPaletteRules, buildVariables, classNameOf, creditLines, interpolate } from '../src/index.js'
 
 const glyph = (name: string, over: Partial<Glyph> = {}): Glyph => ({
   id: name, name, aliases: [], tags: [], paths: ['M100 100H900V900H100Z'], attrs: [{}],
@@ -133,5 +133,35 @@ describe('demo page', () => {
   it('uses the interpolated class names', async () => {
     const p = project([glyph('home')], { home: 0xe900 }, { postfix: '-${u}' })
     expect(buildDemoHtml(p, await buildFont(p, { formats: ['woff2'] }))).toContain('class="icon-home-e900"')
+  })
+})
+
+describe('credits in the stylesheet', () => {
+  /**
+   * The stylesheet is the one file that always ships next to the font, so it is where
+   * attribution has to survive — a licence that lives only in the project file is one
+   * nobody downstream ever sees.
+   */
+  it('writes each credit once, with a link to the terms', () => {
+    const project = emptyProject('p0', 'demo')
+    project.credits = [
+      { name: 'Lucide', license: 'ISC', designer: 'Lucide Contributors', licenseURL: 'https://example.test/isc' },
+      { name: 'Lucide', license: 'ISC', designer: 'Lucide Contributors', licenseURL: 'https://example.test/isc' },
+      { name: 'Font Awesome', license: 'CC BY 4.0', designer: 'Dave Gandy' },
+    ]
+    const lines = creditLines(project)
+    expect(lines.filter((l) => l.includes('Lucide'))).toHaveLength(1)
+    expect(lines.join('\n')).toContain('Lucide by Lucide Contributors — ISC https://example.test/isc')
+    expect(lines.join('\n')).toContain('Font Awesome by Dave Gandy — CC BY 4.0')
+  })
+
+  it('falls back to set metadata when the project carries no roll-up', () => {
+    const project = emptyProject('p0', 'demo')
+    project.sets = [{ ...project.sets[0]!, name: 'Tabler Icons', metadata: { license: 'MIT' } }]
+    expect(creditLines(project).join('\n')).toContain('Tabler Icons — MIT')
+  })
+
+  it('stays out of the way when nothing needs crediting', () => {
+    expect(creditLines(emptyProject('p0', 'demo'))).toEqual([])
   })
 })

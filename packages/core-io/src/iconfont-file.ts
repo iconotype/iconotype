@@ -114,7 +114,16 @@ export function toIconFontFile(project: Project): IconFontFile {
   }
   icons.sort((a, b) => fromHex(a.code) - fromHex(b.code) || a.name.localeCompare(b.name))
 
-  const credits = project.sets
+  /**
+   * Credits the project is carrying, plus any a set adds that they do not cover.
+   *
+   * The project's list comes first because reading this file collapses everything into
+   * one set named after the FONT, and that set inherits the first credit — so trusting
+   * the sets would rewrite "Lucide — ISC" as "demo — ISC" on every round trip and drop
+   * the other two licences entirely. Sets still contribute, which is how a collection
+   * added in the app gets its first credit.
+   */
+  const fromSets = project.sets
     .filter((s) => s.metadata.license || s.metadata.designer || s.metadata.url)
     .map((s) => ({
       name: s.name,
@@ -123,6 +132,9 @@ export function toIconFontFile(project: Project): IconFontFile {
       ...(s.metadata.designer ? { designer: s.metadata.designer } : {}),
       ...(s.metadata.url ? { url: s.metadata.url } : {}),
     }))
+  const carried = project.credits ?? []
+  const known = new Set(carried.map((c) => `${c.designer ?? ''}|${c.license ?? ''}`))
+  const credits = [...carried, ...fromSets.filter((c) => !known.has(`${c.designer ?? ''}|${c.license ?? ''}`))]
 
   return {
     $schema: 'https://iconotype.dev/schema/iconfont-1.json',
@@ -225,6 +237,8 @@ export function fromIconFontFile(file: IconFontFile, id = 'p0'): Project {
     preferences: prefs,
     codepoints,
     ...(file.output ? { output: file.output } : {}),
+    // every credit, not just the one the single set could hold
+    ...(file.credits?.length ? { credits: file.credits.map((c) => ({ ...c })) } : {}),
   }
 }
 

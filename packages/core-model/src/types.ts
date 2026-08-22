@@ -149,6 +149,23 @@ export interface OutputConfig {
   demo?: { path: string }
 }
 
+/**
+ * One line of attribution for artwork in the project.
+ *
+ * Sets carry this too, and in the app that is where it lives. But the committed
+ * `.iconotype.json` is one flat set by design, so a project assembled from three
+ * libraries would come back with two of its three licences gone — which for CC BY
+ * artwork is not a cosmetic loss. Held on the project, every credit survives the
+ * round trip whatever the sets do.
+ */
+export interface Credit {
+  name: string
+  license?: string
+  licenseURL?: string
+  designer?: string
+  url?: string
+}
+
 export interface Project {
   /** bumped when the on-disk shape changes; migrations key off it */
   schemaVersion: 1
@@ -161,5 +178,7 @@ export interface Project {
   codepoints: Record<string, number | number[]>
   /** where a build writes its files; absent means "ask me" (the web app downloads a zip) */
   output?: OutputConfig
+  /** attribution roll-up; written into the generated stylesheet */
+  credits?: Credit[]
   foreign?: Record<string, unknown>
 }

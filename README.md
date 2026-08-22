@@ -88,6 +88,27 @@ The pipeline is pinned by a 75-fixture visual regression corpus: every fixture i
 rasterized before and after and compared as a coverage mask, so a "fix" that changes
 what an icon looks like fails the build.
 
+### Finds the icon instead of making you draw it
+
+Search **236 open collections — 334,616 icons** from inside the app: Lucide, Google's
+Material Symbols, Pictogrammers' MDI, Tabler, Phosphor, Font Awesome and 230 more, as
+one index. Pick a few, and they arrive as ordinary glyphs — stroke sets like Lucide
+outlined into fills on the way in, because a font glyph has no stroke.
+
+Each collection lands in its own set carrying its own licence, and the credit follows
+the artwork the rest of the way: onto the glyph, into the committed project file, and
+into the header of the generated stylesheet — the one file that always ships next to
+the font.
+
+```bash
+iconotype find chevron --prefixes lucide,tabler
+iconotype add lucide:house mdi:cog --input app.iconotype.json
+```
+
+Only the search string and the icon names ever leave; point it at a self-hosted
+[`iconify/api`](https://github.com/iconify/api) if even that is too much. Details in
+[docs/21](docs/21-icon-library.md).
+
 ### An editor for what actually needs doing
 
 <img src="docs/media/app-editor.png" alt="The glyph editor: em square with baseline, align and transform tools" width="820">
@@ -145,7 +166,7 @@ packages/
   core-export/   sprites, components, types, favicons, output layout, build stamps
   core-host/     the Host interface: memory, web (OPFS), tauri, vscode
   ui/            Svelte 5 components and stores, shared by all three shells
-  cli/           iconotype init | build | lint | fix | diff | scan | info
+  cli/           iconotype init | build | lint | fix | diff | scan | find | add | info
 apps/
   web/           → GitHub Pages, OPFS + File System Access
   desktop/       → Tauri v2, real files and native dialogs
@@ -191,7 +212,7 @@ what broke, and why the code looks the way it does.
 | [09](docs/09-libraries.md) Library evaluation | [10](docs/10-m0-scaffold.md)–[15](docs/15-m5-vscode.md) M0–M5 build log |
 | [16](docs/16-m6-desktop.md) Desktop app | [17](docs/17-m7-glyph-editor.md) Glyph editor |
 | [18](docs/18-ux-pass.md) The UX pass | [19](docs/19-website-and-releases.md) Website & releases |
-| [20](docs/20-publishing.md) Publishing setup | |
+| [20](docs/20-publishing.md) Publishing setup | [21](docs/21-icon-library.md) The icon library |
 
 ## Contributing
 

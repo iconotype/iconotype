@@ -63,7 +63,12 @@
 
 <style>
   .wrap { position: relative; display: inline-flex; }
-  .backdrop { position: fixed; inset: 0; z-index: 20; background: transparent; border: 0; cursor: default; }
+  /*
+   * `:hover` included deliberately: `button:hover:not(:disabled)` in the theme outranks
+   * a bare `.backdrop`, so this invisible click-catcher turned the whole window
+   * accent-purple as soon as the pointer left the menu.
+   */
+  .backdrop, .backdrop:hover { position: fixed; inset: 0; z-index: 20; background: transparent; border: 0; cursor: default; }
   .menu {
     position: absolute; top: calc(100% + 6px); right: 0; z-index: 21; min-width: 260px; max-width: 420px;
     padding: 4px; border-radius: var(--gs-radius-lg); border: 1px solid var(--gs-border);

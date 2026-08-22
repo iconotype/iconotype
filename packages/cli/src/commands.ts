@@ -1,8 +1,11 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
-import { hex, serializeLock, type Project, type StyleOutputKind } from '@iconotype/core-model'
-import { exportIcoMoonSelection, serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io'
+import { allocate, emptySet, hex, serializeLock, type Project, type StyleOutputKind } from '@iconotype/core-model'
+import {
+  exportIcoMoonSelection, fetchIconRefs, parseIconRef, searchIcons, serializeIconFont, setMetadataFor,
+  toGlyphs, ICONFONT_EXTENSION, type CollectionInfo,
+} from '@iconotype/core-io'
 import { buildBundle, buildFont } from '@iconotype/core-font'
 import {
   buildFavicons, buildPngs, buildSpriteSheet, componentFilename, exportComponent,
@@ -163,6 +166,124 @@ export async function init(args: InitArgs, io: Io): Promise<number> {
   const icons = project.sets.reduce((n, s) => n + s.glyphs.length, 0)
   io.log(`wrote ${out} — ${icons} icon(s), fonts to ${project.output.fonts!.dir}/, styles to ${stylesDir}/`)
   io.log(`next: open the folder in VSCode and run "Iconotype: Export Font", or: iconotype build --input ${out}`)
+  return 0
+}
+
+
+// ── find / add ───────────────────────────────────────────────────────────────────
+
+export interface FindArgs { query: string; limit?: number; prefixes?: string[]; json?: boolean; host?: string }
+
+/**
+ * Searching the open icon libraries from a terminal.
+ *
+ * The output is `prefix:name`, one per line, which is exactly what `add` takes — so
+ * `iconotype find chevron` and then pasting two of the lines into `iconotype add` is
+ * the whole workflow, and piping through grep works the way you would expect.
+ */
+export async function find(args: FindArgs, io: Io): Promise<number> {
+  const result = await searchIcons(args.query, {
+    limit: args.limit ?? 48,
+    prefixes: args.prefixes,
+    host: args.host,
+  })
+  if (args.json) {
+    io.log(JSON.stringify({ total: result.total, icons: result.icons.map((r) => `${r.prefix}:${r.name}`), collections: result.collections }, null, 2))
+    return result.icons.length ? 0 : 1
+  }
+  if (!result.icons.length) {
+    io.error(`nothing matched "${args.query}"`)
+    return 1
+  }
+  for (const ref of result.icons) {
+    const licence = result.collections[ref.prefix]?.license?.title
+    io.log(`${ref.prefix}:${ref.name}${licence ? `  (${licence})` : ''}`)
+  }
+  if (result.total > result.icons.length) io.log(`\n${result.icons.length} of ${result.total} — raise --limit for more`)
+  return 0
+}
+
+export interface AddArgs { input: string; refs: string[]; out?: string; host?: string; qualify?: boolean }
+
+/**
+ * Adds library icons to a project file and writes it back.
+ *
+ * One set per collection, because a set carries a licence and merging ISC artwork into
+ * a CC BY 4.0 set makes the set's own attribution a lie. Codepoints are allocated the
+ * same way every other path allocates them, so a font already in production keeps
+ * every number it had.
+ */
+export async function add(args: AddArgs, io: Io): Promise<number> {
+  const refs = args.refs.map(parseIconRef)
+  const bad = args.refs.filter((_, i) => refs[i] === null)
+  if (bad.length) {
+    io.error(`error: not icon references: ${bad.join(', ')} — expected prefix:name, e.g. lucide:house`)
+    return 2
+  }
+  const wanted = refs.filter((r): r is NonNullable<typeof r> => r !== null)
+  if (!wanted.length) {
+    io.error('error: add needs at least one icon — iconotype add lucide:house mdi:home')
+    return 2
+  }
+
+  const { project, warnings } = loadProject(args.input)
+  for (const w of warnings) io.error(`warning: ${w}`)
+
+  const icons = await fetchIconRefs(wanted, { host: args.host })
+  const found = new Set(icons.map((i) => `${i.prefix}:${i.name}`))
+  for (const ref of wanted) {
+    if (!found.has(`${ref.prefix}:${ref.name}`)) io.error(`warning: ${ref.prefix}:${ref.name} — the library does not have it`)
+  }
+  if (!icons.length) return 1
+
+  // the collection metadata rides along with the search index, so it is fetched here
+  const { listCollections } = await import('@iconotype/core-io')
+  let collections: Record<string, CollectionInfo> = {}
+  try {
+    collections = await listCollections({ host: args.host })
+  } catch {
+    // attribution is better than nothing, but a missing index must not block the add
+    io.error('warning: could not read the collection index — icons will be added without licence metadata')
+  }
+
+  const taken = new Set(project.sets.flatMap((s) => s.glyphs).map((g) => g.name))
+  let added = 0
+
+  for (const prefix of new Set(icons.map((i) => i.prefix))) {
+    const collection = collections[prefix]
+    const name = collection?.name ?? prefix
+    let set = project.sets.find((s) => s.name === name)
+    if (!set) {
+      set = { ...emptySet(`set-${prefix}`, name), metadata: collection ? setMetadataFor(collection) : {} }
+      project.sets.push(set)
+    }
+    const results = toGlyphs(icons.filter((i) => i.prefix === prefix), collections, {
+      targetHeight: set.height,
+      taken,
+      qualifyNames: args.qualify,
+    })
+    for (const r of results) {
+      set.glyphs.push(r.glyph)
+      for (const w of r.warnings) io.error(`warning: ${r.ref.prefix}:${r.ref.name}: ${w}`)
+      added++
+    }
+  }
+
+  const missing = project.sets
+    .filter((s) => !s.hidden)
+    .flatMap((s) => s.glyphs)
+    .filter((g) => project.codepoints[g.name] === undefined)
+    .map((g) => ({ name: g.name, layers: g.isMulticolor ? g.paths.length : 1 }))
+  if (missing.length) {
+    const { assignments, overflow } = allocate(project, missing)
+    Object.assign(project.codepoints, assignments)
+    for (const name of overflow) io.error(`error: no codepoint available for "${name}" — the Private Use Area is full`)
+  }
+
+  const out = args.out ?? args.input
+  writeFileSync(out, serializeIconFont(project))
+  io.log(`added ${added} icon(s) to ${out}`)
+  io.log(`next: iconotype build --input ${out}`)
   return 0
 }
 

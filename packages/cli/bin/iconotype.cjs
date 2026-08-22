@@ -6,6 +6,9 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -28,81 +31,86 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/cli.ts
-var cli_exports = {};
-__export(cli_exports, {
-  run: () => run
+// ../core-model/src/types.ts
+var init_types = __esm({
+  "../core-model/src/types.ts"() {
+    "use strict";
+  }
 });
-module.exports = __toCommonJS(cli_exports);
-var import_node_util = require("node:util");
-
-// src/commands.ts
-var import_node_fs2 = require("node:fs");
-var import_node_path2 = require("node:path");
-var import_resvg_js = require("@resvg/resvg-js");
 
 // ../core-model/src/defaults.ts
-var defaultFontPrefs = () => ({
-  family: "iconotype",
-  prefix: "icon-",
-  postfix: "",
-  majorVersion: 1,
-  minorVersion: 0,
-  emSize: 1024,
-  baselinePct: 6.25,
-  whitespacePct: 50,
-  embed: false,
-  selector: "class",
-  classSelector: ".icon",
-  cssVars: true,
-  cssVarsFormat: "css",
-  showMetrics: true,
-  showMetadata: true,
-  showVersion: true,
-  classPerGlyph: true,
-  propertyPerGlyph: false,
-  glyphNamesInFont: true,
-  palettePrefix: "palette",
-  allColorPalettes: false
+var defaultFontPrefs, defaultPreferences, emptySet, emptyProject;
+var init_defaults = __esm({
+  "../core-model/src/defaults.ts"() {
+    "use strict";
+    defaultFontPrefs = () => ({
+      family: "iconotype",
+      prefix: "icon-",
+      postfix: "",
+      majorVersion: 1,
+      minorVersion: 0,
+      emSize: 1024,
+      baselinePct: 6.25,
+      whitespacePct: 50,
+      embed: false,
+      selector: "class",
+      classSelector: ".icon",
+      cssVars: true,
+      cssVarsFormat: "css",
+      showMetrics: true,
+      showMetadata: true,
+      showVersion: true,
+      classPerGlyph: true,
+      propertyPerGlyph: false,
+      glyphNamesInFont: true,
+      palettePrefix: "palette",
+      allColorPalettes: false
+    });
+    defaultPreferences = () => ({
+      font: defaultFontPrefs(),
+      gridSize: 16,
+      historySize: 50,
+      showCodes: true,
+      showGlyphNames: true
+    });
+    emptySet = (id, name) => ({
+      id,
+      name,
+      height: 1024,
+      prevSize: 32,
+      hidden: false,
+      metadata: {},
+      colorThemes: [],
+      glyphs: []
+    });
+    emptyProject = (id, name = "Untitled project", now = 0) => ({
+      schemaVersion: 1,
+      id,
+      name,
+      createdAt: now,
+      sets: [emptySet(id + "-set-0", "Untitled Set")],
+      preferences: defaultPreferences(),
+      codepoints: {}
+    });
+  }
 });
-var defaultPreferences = () => ({
-  font: defaultFontPrefs(),
-  gridSize: 16,
-  historySize: 50,
-  showCodes: true,
-  showGlyphNames: true
+
+// ../core-model/src/ops.ts
+var init_ops = __esm({
+  "../core-model/src/ops.ts"() {
+    "use strict";
+  }
 });
-var emptySet = (id, name) => ({
-  id,
-  name,
-  height: 1024,
-  prevSize: 32,
-  hidden: false,
-  metadata: {},
-  colorThemes: [],
-  glyphs: []
-});
-var emptyProject = (id, name = "Untitled project", now = 0) => ({
-  schemaVersion: 1,
-  id,
-  name,
-  createdAt: now,
-  sets: [emptySet(id + "-set-0", "Untitled Set")],
-  preferences: defaultPreferences(),
-  codepoints: {}
+
+// ../core-model/src/history.ts
+var init_history = __esm({
+  "../core-model/src/history.ts"() {
+    "use strict";
+    init_ops();
+  }
 });
 
 // ../core-model/src/codepoints.ts
-var PUA_START = 59648;
-var PUA_END = 63743;
-var used = (project) => {
-  const s = /* @__PURE__ */ new Set();
-  for (const v of Object.values(project.codepoints)) {
-    if (Array.isArray(v)) v.forEach((c) => s.add(c));
-    else s.add(v);
-  }
-  return s;
-};
 function allocate(project, requests, opts = {}) {
   const taken = used(project);
   const assignments = {};
@@ -139,7 +147,6 @@ function allocate(project, requests, opts = {}) {
   }
   return { assignments, overflow };
 }
-var hex = (cp) => cp.toString(16).padStart(4, "0");
 function serializeLock(project) {
   const rows = Object.entries(project.codepoints).sort((a, b) => {
     const av = Array.isArray(a[1]) ? a[1][0] : a[1];
@@ -173,6 +180,35 @@ function parseLock(text) {
   }
   return out;
 }
+var PUA_START, PUA_END, used, hex;
+var init_codepoints = __esm({
+  "../core-model/src/codepoints.ts"() {
+    "use strict";
+    PUA_START = 59648;
+    PUA_END = 63743;
+    used = (project) => {
+      const s = /* @__PURE__ */ new Set();
+      for (const v of Object.values(project.codepoints)) {
+        if (Array.isArray(v)) v.forEach((c) => s.add(c));
+        else s.add(v);
+      }
+      return s;
+    };
+    hex = (cp) => cp.toString(16).padStart(4, "0");
+  }
+});
+
+// ../core-model/src/index.ts
+var init_src = __esm({
+  "../core-model/src/index.ts"() {
+    "use strict";
+    init_types();
+    init_defaults();
+    init_ops();
+    init_history();
+    init_codepoints();
+  }
+});
 
 // ../core-io/src/icomoon-types.ts
 function detectIcoMoon(data) {
@@ -183,6 +219,11 @@ function detectIcoMoon(data) {
   if (Array.isArray(d.iconSets)) return "project";
   return null;
 }
+var init_icomoon_types = __esm({
+  "../core-io/src/icomoon-types.ts"() {
+    "use strict";
+  }
+});
 
 // ../core-io/src/preserve.ts
 function capture(source, mapped) {
@@ -202,14 +243,23 @@ function rebuild(p, mapped) {
   for (const [k, v] of Object.entries(raw)) if (!(k in out) && v !== void 0) out[k] = v;
   return out;
 }
+function reorderByOriginalIndex(items, indexOf2) {
+  const placed = [];
+  const appended = [];
+  for (const item of items) {
+    const i = indexOf2(item);
+    if (i === void 0 || placed[i] !== void 0) appended.push(item);
+    else placed[i] = item;
+  }
+  return [...placed.filter((x) => x !== void 0), ...appended];
+}
+var init_preserve = __esm({
+  "../core-io/src/preserve.ts"() {
+    "use strict";
+  }
+});
 
 // ../core-io/src/icomoon-import.ts
-var ICON_KEYS = /* @__PURE__ */ new Set(["id", "paths", "attrs", "isMulticolor", "isMulticolor2", "tags", "grid", "width"]);
-var SELECTION_KEYS = /* @__PURE__ */ new Set(["order", "id", "name", "prevSize", "code", "codes", "ligatures"]);
-var SET_KEYS = /* @__PURE__ */ new Set(["id", "metadata", "height", "prevSize", "invisible", "colorThemes", "colorThemeIdx", "icons", "selection"]);
-var SET_META_KEYS = /* @__PURE__ */ new Set(["name", "url", "designer", "designerURL", "license", "licenseURL", "importSize"]);
-var PROJECT_KEYS = /* @__PURE__ */ new Set(["metadata", "iconSets", "preferences"]);
-var PROJECT_META_KEYS = /* @__PURE__ */ new Set(["name", "created"]);
 function toPreferences(p) {
   const d = defaultPreferences();
   if (!p) return d;
@@ -335,11 +385,6 @@ function selectionFileToProject(file) {
   }
   return { metadata: file.metadata ?? { name: "Imported" }, iconSets: [...sets.values()], preferences: file.preferences };
 }
-var iconSetFileToProject = (file) => ({
-  metadata: { name: file.metadata?.name ?? "Imported set" },
-  iconSets: [{ ...file, id: file.id ?? 0 }],
-  preferences: {}
-});
 function importIcoMoon(data, opts = {}) {
   const kind = detectIcoMoon(data);
   if (!kind) throw new Error("not an IcoMoon file: expected `iconSets` (project) or `IcoMoonType` (selection/iconSet)");
@@ -368,10 +413,29 @@ function importIcoMoon(data, opts = {}) {
     }
   };
 }
-var isIcoMoonFile = (data) => detectIcoMoon(data) !== null;
+var ICON_KEYS, SELECTION_KEYS, SET_KEYS, SET_META_KEYS, PROJECT_KEYS, PROJECT_META_KEYS, iconSetFileToProject, isIcoMoonFile;
+var init_icomoon_import = __esm({
+  "../core-io/src/icomoon-import.ts"() {
+    "use strict";
+    init_src();
+    init_preserve();
+    init_icomoon_types();
+    ICON_KEYS = /* @__PURE__ */ new Set(["id", "paths", "attrs", "isMulticolor", "isMulticolor2", "tags", "grid", "width"]);
+    SELECTION_KEYS = /* @__PURE__ */ new Set(["order", "id", "name", "prevSize", "code", "codes", "ligatures"]);
+    SET_KEYS = /* @__PURE__ */ new Set(["id", "metadata", "height", "prevSize", "invisible", "colorThemes", "colorThemeIdx", "icons", "selection"]);
+    SET_META_KEYS = /* @__PURE__ */ new Set(["name", "url", "designer", "designerURL", "license", "licenseURL", "importSize"]);
+    PROJECT_KEYS = /* @__PURE__ */ new Set(["metadata", "iconSets", "preferences"]);
+    PROJECT_META_KEYS = /* @__PURE__ */ new Set(["name", "created"]);
+    iconSetFileToProject = (file) => ({
+      metadata: { name: file.metadata?.name ?? "Imported set" },
+      iconSets: [{ ...file, id: file.id ?? 0 }],
+      preferences: {}
+    });
+    isIcoMoonFile = (data) => detectIcoMoon(data) !== null;
+  }
+});
 
 // ../core-io/src/icomoon-export.ts
-var pres = (holder, key) => holder?.foreign?.[key];
 function toIcon(glyph, index) {
   return rebuild(pres(glyph, "icon"), {
     id: glyph.foreign?.icoMoonId ?? index,
@@ -397,6 +461,31 @@ function toSelectionEntry(glyph, index, codepoints) {
     ...glyph.aliases.length ? { ligatures: glyph.aliases.join(", ") } : {}
   });
 }
+function toSet2(set, codepoints) {
+  const byIcon = reorderByOriginalIndex(set.glyphs, (g) => indexOf(g, "icon"));
+  const bySelection = reorderByOriginalIndex(set.glyphs, (g) => indexOf(g, "selection"));
+  const metadata = rebuild(pres(set, "metadata"), {
+    name: set.name,
+    url: set.metadata.url,
+    designer: set.metadata.designer,
+    designerURL: set.metadata.designerURL,
+    license: set.metadata.license,
+    licenseURL: set.metadata.licenseURL,
+    iconsHash: set.foreign?.iconsHash,
+    importSize: set.metadata.importSize
+  });
+  return rebuild(pres(set, "set"), {
+    id: set.foreign?.icoMoonId ?? 0,
+    metadata,
+    height: set.height,
+    prevSize: set.prevSize,
+    invisible: set.hidden,
+    colorThemes: structuredClone(set.colorThemes),
+    colorThemeIdx: set.colorThemeIdx,
+    icons: byIcon.map((g, i) => toIcon(g, i)),
+    selection: bySelection.map((g, i) => toSelectionEntry(g, i, codepoints))
+  });
+}
 function toPreferences2(prefs, original) {
   const out = structuredClone(original);
   out.gridSize = prefs.gridSize;
@@ -411,6 +500,16 @@ function toPreferences2(prefs, original) {
   fp.cssVars = prefs.font.cssVars;
   if (prefs.font.cssVarsFormat !== "css") fp.cssVarsFormat = prefs.font.cssVarsFormat;
   return out;
+}
+function exportIcoMoonProject(project) {
+  return rebuild(pres(project, "project"), {
+    metadata: rebuild(pres(project, "metadata"), {
+      name: project.name,
+      created: project.createdAt || void 0
+    }),
+    iconSets: project.sets.map((s) => toSet2(s, project.codepoints)),
+    preferences: toPreferences2(project.preferences, project.foreign?.preferences ?? {})
+  });
 }
 function exportIcoMoonSelection(project) {
   const icons = [];
@@ -434,11 +533,17 @@ function exportIcoMoonSelection(project) {
     preferences: toPreferences2(project.preferences, project.foreign?.preferences ?? {})
   };
 }
+var pres, indexOf;
+var init_icomoon_export = __esm({
+  "../core-io/src/icomoon-export.ts"() {
+    "use strict";
+    init_preserve();
+    pres = (holder, key) => holder?.foreign?.[key];
+    indexOf = (holder, key) => pres(holder, key)?.index;
+  }
+});
 
 // ../core-svg/src/paper.ts
-var import_paper = __toESM(require("paper"), 1);
-var import_paperjs_offset = require("paperjs-offset");
-var ready = false;
 function getPaper(size = 1024) {
   if (!ready) {
     import_paper.default.setup(new import_paper.default.Size(size, size));
@@ -446,10 +551,6 @@ function getPaper(size = 1024) {
   }
   return import_paper.default;
 }
-var fromPathData = (d) => {
-  const p = getPaper();
-  return d.includes("M") && d.trim().split(/(?=[Mm])/).length > 1 ? new p.CompoundPath(d) : new p.Path(d);
-};
 function outlineStroke(d, strokeWidth, opts = {}) {
   const path = fromPathData(d);
   try {
@@ -469,9 +570,21 @@ function outlineStroke(d, strokeWidth, opts = {}) {
 function clearScene() {
   if (ready) import_paper.default.project.clear();
 }
+var import_paper, import_paperjs_offset, ready, fromPathData;
+var init_paper = __esm({
+  "../core-svg/src/paper.ts"() {
+    "use strict";
+    import_paper = __toESM(require("paper"), 1);
+    import_paperjs_offset = require("paperjs-offset");
+    ready = false;
+    fromPathData = (d) => {
+      const p = getPaper();
+      return d.includes("M") && d.trim().split(/(?=[Mm])/).length > 1 ? new p.CompoundPath(d) : new p.Path(d);
+    };
+  }
+});
 
 // ../core-svg/src/matrix.ts
-var IDENTITY = [1, 0, 0, 1, 0, 0];
 function multiply(a, b) {
   return [
     a[0] * b[0] + a[2] * b[1],
@@ -482,7 +595,6 @@ function multiply(a, b) {
     a[1] * b[4] + a[3] * b[5] + a[5]
   ];
 }
-var rad = (deg) => deg * Math.PI / 180;
 function parseTransform(input) {
   if (!input) return [...IDENTITY];
   let m = [...IDENTITY];
@@ -521,7 +633,6 @@ function parseTransform(input) {
   }
   return m;
 }
-var scaleOf = (m) => Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1;
 function isNonUniform(m, epsilon = 1e-6) {
   const sx = Math.hypot(m[0], m[1]);
   const sy = Math.hypot(m[2], m[3]);
@@ -536,9 +647,17 @@ function viewBoxMatrix(viewBox, width, height, size) {
   const dy = (size - vbH * scale) / 2;
   return [scale, 0, 0, scale, -minX * scale + dx, -minY * scale + dy];
 }
+var IDENTITY, rad, scaleOf;
+var init_matrix = __esm({
+  "../core-svg/src/matrix.ts"() {
+    "use strict";
+    IDENTITY = [1, 0, 0, 1, 0, 0];
+    rad = (deg) => deg * Math.PI / 180;
+    scaleOf = (m) => Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1;
+  }
+});
 
 // ../core-svg/src/normalize.ts
-var import_svgpath = __toESM(require("svgpath"), 1);
 function shapeToPath(tag, a) {
   const n = (k, dflt = 0) => a[k] === void 0 ? dflt : parseFloat(a[k]);
   switch (tag) {
@@ -583,70 +702,75 @@ function bakePath(d, matrix, opts = {}) {
   }
   return p.abs().unshort().unarc().round(opts.precision ?? 3).toString();
 }
+var import_svgpath;
+var init_normalize = __esm({
+  "../core-svg/src/normalize.ts"() {
+    "use strict";
+    import_svgpath = __toESM(require("svgpath"), 1);
+  }
+});
 
 // ../core-svg/src/findings.ts
-var SEVERITY = {
-  SHAPE_CONVERTED: "info",
-  TRANSFORM_BAKED: "info",
-  STYLE_INLINED: "info",
-  USE_RESOLVED: "info",
-  STROKE_OUTLINED: "info",
-  EVENODD_CONVERTED: "info",
-  CLIP_APPLIED: "info",
-  SELF_INTERSECT: "info",
-  OPEN_CONTOUR: "info",
-  ZERO_AREA_REMOVED: "info",
-  SIMPLIFIED: "info",
-  SNAPPED: "info",
-  REFITTED: "info",
-  MASK_APPROXIMATED: "warning",
-  CLIP_APPROXIMATED: "warning",
-  STROKE_DASHARRAY: "warning",
-  STROKE_NONUNIFORM: "warning",
-  OPACITY_FLATTENED: "warning",
-  MULTIPLE_COLORS: "warning",
-  TINY_DETAIL: "warning",
-  HIGH_POINT_COUNT: "warning",
-  OUT_OF_BOX: "warning",
-  NON_INTEGER_GRID: "warning",
-  UNSUPPORTED_SELECTOR: "warning",
-  NESTED_SVG: "warning",
-  SCRIPT_STRIPPED: "warning",
-  EXTERNAL_REF: "warning",
-  FILTER_DROPPED: "warning",
-  GRADIENT_UNSUPPORTED: "error",
-  IMAGE_EMBEDDED: "error",
-  TEXT_ELEMENT: "error",
-  EMPTY: "error"
-};
-var FindingLog = class {
-  #items = /* @__PURE__ */ new Map();
-  add(code, message) {
-    const existing = this.#items.get(code);
-    if (existing) {
-      existing.count = (existing.count ?? 1) + 1;
-      return;
-    }
-    this.#items.set(code, { code, severity: SEVERITY[code], message, count: 1 });
+var SEVERITY, FindingLog;
+var init_findings = __esm({
+  "../core-svg/src/findings.ts"() {
+    "use strict";
+    SEVERITY = {
+      SHAPE_CONVERTED: "info",
+      TRANSFORM_BAKED: "info",
+      STYLE_INLINED: "info",
+      USE_RESOLVED: "info",
+      STROKE_OUTLINED: "info",
+      EVENODD_CONVERTED: "info",
+      CLIP_APPLIED: "info",
+      SELF_INTERSECT: "info",
+      OPEN_CONTOUR: "info",
+      ZERO_AREA_REMOVED: "info",
+      SIMPLIFIED: "info",
+      SNAPPED: "info",
+      REFITTED: "info",
+      MASK_APPROXIMATED: "warning",
+      CLIP_APPROXIMATED: "warning",
+      STROKE_DASHARRAY: "warning",
+      STROKE_NONUNIFORM: "warning",
+      OPACITY_FLATTENED: "warning",
+      MULTIPLE_COLORS: "warning",
+      TINY_DETAIL: "warning",
+      HIGH_POINT_COUNT: "warning",
+      OUT_OF_BOX: "warning",
+      NON_INTEGER_GRID: "warning",
+      UNSUPPORTED_SELECTOR: "warning",
+      NESTED_SVG: "warning",
+      SCRIPT_STRIPPED: "warning",
+      EXTERNAL_REF: "warning",
+      FILTER_DROPPED: "warning",
+      GRADIENT_UNSUPPORTED: "error",
+      IMAGE_EMBEDDED: "error",
+      TEXT_ELEMENT: "error",
+      EMPTY: "error"
+    };
+    FindingLog = class {
+      #items = /* @__PURE__ */ new Map();
+      add(code, message) {
+        const existing = this.#items.get(code);
+        if (existing) {
+          existing.count = (existing.count ?? 1) + 1;
+          return;
+        }
+        this.#items.set(code, { code, severity: SEVERITY[code], message, count: 1 });
+      }
+      get list() {
+        const order = ["error", "warning", "info"];
+        return [...this.#items.values()].sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
+      }
+      get hasError() {
+        return [...this.#items.values()].some((f) => f.severity === "error");
+      }
+    };
   }
-  get list() {
-    const order = ["error", "warning", "info"];
-    return [...this.#items.values()].sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
-  }
-  get hasError() {
-    return [...this.#items.values()].some((f) => f.severity === "error");
-  }
-};
+});
 
 // ../core-svg/src/prepare.ts
-var import_svgson = require("svgson");
-var import_parser = __toESM(require("css-tree/parser"), 1);
-var import_walker = __toESM(require("css-tree/walker"), 1);
-var import_generator = __toESM(require("css-tree/generator"), 1);
-var DANGEROUS = /* @__PURE__ */ new Set(["script", "foreignObject", "animate", "animateTransform", "animateMotion", "set"]);
-var EDITOR_PREFIXES = ["inkscape:", "sodipodi:", "figma:", "sketch:", "illustrator:", "serif:", "krita:"];
-var isElement = (n) => n.type === "element";
-var children = (n) => (n.children ?? []).filter(isElement);
 function indexIds(node, byId) {
   const id = node.attributes?.id;
   if (id && !byId.has(id)) byId.set(id, node);
@@ -726,15 +850,6 @@ function collectCss(node, rules, log) {
     collectCss(child, rules, log);
   }
 }
-var parseStyleAttr = (style) => {
-  const out = {};
-  for (const part of (style ?? "").split(";")) {
-    const i = part.indexOf(":");
-    if (i < 0) continue;
-    out[part.slice(0, i).trim()] = part.slice(i + 1).trim();
-  }
-  return out;
-};
 function applyCss(node, rules) {
   const attrs = node.attributes ?? {};
   const classes = (attrs.class ?? "").split(/\s+/).filter(Boolean);
@@ -795,29 +910,31 @@ function prepare(source, log) {
   indexIds(root, finalIds);
   return { root, byId: finalIds };
 }
+var import_svgson, import_parser, import_walker, import_generator, DANGEROUS, EDITOR_PREFIXES, isElement, children, parseStyleAttr;
+var init_prepare = __esm({
+  "../core-svg/src/prepare.ts"() {
+    "use strict";
+    import_svgson = require("svgson");
+    import_parser = __toESM(require("css-tree/parser"), 1);
+    import_walker = __toESM(require("css-tree/walker"), 1);
+    import_generator = __toESM(require("css-tree/generator"), 1);
+    DANGEROUS = /* @__PURE__ */ new Set(["script", "foreignObject", "animate", "animateTransform", "animateMotion", "set"]);
+    EDITOR_PREFIXES = ["inkscape:", "sodipodi:", "figma:", "sketch:", "illustrator:", "serif:", "krita:"];
+    isElement = (n) => n.type === "element";
+    children = (n) => (n.children ?? []).filter(isElement);
+    parseStyleAttr = (style) => {
+      const out = {};
+      for (const part of (style ?? "").split(";")) {
+        const i = part.indexOf(":");
+        if (i < 0) continue;
+        out[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+      }
+      return out;
+    };
+  }
+});
 
 // ../core-svg/src/traverse.ts
-var SHAPES = /* @__PURE__ */ new Set(["path", "rect", "circle", "ellipse", "line", "polyline", "polygon"]);
-var CONTAINERS = /* @__PURE__ */ new Set(["g", "a", "svg", "symbol"]);
-var DEFS_LIKE = /* @__PURE__ */ new Set([
-  "defs",
-  "clipPath",
-  "mask",
-  "marker",
-  "pattern",
-  "linearGradient",
-  "radialGradient",
-  "title",
-  "desc",
-  "metadata",
-  "style",
-  "filter"
-]);
-var isNone = (v) => v === void 0 || v === "none" || v === "transparent";
-var num = (v, dflt) => {
-  const n = parseFloat(v ?? "");
-  return Number.isFinite(n) ? n : dflt;
-};
 function isDegenerate(tag, attrs) {
   const n = (k) => parseFloat(attrs[k] ?? "");
   if (tag === "rect") return !(n("width") > 0) || !(n("height") > 0);
@@ -825,19 +942,6 @@ function isDegenerate(tag, attrs) {
   if (tag === "ellipse") return !(n("rx") > 0) || !(n("ry") > 0);
   return false;
 }
-var INHERITED = [
-  "fill",
-  "fill-rule",
-  "fill-opacity",
-  "stroke",
-  "stroke-width",
-  "stroke-linecap",
-  "stroke-linejoin",
-  "stroke-miterlimit",
-  "stroke-dasharray",
-  "stroke-opacity",
-  "color"
-];
 function referencedGeometry(node, matrix, precision, filter) {
   const parts = [];
   const walk2 = (n, m) => {
@@ -986,15 +1090,52 @@ function traverse(node, ctx, byId, out, log) {
     }
   }
 }
+var SHAPES, CONTAINERS, DEFS_LIKE, isNone, num, INHERITED;
+var init_traverse = __esm({
+  "../core-svg/src/traverse.ts"() {
+    "use strict";
+    init_prepare();
+    init_normalize();
+    init_matrix();
+    init_paper();
+    SHAPES = /* @__PURE__ */ new Set(["path", "rect", "circle", "ellipse", "line", "polyline", "polygon"]);
+    CONTAINERS = /* @__PURE__ */ new Set(["g", "a", "svg", "symbol"]);
+    DEFS_LIKE = /* @__PURE__ */ new Set([
+      "defs",
+      "clipPath",
+      "mask",
+      "marker",
+      "pattern",
+      "linearGradient",
+      "radialGradient",
+      "title",
+      "desc",
+      "metadata",
+      "style",
+      "filter"
+    ]);
+    isNone = (v) => v === void 0 || v === "none" || v === "transparent";
+    num = (v, dflt) => {
+      const n = parseFloat(v ?? "");
+      return Number.isFinite(n) ? n : dflt;
+    };
+    INHERITED = [
+      "fill",
+      "fill-rule",
+      "fill-opacity",
+      "stroke",
+      "stroke-width",
+      "stroke-linecap",
+      "stroke-linejoin",
+      "stroke-miterlimit",
+      "stroke-dasharray",
+      "stroke-opacity",
+      "color"
+    ];
+  }
+});
 
 // ../core-svg/src/geometry.ts
-var P = () => getPaper();
-var parsePath = (d) => new (P()).CompoundPath({ pathData: d, insert: false });
-var pathData = (item) => item.pathData ?? "";
-var contoursOf = (item) => {
-  const cp = item;
-  return (cp.children?.length ? cp.children : [item]).filter(Boolean);
-};
 function evenOddToNonZero(d) {
   const item = parsePath(d);
   item.fillRule = "evenodd";
@@ -1126,20 +1267,38 @@ function statsOf(paths2) {
   item.remove();
   return stats;
 }
+var P, parsePath, pathData, contoursOf;
+var init_geometry = __esm({
+  "../core-svg/src/geometry.ts"() {
+    "use strict";
+    init_paper();
+    P = () => getPaper();
+    parsePath = (d) => new (P()).CompoundPath({ pathData: d, insert: false });
+    pathData = (item) => item.pathData ?? "";
+    contoursOf = (item) => {
+      const cp = item;
+      return (cp.children?.length ? cp.children : [item]).filter(Boolean);
+    };
+  }
+});
+
+// ../core-svg/src/transform.ts
+var init_transform = __esm({
+  "../core-svg/src/transform.ts"() {
+    "use strict";
+    init_geometry();
+    init_paper();
+  }
+});
 
 // ../core-svg/src/pipeline.ts
-var import_svgpath2 = __toESM(require("svgpath"), 1);
-var DEFAULTS = {
-  targetHeight: 1024,
-  precision: 2,
-  simplifyTolerance: 0,
-  snapGrid: 0,
-  minAreaFraction: 1e-6,
-  fit: "none",
-  padding: 0,
-  tinyDetailPx: 0.75,
-  maxSegments: 4e3
-};
+function withDefaults(options = {}) {
+  const opts = { ...DEFAULTS };
+  for (const [key, value] of Object.entries(options)) {
+    if (value !== void 0) opts[key] = value;
+  }
+  return opts;
+}
 function validate(paths2, target, opts, log) {
   const stats = statsOf(paths2);
   if (!stats.contours) {
@@ -1165,7 +1324,7 @@ function validate(paths2, target, opts, log) {
   return stats;
 }
 function fixSvg(source, options = {}) {
-  const opts = { ...DEFAULTS, ...options };
+  const opts = withDefaults(options);
   const log = new FindingLog();
   clearScene();
   const { root, byId } = prepare(source, log);
@@ -1224,7 +1383,7 @@ function fixSvg(source, options = {}) {
   };
 }
 function fixPaths(paths2, options = {}) {
-  const opts = { ...DEFAULTS, ...options };
+  const opts = withDefaults(options);
   const log = new FindingLog();
   clearScene();
   const minArea = opts.minAreaFraction * opts.targetHeight * opts.targetHeight;
@@ -1241,9 +1400,48 @@ function fixPaths(paths2, options = {}) {
   const attrs = (options.attrs ?? paths2.map(() => ({}))).slice(0, out.length);
   return { paths: out, attrs, isMulticolor: attrs.length > 1, findings: log.list, stats };
 }
+var import_svgpath2, DEFAULTS;
+var init_pipeline = __esm({
+  "../core-svg/src/pipeline.ts"() {
+    "use strict";
+    import_svgpath2 = __toESM(require("svgpath"), 1);
+    init_findings();
+    init_prepare();
+    init_traverse();
+    init_matrix();
+    init_geometry();
+    init_paper();
+    DEFAULTS = {
+      targetHeight: 1024,
+      precision: 2,
+      simplifyTolerance: 0,
+      snapGrid: 0,
+      minAreaFraction: 1e-6,
+      fit: "none",
+      padding: 0,
+      tinyDetailPx: 0.75,
+      maxSegments: 4e3
+    };
+  }
+});
+
+// ../core-svg/src/index.ts
+var init_src2 = __esm({
+  "../core-svg/src/index.ts"() {
+    "use strict";
+    init_paper();
+    init_matrix();
+    init_normalize();
+    init_findings();
+    init_prepare();
+    init_traverse();
+    init_geometry();
+    init_transform();
+    init_pipeline();
+  }
+});
 
 // ../core-io/src/svg-import.ts
-var glyphNameFrom = (filename) => filename.replace(/\.svg$/i, "").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
 function importSvg(source, name, opts = {}) {
   let result;
   try {
@@ -1267,11 +1465,16 @@ function importSvg(source, name, opts = {}) {
     }
   };
 }
+var glyphNameFrom;
+var init_svg_import = __esm({
+  "../core-io/src/svg-import.ts"() {
+    "use strict";
+    init_src2();
+    glyphNameFrom = (filename) => filename.replace(/\.svg$/i, "").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
+  }
+});
 
 // ../core-io/src/zip.ts
-var import_fflate = require("fflate");
-var readZip = (data) => Object.entries((0, import_fflate.unzipSync)(data)).map(([path, bytes2]) => ({ path, data: bytes2 }));
-var ZIP_EPOCH = new Date(Date.UTC(1980, 0, 1));
 function importIcoMoonZip(data, opts = {}) {
   const entries = readZip(data);
   const selection = entries.find((e) => /(^|\/)selection\.json$/i.test(e.path));
@@ -1282,12 +1485,41 @@ function importIcoMoonZip(data, opts = {}) {
   }
   return importIcoMoon(JSON.parse((0, import_fflate.strFromU8)(selection.data)), opts);
 }
+function importSvgZip(data, opts = {}) {
+  const results = [];
+  const warnings = [];
+  for (const entry of readZip(data)) {
+    if (!/\.svg$/i.test(entry.path) || /(^|\/)__MACOSX\//.test(entry.path)) continue;
+    const name = entry.path.split("/").pop();
+    try {
+      const result = importSvg((0, import_fflate.strFromU8)(entry.data), name, opts);
+      results.push(result);
+      warnings.push(...result.warnings.map((w) => `${name}: ${w}`));
+    } catch (e) {
+      warnings.push(e.message);
+    }
+  }
+  if (!results.length) warnings.push("no .svg files found in the archive");
+  return { results, glyphs: results.map((r) => r.glyph), warnings };
+}
+var import_fflate, readZip, ZIP_EPOCH, writeZip;
+var init_zip = __esm({
+  "../core-io/src/zip.ts"() {
+    "use strict";
+    import_fflate = require("fflate");
+    init_icomoon_import();
+    init_svg_import();
+    readZip = (data) => Object.entries((0, import_fflate.unzipSync)(data)).map(([path, bytes2]) => ({ path, data: bytes2 }));
+    ZIP_EPOCH = new Date(Date.UTC(1980, 0, 1));
+    writeZip = (entries, opts = {}) => {
+      const files = {};
+      for (const e of entries) files[e.path] = typeof e.data === "string" ? (0, import_fflate.strToU8)(e.data) : e.data;
+      return (0, import_fflate.zipSync)(files, { mtime: opts.mtime ?? ZIP_EPOCH });
+    };
+  }
+});
 
 // ../core-io/src/iconfont-file.ts
-var ICONFONT_EXTENSION = ".iconotype.json";
-var ICONFONT_SCHEMA_VERSION = 1;
-var toHex = (code) => code.toString(16);
-var fromHex = (code) => parseInt(code.replace(/^(u\+|0x)/i, ""), 16);
 function toIconFontFile(project) {
   const prefs = project.preferences.font;
   const height = project.sets[0]?.height ?? 1024;
@@ -1313,13 +1545,16 @@ function toIconFontFile(project) {
     }
   }
   icons.sort((a, b) => fromHex(a.code) - fromHex(b.code) || a.name.localeCompare(b.name));
-  const credits = project.sets.filter((s) => s.metadata.license || s.metadata.designer || s.metadata.url).map((s) => ({
+  const fromSets = project.sets.filter((s) => s.metadata.license || s.metadata.designer || s.metadata.url).map((s) => ({
     name: s.name,
     ...s.metadata.license ? { license: s.metadata.license } : {},
     ...s.metadata.licenseURL ? { licenseURL: s.metadata.licenseURL } : {},
     ...s.metadata.designer ? { designer: s.metadata.designer } : {},
     ...s.metadata.url ? { url: s.metadata.url } : {}
   }));
+  const carried = project.credits ?? [];
+  const known = new Set(carried.map((c) => `${c.designer ?? ""}|${c.license ?? ""}`));
+  const credits = [...carried, ...fromSets.filter((c) => !known.has(`${c.designer ?? ""}|${c.license ?? ""}`))];
   return {
     $schema: "https://iconotype.dev/schema/iconfont-1.json",
     schemaVersion: ICONFONT_SCHEMA_VERSION,
@@ -1415,11 +1650,268 @@ function fromIconFontFile(file, id = "p0") {
     sets: [set],
     preferences: prefs,
     codepoints,
-    ...file.output ? { output: file.output } : {}
+    ...file.output ? { output: file.output } : {},
+    // every credit, not just the one the single set could hold
+    ...file.credits?.length ? { credits: file.credits.map((c) => ({ ...c })) } : {}
   };
 }
-var serializeIconFont = (project) => JSON.stringify(toIconFontFile(project), null, 2) + "\n";
-var isIconFontFile = (data) => typeof data === "object" && data !== null && typeof data.schemaVersion === "number" && Array.isArray(data.icons);
+function parseIconFont(text, id) {
+  const data = JSON.parse(text);
+  if (typeof data?.schemaVersion !== "number" || !Array.isArray(data.icons)) {
+    throw new Error("not a Iconotype icon font file (expected schemaVersion and icons)");
+  }
+  return fromIconFontFile(data, id);
+}
+var ICONFONT_EXTENSION, ICONFONT_SCHEMA_VERSION, toHex, fromHex, serializeIconFont, isIconFontFile, selectedGlyphs;
+var init_iconfont_file = __esm({
+  "../core-io/src/iconfont-file.ts"() {
+    "use strict";
+    init_src();
+    ICONFONT_EXTENSION = ".iconotype.json";
+    ICONFONT_SCHEMA_VERSION = 1;
+    toHex = (code) => code.toString(16);
+    fromHex = (code) => parseInt(code.replace(/^(u\+|0x)/i, ""), 16);
+    serializeIconFont = (project) => JSON.stringify(toIconFontFile(project), null, 2) + "\n";
+    isIconFontFile = (data) => typeof data === "object" && data !== null && typeof data.schemaVersion === "number" && Array.isArray(data.icons);
+    selectedGlyphs = (project) => project.sets.filter((s) => !s.hidden).flatMap((s) => s.glyphs).filter((g) => g.selected !== false);
+  }
+});
+
+// ../core-io/src/iconify.ts
+function parseIconRef(id) {
+  const at = id.indexOf(":");
+  if (at <= 0 || at === id.length - 1) return null;
+  return { prefix: id.slice(0, at), name: id.slice(at + 1) };
+}
+async function get(path, opts) {
+  const f = opts.fetch ?? globalThis.fetch;
+  if (!f) throw new Error("no fetch available in this environment");
+  const url = `${trimHost(opts.host ?? ICONIFY_API)}${path}`;
+  const response = await f(url, { signal: opts.signal });
+  if (!response.ok) throw new Error(`icon library: ${response.status} ${response.statusText}`);
+  return await response.json();
+}
+function toCollections(raw) {
+  const out = {};
+  for (const [prefix, info2] of Object.entries(raw ?? {})) out[prefix] = { prefix, ...info2 };
+  return out;
+}
+async function listCollections(opts = {}) {
+  return toCollections(await get("/collections", opts));
+}
+async function searchIcons(query, opts = {}) {
+  const q = query.trim();
+  if (!q) return { icons: [], total: 0, collections: {} };
+  const params = new URLSearchParams({ query: q });
+  if (opts.limit) params.set("limit", String(Math.min(999, Math.max(32, opts.limit))));
+  if (opts.start) params.set("start", String(opts.start));
+  if (opts.prefixes?.length) params.set("prefixes", opts.prefixes.join(","));
+  if (opts.category) params.set("category", opts.category);
+  const raw = await get(
+    `/search?${params}`,
+    opts
+  );
+  const icons = (raw.icons ?? []).map(parseIconRef).filter((r) => r !== null);
+  return { icons, total: raw.total ?? icons.length, collections: toCollections(raw.collections ?? {}) };
+}
+async function listCollection(prefix, opts = {}) {
+  const raw = await get(`/collection?prefix=${encodeURIComponent(prefix)}`, opts);
+  const categories = raw.categories ?? {};
+  const hidden = new Set(raw.hidden ?? []);
+  const icons = [...raw.uncategorized ?? [], ...Object.values(categories).flat()].filter((n) => !hidden.has(n));
+  return {
+    prefix: raw.prefix ?? prefix,
+    title: raw.title ?? prefix,
+    total: raw.total ?? icons.length,
+    icons,
+    categories
+  };
+}
+function toSvgDocument(icon, bundle) {
+  const width = icon.width ?? bundle.width ?? DEFAULT_SIZE;
+  const height = icon.height ?? bundle.height ?? DEFAULT_SIZE;
+  const left = icon.left ?? bundle.left ?? 0;
+  const top = icon.top ?? bundle.top ?? 0;
+  const parts = [];
+  if (icon.hFlip) parts.push(`translate(${left * 2 + width} 0) scale(-1 1)`);
+  if (icon.vFlip) parts.push(`translate(0 ${top * 2 + height}) scale(1 -1)`);
+  const quarter = ((icon.rotate ?? 0) % 4 + 4) % 4;
+  if (quarter) {
+    const cx = left + width / 2;
+    const cy = top + height / 2;
+    parts.push(`rotate(${quarter * 90} ${cx} ${cy})`);
+  }
+  const body = parts.length ? `<g transform="${parts.join(" ")}">${icon.body}</g>` : icon.body;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${left} ${top} ${width} ${height}">${body}</svg>`;
+}
+async function fetchIcons(prefix, names, opts = {}) {
+  const out = [];
+  for (let i = 0; i < names.length; i += NAMES_PER_REQUEST) {
+    const chunk = names.slice(i, i + NAMES_PER_REQUEST);
+    const bundle = await get(
+      `/${encodeURIComponent(prefix)}.json?icons=${chunk.map(encodeURIComponent).join(",")}`,
+      opts
+    );
+    for (const name of chunk) {
+      const alias = bundle.aliases?.[name];
+      const direct = bundle.icons?.[name];
+      const icon = direct ?? (alias ? { ...bundle.icons?.[alias.parent], ...alias } : void 0);
+      if (!icon?.body) continue;
+      out.push({
+        prefix,
+        name,
+        svg: toSvgDocument(icon, bundle),
+        size: icon.height ?? bundle.height ?? DEFAULT_SIZE
+      });
+    }
+  }
+  return out;
+}
+async function fetchIconRefs(refs, opts = {}) {
+  const byPrefix = /* @__PURE__ */ new Map();
+  for (const ref of refs) {
+    const names = byPrefix.get(ref.prefix);
+    if (names) names.push(ref.name);
+    else byPrefix.set(ref.prefix, [ref.name]);
+  }
+  const results = await Promise.all([...byPrefix].map(([prefix, names]) => fetchIcons(prefix, names, opts)));
+  const found = new Map(results.flat().map((icon) => [iconRefId(icon), icon]));
+  return refs.map((ref) => found.get(iconRefId(ref))).filter((icon) => icon !== void 0);
+}
+function uniqueName(base, taken) {
+  if (!taken.has(base)) return base;
+  for (let n = 2; ; n++) {
+    const candidate = `${base}-${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+function toGlyphs(icons, collections, opts = {}) {
+  const taken = new Set(opts.taken ?? []);
+  const out = [];
+  for (const icon of icons) {
+    const collection = collections[icon.prefix];
+    const base = opts.qualifyNames ? `${icon.prefix}-${icon.name}` : icon.name;
+    let result;
+    try {
+      result = importSvg(icon.svg, `${base}.svg`, { targetHeight: opts.targetHeight, grid: icon.size });
+    } catch (e) {
+      out.push({
+        ref: icon,
+        glyph: null,
+        warnings: [`${iconRefId(icon)}: ${e.message}`],
+        findings: []
+      });
+      continue;
+    }
+    const name = uniqueName(result.glyph.name, taken);
+    taken.add(name);
+    out.push({
+      ...result,
+      ref: { prefix: icon.prefix, name: icon.name },
+      glyph: {
+        ...result.glyph,
+        id: `iconify:${iconRefId(icon)}`,
+        name,
+        tags: [icon.name, icon.prefix, ...collection?.name ? [collection.name] : []],
+        source: {
+          url: `https://icon-sets.iconify.design/${icon.prefix}/${icon.name}/`,
+          license: collection?.license?.spdx ?? collection?.license?.title,
+          author: collection?.author?.name,
+          importedFrom: iconRefId(icon)
+        }
+      }
+    });
+  }
+  return out.filter((r) => r.glyph);
+}
+function setMetadataFor(collection) {
+  return {
+    url: collection.author?.url,
+    designer: collection.author?.name,
+    designerURL: collection.author?.url,
+    license: collection.license?.title ?? collection.license?.spdx,
+    licenseURL: collection.license?.url
+  };
+}
+var ICONIFY_API, iconRefId, trimHost, DEFAULT_SIZE, NAMES_PER_REQUEST;
+var init_iconify = __esm({
+  "../core-io/src/iconify.ts"() {
+    "use strict";
+    init_svg_import();
+    ICONIFY_API = "https://api.iconify.design";
+    iconRefId = (ref) => `${ref.prefix}:${ref.name}`;
+    trimHost = (host) => host.replace(/\/+$/, "");
+    DEFAULT_SIZE = 16;
+    NAMES_PER_REQUEST = 64;
+  }
+});
+
+// ../core-io/src/index.ts
+var src_exports = {};
+__export(src_exports, {
+  ICONFONT_EXTENSION: () => ICONFONT_EXTENSION,
+  ICONFONT_SCHEMA_VERSION: () => ICONFONT_SCHEMA_VERSION,
+  ICONIFY_API: () => ICONIFY_API,
+  ZIP_EPOCH: () => ZIP_EPOCH,
+  capture: () => capture,
+  detectIcoMoon: () => detectIcoMoon,
+  exportIcoMoonProject: () => exportIcoMoonProject,
+  exportIcoMoonSelection: () => exportIcoMoonSelection,
+  fetchIconRefs: () => fetchIconRefs,
+  fetchIcons: () => fetchIcons,
+  fromIconFontFile: () => fromIconFontFile,
+  glyphNameFrom: () => glyphNameFrom,
+  iconRefId: () => iconRefId,
+  importIcoMoon: () => importIcoMoon,
+  importIcoMoonZip: () => importIcoMoonZip,
+  importSvg: () => importSvg,
+  importSvgZip: () => importSvgZip,
+  isIcoMoonFile: () => isIcoMoonFile,
+  isIconFontFile: () => isIconFontFile,
+  listCollection: () => listCollection,
+  listCollections: () => listCollections,
+  parseIconFont: () => parseIconFont,
+  parseIconRef: () => parseIconRef,
+  readZip: () => readZip,
+  rebuild: () => rebuild,
+  reorderByOriginalIndex: () => reorderByOriginalIndex,
+  searchIcons: () => searchIcons,
+  selectedGlyphs: () => selectedGlyphs,
+  serializeIconFont: () => serializeIconFont,
+  setMetadataFor: () => setMetadataFor,
+  toGlyphs: () => toGlyphs,
+  toIconFontFile: () => toIconFontFile,
+  uniqueName: () => uniqueName,
+  writeZip: () => writeZip
+});
+var init_src3 = __esm({
+  "../core-io/src/index.ts"() {
+    "use strict";
+    init_icomoon_types();
+    init_preserve();
+    init_icomoon_import();
+    init_icomoon_export();
+    init_svg_import();
+    init_zip();
+    init_iconfont_file();
+    init_iconify();
+  }
+});
+
+// src/cli.ts
+var cli_exports = {};
+__export(cli_exports, {
+  run: () => run
+});
+module.exports = __toCommonJS(cli_exports);
+var import_node_util = require("node:util");
+
+// src/commands.ts
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = require("node:path");
+var import_resvg_js = require("@resvg/resvg-js");
+init_src();
+init_src3();
 
 // ../core-font/src/metrics.ts
 function metricsFrom(prefs) {
@@ -1611,6 +2103,19 @@ function buildPaletteRules(project) {
   out.push("");
   return out;
 }
+function creditLines(project) {
+  const entries = project.credits?.length ? project.credits : project.sets.filter((s) => s.metadata.license || s.metadata.designer).map((s) => ({ name: s.name, ...s.metadata }));
+  const seen = /* @__PURE__ */ new Set();
+  const lines = [];
+  for (const { name, license, designer, licenseURL, url } of entries) {
+    if (!license && !designer) continue;
+    const credit = [name, designer && `by ${designer}`, license && `\u2014 ${license}`, licenseURL ?? url].filter(Boolean).join(" ");
+    if (seen.has(credit)) continue;
+    seen.add(credit);
+    lines.push(` * ${credit}`);
+  }
+  return lines.length ? ["/*", " * Artwork credits:", ...lines, " */"] : [];
+}
 function buildCss(project, build2, opts = {}) {
   const prefs = project.preferences.font;
   const family = prefs.family;
@@ -1633,6 +2138,7 @@ function buildCss(project, build2, opts = {}) {
   const out = [];
   if (prefs.showMetadata) {
     out.push(`/* ${family} v${prefs.majorVersion}.${prefs.minorVersion} \u2014 generated by Iconotype. Do not edit by hand. */`);
+    out.push(...creditLines(project));
   }
   out.push(
     `@font-face {`,
@@ -1748,6 +2254,7 @@ ${cells}
 }
 
 // ../core-font/src/bundle.ts
+init_src();
 function buildAttribution(project) {
   const lines = [`# Attribution \u2014 ${project.preferences.font.family}`, ""];
   for (const set of project.sets) {
@@ -2277,9 +2784,14 @@ async function resolveOutputs(project, options = {}) {
   return { files, build: build2 };
 }
 
+// src/commands.ts
+init_src2();
+
 // src/load.ts
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
+init_src();
+init_src3();
 var svgFilesIn = (dir) => {
   const out = [];
   for (const entry of (0, import_node_fs.readdirSync)(dir)) {
@@ -2425,6 +2937,88 @@ async function init(args, io) {
   const icons = project.sets.reduce((n, s) => n + s.glyphs.length, 0);
   io.log(`wrote ${out} \u2014 ${icons} icon(s), fonts to ${project.output.fonts.dir}/, styles to ${stylesDir}/`);
   io.log(`next: open the folder in VSCode and run "Iconotype: Export Font", or: iconotype build --input ${out}`);
+  return 0;
+}
+async function find(args, io) {
+  const result = await searchIcons(args.query, {
+    limit: args.limit ?? 48,
+    prefixes: args.prefixes,
+    host: args.host
+  });
+  if (args.json) {
+    io.log(JSON.stringify({ total: result.total, icons: result.icons.map((r) => `${r.prefix}:${r.name}`), collections: result.collections }, null, 2));
+    return result.icons.length ? 0 : 1;
+  }
+  if (!result.icons.length) {
+    io.error(`nothing matched "${args.query}"`);
+    return 1;
+  }
+  for (const ref of result.icons) {
+    const licence = result.collections[ref.prefix]?.license?.title;
+    io.log(`${ref.prefix}:${ref.name}${licence ? `  (${licence})` : ""}`);
+  }
+  if (result.total > result.icons.length) io.log(`
+${result.icons.length} of ${result.total} \u2014 raise --limit for more`);
+  return 0;
+}
+async function add(args, io) {
+  const refs = args.refs.map(parseIconRef);
+  const bad = args.refs.filter((_, i) => refs[i] === null);
+  if (bad.length) {
+    io.error(`error: not icon references: ${bad.join(", ")} \u2014 expected prefix:name, e.g. lucide:house`);
+    return 2;
+  }
+  const wanted = refs.filter((r) => r !== null);
+  if (!wanted.length) {
+    io.error("error: add needs at least one icon \u2014 iconotype add lucide:house mdi:home");
+    return 2;
+  }
+  const { project, warnings } = loadProject(args.input);
+  for (const w of warnings) io.error(`warning: ${w}`);
+  const icons = await fetchIconRefs(wanted, { host: args.host });
+  const found = new Set(icons.map((i) => `${i.prefix}:${i.name}`));
+  for (const ref of wanted) {
+    if (!found.has(`${ref.prefix}:${ref.name}`)) io.error(`warning: ${ref.prefix}:${ref.name} \u2014 the library does not have it`);
+  }
+  if (!icons.length) return 1;
+  const { listCollections: listCollections2 } = await Promise.resolve().then(() => (init_src3(), src_exports));
+  let collections = {};
+  try {
+    collections = await listCollections2({ host: args.host });
+  } catch {
+    io.error("warning: could not read the collection index \u2014 icons will be added without licence metadata");
+  }
+  const taken = new Set(project.sets.flatMap((s) => s.glyphs).map((g) => g.name));
+  let added = 0;
+  for (const prefix of new Set(icons.map((i) => i.prefix))) {
+    const collection = collections[prefix];
+    const name = collection?.name ?? prefix;
+    let set = project.sets.find((s) => s.name === name);
+    if (!set) {
+      set = { ...emptySet(`set-${prefix}`, name), metadata: collection ? setMetadataFor(collection) : {} };
+      project.sets.push(set);
+    }
+    const results = toGlyphs(icons.filter((i) => i.prefix === prefix), collections, {
+      targetHeight: set.height,
+      taken,
+      qualifyNames: args.qualify
+    });
+    for (const r of results) {
+      set.glyphs.push(r.glyph);
+      for (const w of r.warnings) io.error(`warning: ${r.ref.prefix}:${r.ref.name}: ${w}`);
+      added++;
+    }
+  }
+  const missing = project.sets.filter((s) => !s.hidden).flatMap((s) => s.glyphs).filter((g) => project.codepoints[g.name] === void 0).map((g) => ({ name: g.name, layers: g.isMulticolor ? g.paths.length : 1 }));
+  if (missing.length) {
+    const { assignments, overflow } = allocate(project, missing);
+    Object.assign(project.codepoints, assignments);
+    for (const name of overflow) io.error(`error: no codepoint available for "${name}" \u2014 the Private Use Area is full`);
+  }
+  const out = args.out ?? args.input;
+  (0, import_node_fs2.writeFileSync)(out, serializeIconFont(project));
+  io.log(`added ${added} icon(s) to ${out}`);
+  io.log(`next: iconotype build --input ${out}`);
   return 0;
 }
 async function lint(args, io) {
@@ -2620,13 +3214,13 @@ async function scan(args, io) {
 function generatedPaths(project, input) {
   const root = (0, import_node_fs2.statSync)(input).isDirectory() ? input : (0, import_node_path2.dirname)(input);
   const out = /* @__PURE__ */ new Set();
-  const add = (rel) => {
+  const add2 = (rel) => {
     if (rel) out.add((0, import_node_path2.resolve)(root, rel));
   };
-  for (const style of project.output?.styles ?? []) add(style.path);
-  add(project.output?.types?.path);
-  add(project.output?.sprite?.path);
-  add(project.output?.demo?.path);
+  for (const style of project.output?.styles ?? []) add2(style.path);
+  add2(project.output?.types?.path);
+  add2(project.output?.sprite?.path);
+  add2(project.output?.demo?.path);
   return out;
 }
 async function info(args, io) {
@@ -2660,6 +3254,8 @@ var USAGE = `iconotype \u2014 icon font toolchain
 usage: iconotype <command> [options]
 
 commands:
+  find      search 230+ open icon libraries \u2014 Lucide, Material Symbols, MDI, Tabler\u2026
+  add       add icons from those libraries to a project
   init      create a committed .iconotype.json from an existing project or SVG folder
   build     build the font package from a project or a folder of SVGs
   lint      report what the fixer would have to change; non-zero exit on errors
@@ -2672,6 +3268,17 @@ common options:
   -i, --input <path>     project .json, IcoMoon .zip, or a directory of .svg  (default: icons)
       --json             machine-readable output
   -h, --help             show this
+
+find options:
+      --limit <n>        how many results                              (default: 48)
+      --prefixes <list>  restrict to these collections, e.g. lucide,mdi
+
+add options:
+      --out <file>       write the result here instead of over --input
+      --qualify          name glyphs <collection>-<icon>, e.g. lucide-house
+
+find / add options:
+      --library <url>    a self-hosted iconify/api instead of the public one
 
 build options:
       --out <dir>        package everything into this directory. Omit it and a project
@@ -2718,6 +3325,8 @@ examples:
   iconotype lint --input icons --max-warnings 0
   iconotype diff dist/selection.json icons --allow-breaking
   iconotype scan --input icons --source src --json
+  iconotype find chevron --prefixes lucide,tabler
+  iconotype add lucide:house mdi:cog --input app.iconotype.json
 `;
 var list = (v) => v === void 0 ? void 0 : v.split(",").map((s) => s.trim()).filter(Boolean);
 async function run(argv, io) {
@@ -2739,6 +3348,10 @@ async function run(argv, io) {
         components: { type: "string" },
         favicon: { type: "string" },
         source: { type: "string" },
+        limit: { type: "string" },
+        prefixes: { type: "string" },
+        library: { type: "string" },
+        qualify: { type: "boolean" },
         simplify: { type: "string" },
         snap: { type: "string" },
         "max-warnings": { type: "string" },
@@ -2773,6 +3386,20 @@ async function run(argv, io) {
   const num2 = (s) => s === void 0 ? void 0 : Number(s);
   try {
     switch (command) {
+      case "find": {
+        const query = positionals.join(" ").trim();
+        if (!query) {
+          io.error("error: find needs something to search for \u2014 iconotype find chevron");
+          return 2;
+        }
+        return await find({ query, limit: num2(v.limit), prefixes: list(v.prefixes), json: v.json, host: v.library }, io);
+      }
+      case "add":
+        if (!v.input) {
+          io.error("error: add needs --input <project.iconotype.json>");
+          return 2;
+        }
+        return await add({ input: v.input, refs: positionals, out: v.out, host: v.library, qualify: v.qualify }, io);
       case "init":
         return await init({
           input,

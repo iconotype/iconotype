@@ -17,6 +17,7 @@
     ['space', 'Include / exclude the selection'],
     ['⌘A', 'Select all'],
     ['⌘O', 'Import files'],
+    ['⌘K', 'Find icons in the open libraries'],
   ]
 
   const edit: Array<[string, string]> = [
@@ -58,7 +59,13 @@
 
 <style>
   .scrim { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; }
-  .backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .45); border: 0; cursor: default; }
+  /*
+   * The hover rule has to be here.
+   * `button:hover:not(:disabled)` in the theme is more specific than a bare `.backdrop`,
+   * so the invisible click-catcher lit up accent-purple the moment the pointer left the
+   * dialog — the whole page flashing violet as you moved the mouse away.
+   */
+  .backdrop, .backdrop:hover { position: absolute; inset: 0; background: rgba(0, 0, 0, .45); border: 0; cursor: default; }
   .card {
     position: relative; min-width: 420px; max-width: 90vw; display: grid; gap: 12px;
     padding: 18px; border-radius: var(--gs-radius-lg); border: 1px solid var(--gs-border);

@@ -37,6 +37,24 @@ export interface FixResult {
   stats: GeometryStats
 }
 
+/**
+ * Merges caller options over the defaults, ignoring keys that are present but
+ * undefined.
+ *
+ * A plain spread does not: `{ targetHeight: set?.height }` on a set that is not there
+ * yet spreads `targetHeight: undefined` OVER the default, and every later stage
+ * multiplies by NaN until the path builder gives up with "Use a moveTo() command
+ * first" — an error that says nothing about the actual cause. Optional chaining
+ * produces exactly that shape, so this is not a hypothetical.
+ */
+function withDefaults(options: FixOptions = {}): Required<FixOptions> {
+  const opts = { ...DEFAULTS }
+  for (const [key, value] of Object.entries(options)) {
+    if (value !== undefined) (opts as Record<string, unknown>)[key] = value
+  }
+  return opts
+}
+
 const DEFAULTS: Required<FixOptions> = {
   targetHeight: 1024,
   precision: 2,
@@ -81,7 +99,7 @@ function validate(paths: string[], target: number, opts: Required<FixOptions>, l
  * mutation and every impossibility reported.
  */
 export function fixSvg(source: string, options: FixOptions = {}): FixResult {
-  const opts = { ...DEFAULTS, ...options }
+  const opts = withDefaults(options)
   const log = new FindingLog()
   clearScene()
 
@@ -164,7 +182,7 @@ export function fixSvg(source: string, options: FixOptions = {}): FixResult {
 export function fixPaths(
   paths: string[], options: FixOptions & { attrs?: Array<Record<string, string>> } = {},
 ): FixResult {
-  const opts = { ...DEFAULTS, ...options }
+  const opts = withDefaults(options)
   const log = new FindingLog()
   clearScene()
 

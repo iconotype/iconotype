@@ -5,6 +5,7 @@
   import ExportPanel from './ExportPanel.svelte'
   import FixPanel from './FixPanel.svelte'
   import HistoryPanel from './HistoryPanel.svelte'
+  import IconLibrary from './IconLibrary.svelte'
   import Notices from './Notices.svelte'
   import RecentsMenu from './RecentsMenu.svelte'
   import SetPanel from './SetPanel.svelte'
@@ -109,6 +110,7 @@
       if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); if (session.canRedo) session.redo(); return }
       if (e.key === 'a' && app.mode === 'browse') { e.preventDefault(); app.selectAll(); return }
       if (e.key === 'o') { e.preventDefault(); void app.pickAndImport(); return }
+      if (e.key === 'k') { e.preventDefault(); app.showLibrary = !app.showLibrary; return }
       if (e.key === '1') { e.preventDefault(); app.showSets = !app.showSets; return }
       if (e.key === '2') { e.preventDefault(); app.showRail = !app.showRail; return }
       return
@@ -217,6 +219,10 @@
       {/if}
     {/if}
   </main>
+
+  {#if app.showLibrary}
+    <IconLibrary onClose={() => (app.showLibrary = false)} />
+  {/if}
 
   {#if app.showShortcuts}
     <ShortcutsOverlay mode={app.mode} onClose={() => (app.showShortcuts = false)} />

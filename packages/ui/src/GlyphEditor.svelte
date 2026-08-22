@@ -101,6 +101,11 @@
     <button class="nav prev" onclick={() => app.step(-1)} title="Previous icon ([)" aria-label="Previous icon">‹</button>
     <button class="nav next" onclick={() => app.step(1)} title="Next icon (])" aria-label="Next icon">›</button>
     {#if glyph}
+      <!--
+        100% means "the whole em box, fitted" — not "as wide as the pane". The stage is
+        wider than it is tall on a desktop window, so sizing by width alone drew the
+        glyph past the top and bottom edges and cropped it.
+      -->
       <svg viewBox="0 0 {size} {size}" style:width="{Math.round(app.zoom * 100)}%">
         <rect class="box" x="0" y="0" width={size} height={size} />
         {#if app.editorGrid}
@@ -217,7 +222,7 @@
   .nav.next { right: 8px; }
   .zoom { display: inline-flex; gap: 2px; }
   .excluded { font-style: normal; color: var(--gs-warn); }
-  .stage svg { max-width: 100%; }
+  .stage svg { aspect-ratio: 1; max-width: 100%; max-height: 100%; height: auto; }
   .box { fill: var(--gs-surface-2); stroke: var(--gs-border); stroke-width: 2; }
   .grid line { stroke: var(--gs-border); stroke-width: 1; opacity: .55; }
   /* the baseline is the only line that changes what the font does, so it is the loud one */

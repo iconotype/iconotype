@@ -8,3 +8,5 @@ coverage/
 .vscode-test/
 target/
 apps/desktop/src-tauri/gen/
+packages/cli/dist-npm/
+*.tgz

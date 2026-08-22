@@ -105,16 +105,37 @@
     if (event.key === 's') { event.preventDefault(); void saveFile(event.shiftKey) }
   }
 
-  // reopen the most recent project from OPFS
+  /**
+   * Deep links: `?sample` opens the bundled set, `#icon-name` opens the editor on one.
+   *
+   * A link that lands someone on the actual icon is worth having on its own — it is
+   * what you paste into a review — and it is also what makes a screenshot of this app
+   * reproducible without a human driving it.
+   */
+  async function applyDeepLink() {
+    const params = new URLSearchParams(location.search)
+    if (params.has('sample') && !session.glyphCount) {
+      const url = host.sampleProjectUrl?.()
+      if (url) await app.importUrl(url)
+    }
+    const wanted = decodeURIComponent(location.hash.replace(/^#/, ''))
+    if (!wanted) return
+    const glyph = session.project.sets.flatMap((s) => s.glyphs).find((g) => g.name === wanted)
+    if (glyph) app.edit(glyph.id)
+  }
+
+  // reopen the most recent project from OPFS, unless a link says otherwise
   $effect(() => {
     void (async () => {
+      if (new URLSearchParams(location.search).has('sample')) { await applyDeepLink(); return }
       const [recent] = await listProjects(host)
-      if (!recent) return
+      if (!recent) { await applyDeepLink(); return }
       try {
         session.open(await loadProject(host, recent.id), `Reopen ${recent.name}`)
       } catch (e) {
         app.notify('warn', `could not reopen "${recent.name}": ${(e as Error).message}`)
       }
+      await applyDeepLink()
     })()
   })
 

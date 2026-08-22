@@ -34,7 +34,7 @@ writeFileSync(new URL('./package.json', out), JSON.stringify({
   bin: { iconotype: './bin/iconotype.cjs' },
   files: ['bin'],
   engines: { node: '>=20' },
-  repository: { type: 'git', url: 'git+https://github.com/mguillon/iconotype.git' },
+  repository: { type: 'git', url: 'git+https://github.com/iconotype/iconotype.git' },
   keywords: ['icon-font', 'icomoon', 'svg', 'woff2', 'webfont', 'icons'],
   dependencies,
 }, null, 2) + '\n')

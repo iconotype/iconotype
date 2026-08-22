@@ -107,6 +107,41 @@ section { margin-bottom: 72px; }
 .grid article { padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
 .grid h3 { margin: 0 0 8px; font-size: 17px; }
 .grid p { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+/*
+ * Card illustrations.
+ *
+ * Every one of them draws the thing the card is about rather than decorating it: a
+ * stroke becoming an outline, a name changing while its codepoint does not. They are
+ * inline SVG so they take the page's palette, in either theme, at any zoom.
+ */
+.illo {
+  display: block; width: 100%; height: auto; margin: -4px 0 16px;
+  border-radius: var(--radius); background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.illo text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.illo text.mid { text-anchor: middle; }
+.illo text.code { fill: var(--accent); }
+.illo text.strike { text-decoration: line-through; opacity: .55; }
+.illo text.renamed { fill: var(--fg); }
+.illo text.on-accent { fill: var(--accent-fg); }
+.illo .stroked { fill: none; stroke: var(--fg); stroke-width: 3; stroke-linecap: round; }
+.illo .filled { fill: var(--fg); }
+.illo .arrow { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.illo .box { fill: none; stroke: var(--border); stroke-width: 2; }
+.illo .box.solid { fill: var(--bg); }
+.illo .guide { stroke: var(--accent); stroke-width: 1.5; opacity: .5; }
+.illo .guide.dash { stroke-dasharray: 5 5; opacity: .3; }
+.illo .handles circle { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.illo .chips rect, .illo .rows rect, .illo .shells rect { fill: var(--bg); stroke: var(--border); stroke-width: 1.5; }
+.illo .shells line { stroke: var(--border); stroke-width: 1.5; }
+.illo .lines rect { fill: var(--border); }
+.illo .hit { fill: var(--accent-weak); stroke: var(--accent); stroke-width: 1.5; }
+.illo .found { fill: var(--accent); }
+.illo .lens { fill: none; stroke: var(--fg); stroke-width: 2.5; opacity: .8; }
+.illo .lens-handle { stroke: var(--fg); stroke-width: 3; stroke-linecap: round; opacity: .8; }
+.illo .core { fill: var(--accent); }
+.illo .pin { fill: var(--accent); }
 .card { display: grid; gap: 14px; align-content: start; box-shadow: var(--shadow); }
 .card .button { justify-self: start; }
 

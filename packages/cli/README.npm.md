@@ -21,6 +21,6 @@ recorded in `codepoints.lock`, because a codepoint is the font's API — renamin
 moves its name, never its number.
 
 Also available as a web app, a desktop app and a VSCode extension:
-<https://github.com/mguillon/iconotype>.
+<https://github.com/iconotype/iconotype>.
 
 MIT.

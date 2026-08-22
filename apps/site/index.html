@@ -24,7 +24,7 @@
         <a href="#features">Features</a>
         <a href="#get">Get it</a>
         <a href="#cli">CLI</a>
-        <a class="ghost" href="https://github.com/mguillon/iconotype">GitHub</a>
+        <a class="ghost" href="https://github.com/iconotype/iconotype">GitHub</a>
       </nav>
     </header>
 
@@ -39,7 +39,10 @@
           </p>
           <div class="cta">
             <a class="button primary" href="./app/">Open the web app</a>
-            <a class="button" href="#get">Desktop &amp; VSCode</a>
+            <a class="button" href="https://github.com/iconotype/iconotype/releases/latest">Download for desktop</a>
+            <a class="button" href="https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode">
+              VSCode extension
+            </a>
           </div>
           <p class="fine">Free and open source. Your artwork never leaves your machine.</p>
         </div>
@@ -74,6 +77,14 @@
         <h2>What it does</h2>
         <div class="grid">
           <article>
+            <!-- a stroked line becoming a filled outline: the single most common fix -->
+            <svg class="illo" viewBox="0 0 220 110" aria-hidden="true">
+              <path class="stroked" d="M28 78c0-30 18-46 34-46s22 12 22 24" />
+              <path class="arrow" d="M104 55h26" /><path class="arrow" d="M124 49l8 6-8 6" />
+              <path class="filled" d="M150 78c0-30 18-46 34-46s22 12 22 24h-14c0-8-4-12-8-12s-20 10-20 34z" />
+              <text class="tag" x="28" y="98">stroke</text>
+              <text class="tag" x="150" y="98">outline</text>
+            </svg>
             <h3>Fixes SVGs for fonts</h3>
             <p>
               Thirteen stages: inlined CSS, dereferenced <code>&lt;use&gt;</code>, shapes to paths,
@@ -81,14 +92,45 @@
               applied. Anything a font cannot represent is reported, not silently mangled.
             </p>
           </article>
+
           <article>
+            <!-- the em square with guides and handles -->
+            <svg class="illo" viewBox="0 0 220 110" aria-hidden="true">
+              <rect class="box" x="62" y="12" width="96" height="86" rx="6" />
+              <line class="guide" x1="62" y1="82" x2="158" y2="82" />
+              <line class="guide dash" x1="110" y1="12" x2="110" y2="98" />
+              <path class="filled" d="M86 30h48v10h-19v42h19v10H86V82h19V40H86z" />
+              <g class="handles">
+                <circle cx="86" cy="30" r="4" /><circle cx="134" cy="30" r="4" />
+                <circle cx="86" cy="82" r="4" /><circle cx="134" cy="82" r="4" />
+              </g>
+              <path class="arrow" x1="0" d="M34 55h16" /><path class="arrow" d="M170 55h16" />
+            </svg>
             <h3>An editor for the real work</h3>
             <p>
               Align, nudge, scale, rotate, flip, fit to the em box, merge overlaps, snap to grid —
               on an em square with the baseline drawn. Step through a whole set with one key.
             </p>
           </article>
+
           <article>
+            <!-- one project fanning out into the formats it writes -->
+            <svg class="illo" viewBox="0 0 220 110" aria-hidden="true">
+              <rect class="box solid" x="14" y="40" width="46" height="30" rx="6" />
+              <text class="tag mid" x="37" y="59">project</text>
+              <g class="fan">
+                <path class="arrow" d="M62 55h22" />
+                <path class="arrow" d="M62 55c14 0 12-30 26-30" />
+                <path class="arrow" d="M62 55c14 0 12 30 26 30" />
+              </g>
+              <g class="chips">
+                <rect x="92" y="12" width="52" height="24" rx="6" /><text class="tag mid" x="118" y="28">woff2</text>
+                <rect x="92" y="43" width="52" height="24" rx="6" /><text class="tag mid" x="118" y="59">scss</text>
+                <rect x="92" y="74" width="52" height="24" rx="6" /><text class="tag mid" x="118" y="90">d.ts</text>
+                <rect x="152" y="27" width="54" height="24" rx="6" /><text class="tag mid" x="179" y="43">sprite</text>
+                <rect x="152" y="58" width="54" height="24" rx="6" /><text class="tag mid" x="179" y="74">react</text>
+              </g>
+            </svg>
             <h3>Exports the whole package</h3>
             <p>
               woff2, woff, ttf, svg fonts. CSS, SCSS, LESS, variables-only partials, CSS custom
@@ -96,7 +138,22 @@
               React and Vue components, and a <code>.d.ts</code> of every icon name.
             </p>
           </article>
+
           <article>
+            <!-- the name moves; the codepoint does not -->
+            <svg class="illo" viewBox="0 0 220 110" aria-hidden="true">
+              <g class="rows">
+                <rect x="18" y="18" width="184" height="24" rx="6" />
+                <rect x="18" y="47" width="184" height="24" rx="6" />
+                <rect x="18" y="76" width="184" height="24" rx="6" />
+              </g>
+              <text class="tag" x="30" y="34">home</text><text class="code" x="150" y="34">e900</text>
+              <text class="tag strike" x="30" y="63">user</text>
+              <text class="tag renamed" x="66" y="63">profile</text>
+              <text class="code" x="150" y="63">e901</text>
+              <text class="tag" x="30" y="92">search</text><text class="code" x="150" y="92">e902</text>
+              <path class="pin" d="M186 55c0-4 3-7 7-7s7 3 7 7v4h-14z" />
+            </svg>
             <h3>Codepoints are an API</h3>
             <p>
               Allocation is append-only and written to <code>codepoints.lock</code>. Renaming an
@@ -104,14 +161,44 @@
               what it rendered yesterday. CI fails a build that would break one.
             </p>
           </article>
+
           <article>
+            <!-- source lines with one reference found, and one unused icon called out -->
+            <svg class="illo" viewBox="0 0 220 110" aria-hidden="true">
+              <g class="lines">
+                <rect x="18" y="20" width="120" height="8" rx="4" />
+                <rect x="18" y="38" width="86" height="8" rx="4" />
+                <rect x="18" y="74" width="104" height="8" rx="4" />
+              </g>
+              <rect class="hit" x="18" y="53" width="96" height="12" rx="4" />
+              <text class="code found" x="24" y="63">app-home</text>
+              <circle class="lens" cx="168" cy="44" r="20" />
+              <path class="lens-handle" d="M182 58l16 16" />
+              <text class="tag mid" x="110" y="100">3 uses · 1 unused</text>
+            </svg>
             <h3>Knows where your icons are used</h3>
             <p>
               The extension scans your source for references, tells you which icons nothing uses,
               renames one everywhere at once, and flags a typo before it renders as a blank square.
             </p>
           </article>
+
           <article>
+            <!-- one core, three shells -->
+            <svg class="illo" viewBox="0 0 220 110" aria-hidden="true">
+              <path class="arrow" d="M110 46V30h-58v12" />
+              <path class="arrow" d="M110 46V30h58v12" />
+              <path class="arrow" d="M110 64v14" />
+              <g class="shells">
+                <rect x="22" y="42" width="60" height="34" rx="6" /><line x1="22" y1="52" x2="82" y2="52" />
+                <rect x="138" y="42" width="60" height="34" rx="6" /><line x1="152" y1="42" x2="152" y2="76" />
+                <rect x="80" y="78" width="60" height="24" rx="6" />
+              </g>
+              <rect class="core" x="84" y="44" width="52" height="22" rx="8" />
+              <text class="tag mid on-accent" x="110" y="59">core</text>
+              <text class="tag mid" x="52" y="92">web</text>
+              <text class="tag mid" x="168" y="92">editor</text>
+            </svg>
             <h3>One core, three shells</h3>
             <p>
               The same model, fixer and font writer behind the web app, the desktop app and the
@@ -132,7 +219,7 @@
           <article class="card">
             <h3>Desktop</h3>
             <p>Real files, native dialogs, drag-and-drop from Finder or Explorer. macOS, Windows, Linux.</p>
-            <a class="button" href="https://github.com/mguillon/iconotype/releases/latest">Download</a>
+            <a class="button" href="https://github.com/iconotype/iconotype/releases/latest">Download</a>
           </article>
           <article class="card">
             <h3>VSCode</h3>
@@ -165,8 +252,8 @@ npx iconotype diff --input app.iconotype.json --against origin/main</code></pre>
 
     <footer>
       <p>
-        <a href="https://github.com/mguillon/iconotype">Source</a> ·
-        <a href="https://github.com/mguillon/iconotype/issues">Issues</a> ·
+        <a href="https://github.com/iconotype/iconotype">Source</a> ·
+        <a href="https://github.com/iconotype/iconotype/issues">Issues</a> ·
         MIT licensed
       </p>
       <p class="fine">Not affiliated with IcoMoon. Imports its formats; does not use its service.</p>

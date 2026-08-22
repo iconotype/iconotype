@@ -160,3 +160,95 @@ describe('AppStore import', () => {
     expect(app.notices.at(-1)!.text).toMatch(/not an Iconotype project, or an IcoMoon/)
   })
 })
+
+describe('AppStore glyph editor', () => {
+  const editing = () => {
+    const project = emptyProject('p')
+    project.sets[0]!.height = 1024
+    project.sets[0]!.glyphs = [
+      glyph('first', { paths: ['M100 100H300V300H100Z'] }),
+      glyph('second'),
+      glyph('third'),
+    ]
+    const s = store(project)
+    s.app.edit('first')
+    return s
+  }
+
+  it('steps through the icons and wraps at both ends', () => {
+    const { app } = editing()
+    expect(app.editingIndex).toEqual({ index: 1, total: 3 })
+
+    app.step(1)
+    expect(app.editingGlyph!.glyph.name).toBe('second')
+
+    app.step(-1)
+    app.step(-1)
+    // wrapping is the point: editing a set is a run, not a dead end at the last one
+    expect(app.editingGlyph!.glyph.name).toBe('third')
+
+    app.step(1)
+    expect(app.editingGlyph!.glyph.name).toBe('first')
+  })
+
+  it('moves the artwork and records it as one labelled step', async () => {
+    const { app, session } = editing()
+    await app.nudge(16, -8)
+
+    expect(session.project.sets[0]!.glyphs[0]!.paths[0]).not.toBe('M100 100H300V300H100Z')
+    expect(session.timeline.at(-1)!.label).toBe('Move first')
+
+    session.undo()
+    expect(session.project.sets[0]!.glyphs[0]!.paths[0]).toBe('M100 100H300V300H100Z')
+  })
+
+  it('aligns to the em box using the set height', async () => {
+    const { app, session } = editing()
+    await app.align('right')
+
+    const { boundsOf } = await import('@iconotype/core-svg')
+    const bounds = boundsOf(session.project.sets[0]!.glyphs[0]!.paths)!
+    expect(Math.round(bounds.x + bounds.width)).toBe(1024)
+  })
+
+  it('outlines strokes into fills, and says so when there are none', async () => {
+    const project = emptyProject('p')
+    project.sets[0]!.glyphs = [glyph('line', {
+      paths: ['M100 512H900'],
+      attrs: [{ stroke: '#000', 'stroke-width': '40', fill: 'none' }],
+    })]
+    const { app, session } = store(project)
+    app.edit('line')
+
+    await app.strokeToFill()
+    const after = session.project.sets[0]!.glyphs[0]!
+    // an open line has no area; the outlined version is a closed 40-unit bar
+    expect(after.paths[0]).toMatch(/z/i)
+    expect(after.attrs[0]!.stroke).toBeUndefined()
+
+    await app.strokeToFill()
+    expect(app.notices.at(-1)!.text).toMatch(/already filled/)
+  })
+
+  it('merges overlapping shapes into one', async () => {
+    const project = emptyProject('p')
+    project.sets[0]!.glyphs = [glyph('two', {
+      paths: ['M0 0H200V200H0Z', 'M100 100H300V300H100Z'],
+      attrs: [{}, {}],
+    })]
+    const { app, session } = store(project)
+    app.edit('two')
+
+    await app.mergeOverlaps()
+    expect(session.project.sets[0]!.glyphs[0]!.paths).toHaveLength(1)
+    expect(session.timeline.at(-1)!.label).toBe('Merge overlaps in two')
+  })
+
+  it('does nothing when a transform would not change the artwork', async () => {
+    const { app, session } = editing()
+    const steps = session.timeline.length
+    await app.nudge(0, 0)
+    // an empty history entry is worse than no entry: undo would appear to do nothing
+    expect(session.timeline.length).toBe(steps)
+  })
+})

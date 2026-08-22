@@ -52,7 +52,7 @@ fixtures/
 pnpm install
 pnpm dev            # web app
 pnpm dev:desktop    # tauri window (needs the Rust toolchain)
-pnpm test           # 315 tests, incl. 75-fixture visual regression
+pnpm test           # 346 tests, incl. 75-fixture visual regression
 pnpm test:vscode    # 52 integration tests in real VSCode
 pnpm check          # svelte-check + tsc
 pnpm build          # web + vscode

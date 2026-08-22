@@ -23,6 +23,7 @@
   class:selected={app.isSelected(glyph.id)}
   title="{glyph.name}{code === undefined ? '' : ` · U+${codeLabel}`}"
   onclick={(e) => app.toggle(glyph.id, e.metaKey || e.ctrlKey || e.shiftKey)}
+  ondblclick={() => app.edit(glyph.id)}
 >
   <svg viewBox="0 0 {height} {height}" width={size} height={size} aria-label={glyph.name}>
     {#each glyph.paths as d, i}

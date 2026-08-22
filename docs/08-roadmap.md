@@ -46,9 +46,12 @@ not share. `.app` builds at 5.6 MB.
 **Carried forward:** auto-update and signed installers (both need keys and CI secrets),
 and folder-as-project.
 
-## M7 — Glyph editor (≈4 wks)
-Canvas, layers, select/transform, node editing, arrange, combine (boolean), snapping, viewBox panel, live code pane, history branches.
-**Done when:** an icon can be built from scratch and edited without leaving the app.
+## M7 — Glyph editor ✅ (see [17](17-m7-glyph-editor.md))
+Em-square canvas with metrics and grid, next/previous stepping, nudge, align to any
+edge, scale, rotate, flip, fit, snap, stroke→fill and merge-overlaps — every action one
+labelled history step.
+**Carried forward:** bézier node editing, boolean ops between shapes, per-glyph history,
+pixel preview.
 
 ## M8 — Advanced (ongoing)
 Iconify browser, COLR/CPAL color fonts, usage scan + subsetting, font-file import, attribution roll-up, Figma import, normalization presets, optical centering, CSH export.

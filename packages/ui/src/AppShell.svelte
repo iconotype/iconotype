@@ -1,5 +1,6 @@
 <script lang="ts">
   import GlyphDetail from './GlyphDetail.svelte'
+  import GlyphEditor from './GlyphEditor.svelte'
   import GlyphGrid from './GlyphGrid.svelte'
   import ExportPanel from './ExportPanel.svelte'
   import FixPanel from './FixPanel.svelte'
@@ -86,12 +87,13 @@
 
   <main class:embedded>
     {#if embedded}
-      <GlyphDetail />
+      <!-- the sidebar already lists the icons, so the panel is the editor itself -->
+      {#if app.editing}<GlyphEditor />{:else}<GlyphDetail />{/if}
       <FixPanel />
       <HistoryPanel />
     {:else}
       <SetPanel />
-      <GlyphGrid />
+      {#if app.editing}<GlyphEditor />{:else}<GlyphGrid />{/if}
       <!--
         One rail, not three columns. Five equal-weight panes fought for width and left
         the artwork — the thing you came to look at — squeezed between two lists of

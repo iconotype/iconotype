@@ -1,7 +1,7 @@
 import type { Host } from '@iconotype/core-host'
 import { allocate, emptySet, type Glyph, type GlyphId, type SetId } from '@iconotype/core-model'
 import type { FontFormat } from '@iconotype/core-font'
-import type { Finding } from '@iconotype/core-svg'
+import type { AlignMode, Finding, FlipAxis } from '@iconotype/core-svg'
 import type { FontPrefs } from '@iconotype/core-model'
 
 /**
@@ -56,6 +56,15 @@ export class AppStore {
   lint = $state.raw<Map<GlyphId, Finding[]>>(new Map())
   lintFocus = $state.raw<{ glyph: Glyph; before: string[]; after: string[]; findings: Finding[]; height: number } | null>(null)
 
+  // ── editor ──
+  /** the glyph the editor is on, if the shell is showing one */
+  editing = $state.raw<GlyphId | null>(null)
+  /** editor zoom, 1 = the em box fits the canvas */
+  zoom = $state(1)
+  /** grid divisions drawn over the em box; 0 hides it */
+  editorGrid = $state(16)
+  showMetrics = $state(true)
+
   // ── quick copy ──
   quickFormat = $state<'character' | 'escape' | 'class' | 'svg' | 'datauri' | 'use' | 'symbol'>('class')
   quickValue = $state('')
@@ -103,6 +112,145 @@ export class AppStore {
   invertSelection() {
     const all = this.filteredSets.flatMap((s) => s.glyphs.map((g) => g.id))
     this.selection = new Set(all.filter((id) => !this.selection.has(id)))
+  }
+
+  // ── editing one glyph ────────────────────────────────────────────────────────
+
+  /** The glyph the editor is on, with the set that gives its coordinate space. */
+  get editingGlyph(): { glyph: Glyph; set: { id: SetId; height: number } } | null {
+    if (!this.editing) return null
+    for (const set of this.session.project.sets) {
+      const glyph = set.glyphs.find((g) => g.id === this.editing)
+      if (glyph) return { glyph, set: { id: set.id, height: set.height } }
+    }
+    return null
+  }
+
+  /** Every glyph in display order — what next/previous step through. */
+  #ordered(): Glyph[] { return this.session.project.sets.flatMap((s) => s.glyphs) }
+
+  edit(id: GlyphId | null) {
+    this.editing = id
+    if (id) {
+      this.selection = new Set([id])
+      void this.focusGlyph(id)
+    }
+  }
+
+  /**
+   * Moves to the next or previous glyph, wrapping.
+   *
+   * Editing icons is repetitive work done in a run — fix this one, next, next — so
+   * stepping has to be one key, and it has to wrap rather than dead-end at the last
+   * one and make you go back to the grid.
+   */
+  step(delta: 1 | -1) {
+    const all = this.#ordered()
+    if (!all.length) return
+    const at = all.findIndex((g) => g.id === this.editing)
+    const next = all[((at < 0 ? 0 : at + delta) + all.length) % all.length]!
+    this.edit(next.id)
+  }
+
+  get editingIndex(): { index: number; total: number } {
+    const all = this.#ordered()
+    return { index: all.findIndex((g) => g.id === this.editing) + 1, total: all.length }
+  }
+
+  /**
+   * One transform, one history step.
+   *
+   * Every editor action funnels through here so each lands in the timeline with a
+   * label that says what it was — "Align hiking left", not "Change glyph".
+   */
+  async #transform(label: string, apply: (paths: string[], size: number) => string[] | Promise<string[]>) {
+    const target = this.editingGlyph
+    if (!target) return
+    const { glyph, set } = target
+    try {
+      const paths = await apply(glyph.paths, set.height)
+      if (paths === glyph.paths) return
+      this.session.do({ t: 'glyph.patch', id: glyph.id, patch: { paths } }, `${label} ${glyph.name}`)
+      await this.focusGlyph(glyph.id)
+    } catch (e) {
+      this.notify('error', `${label} failed: ${(e as Error).message}`)
+    }
+  }
+
+  async nudge(dx: number, dy: number) {
+    const { translatePaths } = await svgkit()
+    await this.#transform('Move', (paths) => translatePaths(paths, dx, dy))
+  }
+
+  async align(mode: AlignMode) {
+    const { alignPaths } = await svgkit()
+    await this.#transform(`Align`, (paths, size) => alignPaths(paths, size, mode))
+  }
+
+  async flip(axis: FlipAxis) {
+    const { flipPaths } = await svgkit()
+    await this.#transform('Flip', (paths) => flipPaths(paths, axis))
+  }
+
+  async rotate(degrees: number) {
+    const { rotatePaths } = await svgkit()
+    await this.#transform('Rotate', (paths) => rotatePaths(paths, degrees))
+  }
+
+  async scaleBy(factor: number) {
+    const { scalePaths } = await svgkit()
+    await this.#transform('Scale', (paths) => scalePaths(paths, factor))
+  }
+
+  async fitToEm(padding = 0) {
+    const { fitToBox } = await svgkit()
+    await this.#transform('Fit', (paths, size) => fitToBox(paths, size, padding))
+  }
+
+  async mergeOverlaps() {
+    const { mergeOverlaps } = await svgkit()
+    await this.#transform('Merge overlaps in', (paths) => mergeOverlaps(paths))
+  }
+
+  async snapToGrid() {
+    const { snapPaths } = await svgkit()
+    const grid = this.editorGrid
+    await this.#transform('Snap', (paths, size) => snapPaths(paths, grid, size))
+  }
+
+  /**
+   * Outlines any stroked contour into a filled one.
+   *
+   * A font glyph has no stroke — only a filled outline — so a stroked path either
+   * disappears or renders as a hairline. The importer already does this for SVGs that
+   * arrive stroked; this is the same operation for artwork that got here another way.
+   */
+  async strokeToFill() {
+    const target = this.editingGlyph
+    if (!target) return
+    const { glyph } = target
+    const { outlineStroke } = await svgkit()
+
+    const stroked = glyph.attrs
+      .map((attr, i) => ({ i, width: Number(attr?.['stroke-width'] ?? 0), stroke: attr?.stroke }))
+      .filter((s) => s.stroke && s.stroke !== 'none' && s.width > 0)
+    if (!stroked.length) {
+      this.notify('info', `${glyph.name} has no stroked paths — its outlines are already filled`)
+      return
+    }
+
+    const paths = [...glyph.paths]
+    const attrs = glyph.attrs.map((a) => ({ ...a }))
+    for (const { i, width } of stroked) {
+      paths[i] = outlineStroke(paths[i]!, width)
+      delete attrs[i]!.stroke
+      delete attrs[i]!['stroke-width']
+    }
+    this.session.do(
+      { t: 'glyph.patch', id: glyph.id, patch: { paths, attrs } },
+      `Outline strokes in ${glyph.name}`,
+    )
+    await this.focusGlyph(glyph.id)
   }
 
   // ── notices ──────────────────────────────────────────────────────────────────

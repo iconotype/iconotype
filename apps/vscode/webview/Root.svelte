@@ -59,10 +59,8 @@
     // alt-clicking an icon in the sidebar opens the editor ON that icon
     if (message.focus) {
       const glyph = session.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === message.focus)
-      if (glyph) {
-        app.selection = new Set([glyph.id])
-        void app.focusGlyph(glyph.id)
-      }
+      // alt-clicking an icon in the sidebar opens the editor ON it, not beside it
+      if (glyph) app.edit(glyph.id)
     }
   })
 

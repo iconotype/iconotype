@@ -1,6 +1,11 @@
-# Iconotype *(codename — rename before public repo)*
+# Iconotype
 
 Open-source IcoMoon alternative: create, manage, fix and export icon fonts.
+
+**[iconotype.github.io/iconotype](https://iconotype.github.io/iconotype/)** ·
+[web app](https://iconotype.github.io/iconotype/app/) ·
+[releases](https://github.com/iconotype/iconotype/releases) ·
+[extension](https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode)
 
 Ships as **three targets from one codebase**:
 

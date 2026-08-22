@@ -1,6 +1,10 @@
 packages:
   - packages/*
   - apps/*
+  # the spikes are workspace packages so CI installs their dependencies: `spike:paper`
+  # is a smoke test of the paper/paperjs-offset single-instance constraint, and it was
+  # passing locally only because the spike had been npm-installed by hand
+  - spikes/*
 allowBuilds:
   '@vscode/vsce-sign': true
   esbuild: true

@@ -1,6 +1,7 @@
 {
   "name": "iconotype-vscode",
   "displayName": "Iconotype — icon fonts",
+  "icon": "media/icon.png",
   "publisher": "iconotype",
   "version": "0.1.0",
   "private": true,
@@ -451,7 +452,6 @@
     "@vscode/vsce": "^3.9.2",
     "css-tree": "^3.2.1"
   },
-  "description": "Manage a project's icon fonts: grid, inline previews, autocompletion, usage, and one-click export to your build.",
   "categories": [
     "Other",
     "Visualization"
@@ -460,5 +460,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/iconotype/iconotype"
-  }
+  },
+  "description": "Manage a project's icon fonts: grid, inline previews, autocompletion, usage, and one-click export to your build."
 }

@@ -4,7 +4,7 @@
 
 | | result |
 |---|---|
-| `pnpm test:vscode` | **51 passing**, real VSCode 1.134.0 |
+| `pnpm test:vscode` | **52 passing**, real VSCode 1.134.0 |
 | `pnpm test` | 315 passing (17 files) |
 | `pnpm check` | 391 files, 0 errors |
 
@@ -394,3 +394,46 @@ Two fixes, because the report did not pin down which was to blame:
   directory, not served with cache headers, so hashes buy nothing — and reinstalling
   under a window that already has the panel open leaves it asking for a chunk whose
   hash just changed. Stable names also keep the vsix diff small.
+
+### Activation cost (M5.7)
+
+The extension bundled to 2.82 MB, all of it loaded before the window was usable.
+Almost none of it was needed to open one:
+
+| | |
+|---|---|
+| woff2-encoder | 1006 KB |
+| paper.js | 583 KB |
+| acorn + lodash | 453 KB |
+| xmldom | 214 KB |
+| css-tree | 140 KB |
+| svg2ttf | 65 KB |
+
+Those are the font writer and the SVG fixer — needed to import an icon, fix geometry
+or build a font, and by nothing that activation does. `src/heavy.ts` is the boundary
+module that exports them, `src/lazy.ts` is the only thing allowed to cross it, and
+`build.mjs` marks `./heavy.js` external in the entry bundle and compiles it separately.
+esbuild's own code splitting is ESM-only, hence two passes rather than a flag.
+
+**2.82 MB → 127 KB** for the activation bundle. The deferred half costs 33–39 ms to
+load and now does so on the first import, fix or export.
+
+Making that stick needed the light halves of two packages to be reachable without the
+heavy ones: `@glyphsmith/core-export/layout` (paths, names and `buildStamp`, no
+core-font) and `@glyphsmith/core-io/iconfont-file` (the project file format, no
+core-svg). Importing the barrel from either would have dragged the whole toolchain back
+in, so an integration test asserts paper.js is absent from the entry bundle and present
+in the deferred one.
+
+Two other activation costs went with it:
+
+- **Glyph rendering was eager.** Decoration icons must be real files, and every glyph
+  in the workspace was written as two of them, in sequence, before activation finished
+  — a 500-icon font paid a thousand writes for a file that might mention four. It now
+  renders what the open document actually references, in parallel, after activation.
+- **Activation no longer awaits** the staleness check or the first decoration pass.
+
+And `activationEvents` narrowed from `onStartupFinished` to
+`workspaceContains:**/*.glyphsmith.json`: in a repo with no icon font the extension is
+not loaded at all. Contributed commands and views activate it implicitly, so creating
+or importing a first font still works.

@@ -52,7 +52,7 @@ fixtures/
 pnpm install
 pnpm dev            # web app
 pnpm test           # 315 tests, incl. 75-fixture visual regression
-pnpm test:vscode    # 51 integration tests in real VSCode
+pnpm test:vscode    # 52 integration tests in real VSCode
 pnpm check          # svelte-check + tsc
 pnpm build          # web + vscode
 ```

@@ -53,3 +53,32 @@ export function folderOf(entry: RecentProject, home?: string): string {
   const folder = entry.path.replace(/[\\/][^\\/]+$/, '')
   return home && folder.startsWith(home) ? `~${folder.slice(home.length)}` : folder
 }
+
+/**
+ * The bits of chrome a person sets once and expects to find that way tomorrow.
+ *
+ * Kept beside the recents for the same reason: one file, and the Host decides where
+ * that lives. Nothing here belongs in the project — a collaborator opening the same
+ * `.iconotype.json` should not inherit your theme.
+ */
+export interface UiPrefs {
+  theme?: 'system' | 'light' | 'dark'
+  showSets?: boolean
+  showRail?: boolean
+  cellSize?: number
+}
+
+const UI_FILE = 'ui.json'
+
+export async function loadUiPrefs(host: Host): Promise<UiPrefs> {
+  try {
+    const parsed = JSON.parse(await host.fs.readText(UI_FILE)) as UiPrefs
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+export const saveUiPrefs = async (host: Host, prefs: UiPrefs): Promise<void> => {
+  await host.fs.write(UI_FILE, JSON.stringify(prefs))
+}

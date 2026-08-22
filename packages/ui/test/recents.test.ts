@@ -45,3 +45,17 @@ describe('recent projects', () => {
     expect(folderOf({ id: 'p0', name: 'icons', openedAt: 0 })).toBe('browser storage')
   })
 })
+
+describe('ui preferences', () => {
+  it('round-trips, and survives a store that is not there yet', async () => {
+    const { loadUiPrefs, saveUiPrefs } = await import('../src/recents.js')
+    const host = createMemoryHost()
+
+    expect(await loadUiPrefs(host)).toEqual({})
+    await saveUiPrefs(host, { theme: 'light', showSets: false, showRail: true, cellSize: 48 })
+    expect(await loadUiPrefs(host)).toEqual({ theme: 'light', showSets: false, showRail: true, cellSize: 48 })
+
+    // a corrupt file is a preference nobody set, not a crash on boot
+    expect(await loadUiPrefs(createMemoryHost({ 'ui.json': 'nope' }))).toEqual({})
+  })
+})

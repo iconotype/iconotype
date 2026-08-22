@@ -40,8 +40,15 @@
   --gs-gap: 10px;
 }
 
+/*
+ * Light mode.
+ *
+ * Written once and applied from two places: the system preference, and an explicit
+ * choice stamped on <html data-theme>. `data-theme` wins over the media query because
+ * a user who picked light meant it even at midnight.
+ */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme='dark']) {
     --gs-bg: #f6f7f9;
     --gs-surface: #fff;
     --gs-surface-2: #f1f2f6;
@@ -60,6 +67,25 @@
     --gs-shadow: 0 1px 2px rgba(16, 20, 30, .06), 0 8px 24px rgba(16, 20, 30, .07);
   }
 }
+
+:root[data-theme='light'] {
+    --gs-bg: #f6f7f9;
+    --gs-surface: #fff;
+    --gs-surface-2: #f1f2f6;
+    --gs-fg: #171a21;
+    --gs-muted: #626a7b;
+    --gs-border: #e2e5ec;
+    --gs-accent: #4f46e5;
+    --gs-accent-hover: #4338ca;
+    --gs-accent-weak: rgba(79, 70, 229, .12);
+    --gs-hover: rgba(17, 20, 26, .04);
+    --gs-active: rgba(79, 70, 229, .1);
+    --gs-error: #d92d3c;
+    --gs-warn: #a86a10;
+    --gs-ok: #17864f;
+    --gs-input: #fff;
+    --gs-shadow: 0 1px 2px rgba(16, 20, 30, .06), 0 8px 24px rgba(16, 20, 30, .07);
+  }
 
 /* an app window, not a document: the shell scrolls its panes, never the page */
 html, body { height: 100%; overflow: hidden; }

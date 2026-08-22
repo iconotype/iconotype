@@ -52,7 +52,7 @@
       const data = JSON.parse(text) as unknown
       if (isIconFontFile(data)) {
         const project = parseIconFont(text, picked)
-        session.replace(project, `Open ${picked.split('/').pop()}`)
+        session.open(project, `Open ${picked.split('/').pop()}`)
         // only OUR file becomes the save target: ⌘S must never overwrite the IcoMoon
         // project someone imported from
         file = picked
@@ -100,7 +100,7 @@
       const [recent] = await listProjects(host)
       if (!recent) return
       try {
-        session.replace(await loadProject(host, recent.id), `Reopen ${recent.name}`)
+        session.open(await loadProject(host, recent.id), `Reopen ${recent.name}`)
       } catch (e) {
         app.notify('warn', `could not reopen "${recent.name}": ${(e as Error).message}`)
       }
@@ -124,7 +124,7 @@
     if (!entry.path) return
     try {
       const project = parseIconFont(await host.fs.readText(entry.path), entry.path)
-      session.replace(project, `Open ${entry.name}`)
+      session.open(project, `Open ${entry.name}`)
       file = entry.path
       remember(entry.path, project.name)
       setTitle(project.name)

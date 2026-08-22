@@ -56,6 +56,24 @@ export class AppStore {
   lint = $state.raw<Map<GlyphId, Finding[]>>(new Map())
   lintFocus = $state.raw<{ glyph: Glyph; before: string[]; after: string[]; findings: Finding[]; height: number } | null>(null)
 
+  // ── layout ──
+  /**
+   * Which panes are open.
+   *
+   * A 900px window showed five panes at once and none of them properly. Both rails
+   * close, and the mode decides what they contain rather than showing everything
+   * always: the export settings are not an answer to any question you have while
+   * dragging a glyph two units to the left.
+   */
+  showSets = $state(true)
+  showRail = $state(true)
+  showShortcuts = $state(false)
+  /** 'system' follows the OS; the other two override it */
+  theme = $state<'system' | 'light' | 'dark'>('system')
+
+  /** `browse` is the grid; `edit` is one glyph and nothing else. */
+  get mode(): 'browse' | 'edit' { return this.editing ? 'edit' : 'browse' }
+
   // ── editor ──
   /** the glyph the editor is on, if the shell is showing one */
   editing = $state.raw<GlyphId | null>(null)
@@ -99,15 +117,61 @@ export class AppStore {
 
   // ── selection ────────────────────────────────────────────────────────────────
   isSelected = (id: GlyphId) => this.selection.has(id)
+  /** where a shift-click range starts from */
+  #anchor: GlyphId | null = null
+
   toggle(id: GlyphId, additive: boolean) {
     const next = additive ? new Set(this.selection) : new Set<GlyphId>()
     next.has(id) ? next.delete(id) : next.add(id)
     this.selection = next
+    this.#anchor = id
     if (next.has(id)) void this.focusGlyph(id)
     else if (this.lintFocus?.glyph.id === id) this.lintFocus = null
     void this.#refreshQuick()
   }
   selectAll() { this.selection = new Set(this.filteredSets.flatMap((s) => s.glyphs.map((g) => g.id))) }
+
+  /**
+   * Extends the selection to a glyph, in display order.
+   *
+   * Shift-click over a run is how anyone picks "these forty", and without it the only
+   * way to build an export set was ⌘-clicking each icon in turn.
+   */
+  selectTo(id: GlyphId) {
+    const order = this.filteredSets.flatMap((s) => s.glyphs.map((g) => g.id))
+    const anchor = this.#anchor && order.includes(this.#anchor) ? this.#anchor : order[0]
+    const from = order.indexOf(anchor!)
+    const to = order.indexOf(id)
+    if (from < 0 || to < 0) return
+    const [lo, hi] = from <= to ? [from, to] : [to, from]
+    this.selection = new Set([...this.selection, ...order.slice(lo, hi + 1)])
+  }
+
+  /** Whether an icon ships in the built font — nothing to do with UI selection. */
+  isIncluded = (glyph: Glyph) => glyph.selected !== false
+
+  setIncluded(ids: GlyphId[], included: boolean) {
+    if (!ids.length) return
+    this.session.do({ t: 'glyph.select', ids, selected: included })
+  }
+
+  toggleIncluded(glyph: Glyph) { this.setIncluded([glyph.id], glyph.selected === false) }
+
+  /** The selection if there is one, otherwise everything the search matches. */
+  #targetIds(): GlyphId[] {
+    return this.selection.size
+      ? [...this.selection]
+      : this.filteredSets.flatMap((s) => s.glyphs.map((g) => g.id))
+  }
+
+  includeSelected() { this.setIncluded(this.#targetIds(), true) }
+  excludeSelected() { this.setIncluded(this.#targetIds(), false) }
+
+  get includedCount(): number {
+    return this.session.project.sets
+      .filter((s) => !s.hidden)
+      .reduce((n, s) => n + s.glyphs.filter((g) => g.selected !== false).length, 0)
+  }
   selectNone() { this.selection = new Set() }
   invertSelection() {
     const all = this.filteredSets.flatMap((s) => s.glyphs.map((g) => g.id))
@@ -396,7 +460,7 @@ export class AppStore {
          */
         if (isIconFontFile(data)) {
           const project = fromIconFontFile(data, this.session.project.id)
-          this.session.replace(project, `Open ${f.name}`)
+          this.session.open(project, `Open ${f.name}`)
           this.selectNone()
           this.notify('info', `Opened ${f.name}: ${project.sets.reduce((n, s) => n + s.glyphs.length, 0)} icon(s)`)
           return
@@ -406,7 +470,7 @@ export class AppStore {
           throw new Error('not an Iconotype project, or an IcoMoon project, selection or icon set')
         }
         const { project, warnings } = importIcoMoon(data, { projectId: this.session.project.id })
-        this.session.replace(project, `Import ${f.name}`)
+        this.session.open(project, `Import ${f.name}`)
         this.selectNone()
         warnings.forEach((w) => this.notify('warn', w))
         this.notify('info', `Imported ${project.sets.length} set(s), ${project.sets.reduce((n, s) => n + s.glyphs.length, 0)} glyph(s) from ${f.name}`)
@@ -416,7 +480,7 @@ export class AppStore {
         const { importIcoMoonZip, importSvgZip } = await io()
         try {
           const { project, warnings } = importIcoMoonZip(f.data, { projectId: this.session.project.id })
-          this.session.replace(project, `Import ${f.name}`)
+          this.session.open(project, `Import ${f.name}`)
           this.selectNone()
           warnings.forEach((w) => this.notify('warn', w))
           this.notify('info', `Imported IcoMoon package ${f.name}`)
@@ -575,9 +639,16 @@ export class AppStore {
     this.busy = true
     try {
       const { fixPaths } = await svgkit()
-      const targets = this.selection.size
-        ? this.#glyphsWithSets().filter((g) => this.selection.has(g.glyph.id))
-        : this.#glyphsWithSets()
+      /**
+       * What "fix" means depends on where you are: the glyph you are editing, then
+       * the selection, then everything. Running the whole project from inside the
+       * editor would be a surprise measured in hundreds of glyphs.
+       */
+      const targets = this.editing
+        ? this.#glyphsWithSets().filter((g) => g.glyph.id === this.editing)
+        : this.selection.size
+          ? this.#glyphsWithSets().filter((g) => this.selection.has(g.glyph.id))
+          : this.#glyphsWithSets()
 
       let changed = 0
       const patches: Array<{ id: GlyphId; paths: string[]; attrs: Array<Record<string, string>> }> = []

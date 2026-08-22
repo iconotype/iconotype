@@ -27,15 +27,20 @@
   </div>
 
   <div class="actions">
-    <button class="ghost" onclick={() => app.lintAll()} disabled={app.busy || !app.session.glyphCount}>
-      Check all glyphs
-    </button>
-    <button
-      onclick={() => app.applyFix()}
-      disabled={app.busy || (!app.selection.size && !app.session.glyphCount)}
-    >
-      Fix {app.selection.size ? `${app.selection.size} selected` : 'all'}
-    </button>
+    {#if app.mode === 'edit'}
+      <!-- in the editor the subject is this glyph; "fix all" here would be a trap -->
+      <button onclick={() => app.applyFix()} disabled={app.busy || !app.editing}>Fix this icon</button>
+    {:else}
+      <button class="ghost" onclick={() => app.lintAll()} disabled={app.busy || !app.session.glyphCount}>
+        Check all glyphs
+      </button>
+      <button
+        onclick={() => app.applyFix()}
+        disabled={app.busy || (!app.selection.size && !app.session.glyphCount)}
+      >
+        Fix {app.selection.size ? `${app.selection.size} selected` : 'all'}
+      </button>
+    {/if}
   </div>
 
   {#if app.lintSummary}

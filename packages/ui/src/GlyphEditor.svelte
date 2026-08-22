@@ -67,24 +67,39 @@
 
 <section class="editor">
   <header>
-    <button class="ghost tiny" onclick={() => app.step(-1)} title="Previous icon ([)">‹</button>
     <div class="who">
       <strong>{glyph?.name ?? 'No icon'}</strong>
       <span class="muted">
         {position.index}/{position.total}
         {#each codes as c}<code>U+{hex(c)}</code>{/each}
+        {#if glyph && !app.isIncluded(glyph)}<em class="excluded">excluded</em>{/if}
       </span>
     </div>
-    <button class="ghost tiny" onclick={() => app.step(1)} title="Next icon (])">›</button>
     <span class="spacer"></span>
-    <button class="ghost tiny" onclick={() => (app.zoom = Math.max(0.25, app.zoom / 1.25))} title="Zoom out (-)">−</button>
-    <button class="ghost tiny" onclick={() => (app.zoom = 1)} title="Reset zoom (0)">{Math.round(app.zoom * 100)}%</button>
-    <button class="ghost tiny" onclick={() => (app.zoom = Math.min(8, app.zoom * 1.25))} title="Zoom in (+)">+</button>
+    {#if glyph}
+      <button
+        class="ghost tiny"
+        onclick={() => app.toggleIncluded(glyph)}
+        title="Whether this icon ships in the built font"
+      >{app.isIncluded(glyph) ? '✓ In font' : 'Excluded'}</button>
+    {/if}
+    <span class="zoom">
+      <button class="ghost tiny" onclick={() => (app.zoom = Math.max(0.25, app.zoom / 1.25))} title="Zoom out (−)">−</button>
+      <button class="ghost tiny" onclick={() => (app.zoom = 1)} title="Reset zoom (0)">{Math.round(app.zoom * 100)}%</button>
+      <button class="ghost tiny" onclick={() => (app.zoom = Math.min(8, app.zoom * 1.25))} title="Zoom in (+)">+</button>
+    </span>
     <button class="ghost tiny" onclick={() => app.edit(null)} title="Back to the grid (Esc)">Done</button>
   </header>
 
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="stage" onwheel={onWheel} role="img" aria-label={glyph?.name ?? 'No icon selected'}>
+    <!--
+      Fixed to the canvas edges, not next to the name. They used to sit either side of
+      the glyph's name, so the button moved every time you used it — the one control
+      you press twenty times in a row.
+    -->
+    <button class="nav prev" onclick={() => app.step(-1)} title="Previous icon ([)" aria-label="Previous icon">‹</button>
+    <button class="nav next" onclick={() => app.step(1)} title="Next icon (])" aria-label="Next icon">›</button>
     {#if glyph}
       <svg viewBox="0 0 {size} {size}" style:width="{Math.round(app.zoom * 100)}%">
         <rect class="box" x="0" y="0" width={size} height={size} />
@@ -116,41 +131,43 @@
   <div class="tools" class:disabled={!glyph}>
     <div class="group" role="group" aria-label="Align">
       <span class="label">Align</span>
-      <button class="ghost tiny" onclick={() => app.align('left')} title="Align left">⇤</button>
-      <button class="ghost tiny" onclick={() => app.align('center-x')} title="Centre horizontally">⇔</button>
-      <button class="ghost tiny" onclick={() => app.align('right')} title="Align right">⇥</button>
-      <button class="ghost tiny" onclick={() => app.align('top')} title="Align top">⤒</button>
-      <button class="ghost tiny" onclick={() => app.align('center-y')} title="Centre vertically">⇕</button>
-      <button class="ghost tiny" onclick={() => app.align('bottom')} title="Align bottom">⤓</button>
-      <button class="ghost tiny" onclick={() => app.align('center')} title="Centre in the em box">⊕</button>
+      <button class="ghost tiny" onclick={() => app.align('left')} title="Align to the left edge">Left</button>
+      <button class="ghost tiny" onclick={() => app.align('center-x')} title="Centre horizontally">Centre</button>
+      <button class="ghost tiny" onclick={() => app.align('right')} title="Align to the right edge">Right</button>
+      <button class="ghost tiny" onclick={() => app.align('top')} title="Align to the top edge">Top</button>
+      <button class="ghost tiny" onclick={() => app.align('center-y')} title="Centre vertically">Middle</button>
+      <button class="ghost tiny" onclick={() => app.align('bottom')} title="Align to the bottom edge">Bottom</button>
+      <button class="ghost tiny" onclick={() => app.align('center')} title="Centre in the em box">Both</button>
     </div>
 
     <div class="group" role="group" aria-label="Move">
       <span class="label">Move</span>
-      <button class="ghost tiny" onclick={() => app.nudge(-size / 64, 0)} title="Left (←)">←</button>
-      <button class="ghost tiny" onclick={() => app.nudge(0, -size / 64)} title="Up (↑)">↑</button>
-      <button class="ghost tiny" onclick={() => app.nudge(0, size / 64)} title="Down (↓)">↓</button>
-      <button class="ghost tiny" onclick={() => app.nudge(size / 64, 0)} title="Right (→)">→</button>
+      <button class="ghost tiny" onclick={() => app.nudge(-size / 64, 0)} title="Move left (←)">←</button>
+      <button class="ghost tiny" onclick={() => app.nudge(0, -size / 64)} title="Move up (↑)">↑</button>
+      <button class="ghost tiny" onclick={() => app.nudge(0, size / 64)} title="Move down (↓)">↓</button>
+      <button class="ghost tiny" onclick={() => app.nudge(size / 64, 0)} title="Move right (→)">→</button>
     </div>
 
     <div class="group" role="group" aria-label="Transform">
       <span class="label">Transform</span>
-      <button class="ghost tiny" onclick={() => app.scaleBy(1.1)} title="Grow 10%">⤢</button>
-      <button class="ghost tiny" onclick={() => app.scaleBy(1 / 1.1)} title="Shrink 10%">⤡</button>
-      <button class="ghost tiny" onclick={() => app.rotate(-90)} title="Rotate left">↺</button>
-      <button class="ghost tiny" onclick={() => app.rotate(90)} title="Rotate right">↻</button>
-      <button class="ghost tiny" onclick={() => app.flip('horizontal')} title="Flip horizontally">⇋</button>
-      <button class="ghost tiny" onclick={() => app.flip('vertical')} title="Flip vertically">⇵</button>
+      <button class="ghost tiny" onclick={() => app.scaleBy(1.1)} title="Scale up 10%">Bigger</button>
+      <button class="ghost tiny" onclick={() => app.scaleBy(1 / 1.1)} title="Scale down 10%">Smaller</button>
+      <button class="ghost tiny" onclick={() => app.rotate(-90)} title="Rotate 90° anticlockwise">Rotate ↺</button>
+      <button class="ghost tiny" onclick={() => app.rotate(90)} title="Rotate 90° clockwise">Rotate ↻</button>
+      <button class="ghost tiny" onclick={() => app.flip('horizontal')} title="Mirror left to right">Flip H</button>
+      <button class="ghost tiny" onclick={() => app.flip('vertical')} title="Mirror top to bottom">Flip V</button>
     </div>
 
     <div class="group" role="group" aria-label="Fix">
       <span class="label">Fix</span>
-      <button class="ghost tiny wide" onclick={() => app.fitToEm(0)} title="Scale to fill the em box">Fit</button>
-      <button class="ghost tiny wide" onclick={() => app.strokeToFill()} title="Outline strokes into filled shapes">
+      <button class="ghost tiny" onclick={() => app.fitToEm(0)} title="Scale the artwork to fill the em box">Fit to box</button>
+      <button class="ghost tiny" onclick={() => app.strokeToFill()} title="Outline stroked paths into filled shapes — a font glyph has no stroke">
         Stroke → fill
       </button>
-      <button class="ghost tiny wide" onclick={() => app.mergeOverlaps()} title="Unite overlapping shapes">Merge</button>
-      <button class="ghost tiny wide" onclick={() => app.snapToGrid()} title="Round coordinates onto the grid">Snap</button>
+      <button class="ghost tiny" onclick={() => app.mergeOverlaps()} title="Unite overlapping shapes into one outline">
+        Merge overlaps
+      </button>
+      <button class="ghost tiny" onclick={() => app.snapToGrid()} title="Round every coordinate onto the grid">Snap to grid</button>
     </div>
 
     <div class="group" role="group" aria-label="View">
@@ -188,7 +205,18 @@
   .tiny { padding: 1px 7px; font-size: var(--gs-size-sm); }
   .wide { padding: 1px 9px; }
 
-  .stage { display: grid; place-items: center; overflow: auto; padding: var(--gs-pad); min-height: 0; }
+  .stage { position: relative; display: grid; place-items: center; overflow: auto; padding: var(--gs-pad) 56px; min-height: 0; }
+  .nav {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+    width: 40px; height: 76px; padding: 0; font-size: 24px; line-height: 1;
+    background: var(--gs-surface-2); color: var(--gs-fg);
+    border: 1px solid var(--gs-border); border-radius: var(--gs-radius-lg); cursor: pointer;
+  }
+  .nav:hover { background: var(--gs-hover); border-color: var(--gs-accent); color: var(--gs-accent); }
+  .nav.prev { left: 8px; }
+  .nav.next { right: 8px; }
+  .zoom { display: inline-flex; gap: 2px; }
+  .excluded { font-style: normal; color: var(--gs-warn); }
   .stage svg { max-width: 100%; }
   .box { fill: var(--gs-surface-2); stroke: var(--gs-border); stroke-width: 2; }
   .grid line { stroke: var(--gs-border); stroke-width: 1; opacity: .55; }

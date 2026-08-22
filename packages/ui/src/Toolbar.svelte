@@ -11,8 +11,8 @@
     <span class="muted">{app.cellSize}px</span>
   </label>
 
-  <input class="search" type="search" placeholder="Search name or tag…" bind:value={app.search} />
-  <span class="muted count">{app.matchCount} shown</span>
+  <input class="search" type="search" placeholder="Search name or tag… (/)" bind:value={app.search} />
+  <span class="muted count">{app.matchCount} shown · {app.includedCount} in font</span>
 
   <span class="spacer"></span>
 
@@ -25,6 +25,23 @@
   <button class="ghost" onclick={() => app.selectAll()} disabled={!app.matchCount}>All</button>
   <button class="ghost" onclick={() => app.selectNone()} disabled={!app.selection.size}>None</button>
   <button class="ghost" onclick={() => app.invertSelection()} disabled={!app.matchCount}>Invert</button>
+  <span class="sep"></span>
+  <!--
+    Include/exclude is what decides the built font; it acts on the selection, or on
+    everything the search matches when nothing is selected — which is how you take a
+    900-icon set down to the twelve you need.
+  -->
+  <button
+    class="ghost"
+    onclick={() => app.includeSelected()}
+    title={app.selection.size ? `Include the ${app.selection.size} selected` : 'Include everything shown'}
+  >Include</button>
+  <button
+    class="ghost"
+    onclick={() => app.excludeSelected()}
+    title={app.selection.size ? `Exclude the ${app.selection.size} selected` : 'Exclude everything shown'}
+  >Exclude</button>
+
   {#if app.selection.size}
     <span class="sep"></span>
     <button class="ghost danger" onclick={() => app.removeSelected()}>

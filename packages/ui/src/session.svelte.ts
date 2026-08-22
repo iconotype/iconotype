@@ -45,8 +45,21 @@ export class SessionStore {
   get glyphCount() { return this.#session.project.sets.reduce((n, s) => n + s.glyphs.length, 0) }
 
   do(op: Op, label?: string) { this.#session = commit(this.#session, op, this.#now(), label) }
-  /** Import path: swap the whole document, still as a single undoable step. */
+
+  /** Swap the whole document, still as a single undoable step. */
   replace(project: Project, label = 'Import project') { this.do({ t: 'project.replace', project }, label) }
+
+  /**
+   * Open a document: a new timeline, not a step in the old one.
+   *
+   * Replacing kept the previous project as undo's parent, so the first ⌘Z on a
+   * freshly opened file emptied it — which reads exactly like "undo deleted my
+   * icons" when the thing being undone is the open itself. A document's history
+   * starts when the document does.
+   */
+  open(project: Project, label = 'Open project') {
+    this.#session = { project, history: createHistory(label, this.#now()) }
+  }
   undo() { this.#session = undo(this.#session) }
   redo(branchId?: string) { this.#session = redo(this.#session, branchId) }
   goto(nodeId: string) { this.#session = goto(this.#session, nodeId) }

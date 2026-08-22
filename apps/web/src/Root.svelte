@@ -21,7 +21,7 @@
     if (!entry.id) return
     try {
       const project = await loadProject(host, entry.id)
-      session.replace(project, `Open ${entry.name}`)
+      session.open(project, `Open ${entry.name}`)
       await recordRecent(host, { id: entry.id, name: project.name, openedAt: now() })
     } catch (e) {
       app.notify('error', `could not open "${entry.name}": ${(e as Error).message}`)
@@ -34,7 +34,7 @@
       const [recent] = await listProjects(host)
       if (!recent) return
       try {
-        session.replace(await loadProject(host, recent.id), `Reopen ${recent.name}`)
+        session.open(await loadProject(host, recent.id), `Reopen ${recent.name}`)
       } catch (e) {
         app.notify('warn', `could not reopen "${recent.name}": ${(e as Error).message}`)
       }

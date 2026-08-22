@@ -65,7 +65,7 @@ suite('iconotype webview', function () {
   test('renders the embedded layout, not the full web app', async () => {
     const { panel, ready } = await boot()
     assert.strictEqual(ready.embedded, true, 'the panel did not mount in embedded mode')
-    assert.strictEqual(ready.panels, 3, 'expected glyph detail + fix + history')
+    assert.strictEqual(ready.panels, 2, 'expected the glyph itself + history, and none of the sidebar\'s own panes')
     panel.dispose()
   })
 

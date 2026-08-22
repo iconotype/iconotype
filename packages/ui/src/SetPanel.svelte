@@ -24,8 +24,9 @@
           />
         {:else}
           <button class="name" ondblclick={() => { editing = set.id }} title="Double-click to rename">
-            {set.name}<span class="muted"> {set.glyphs.length}</span>
+            {set.name}
           </button>
+          <span class="muted count">{set.glyphs.length}</span>
         {/if}
         <button class="ghost tiny" disabled={i === 0} onclick={() => app.moveSet(set.id, i - 1)} title="Move up">↑</button>
         <button class="ghost tiny" disabled={i === app.session.project.sets.length - 1} onclick={() => app.moveSet(set.id, i + 1)} title="Move down">↓</button>
@@ -49,9 +50,12 @@
   h2 { display: flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase;
        letter-spacing: .06em; color: var(--gs-muted); margin: 4px 0 8px; }
   ul { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 2px; }
-  li { display: flex; align-items: center; gap: 4px; }
+  /* the name gives way; the count and the buttons never get squeezed out of the row */
+  li { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  /* the count sits outside the name button, or a long set name ellipses over it */
+  .count { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-size: var(--gs-size-sm); }
   .hidden .name { opacity: .5; text-decoration: line-through; }
-  .name { flex: 1; text-align: left; background: transparent; color: var(--gs-fg); border: none;
+  .name { flex: 1 1 auto; min-width: 0; text-align: left; background: transparent; color: var(--gs-fg); border: none;
           padding: 3px 6px; border-radius: var(--gs-radius); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .name:hover { background: var(--gs-hover); }
   .muted { color: var(--gs-muted); }

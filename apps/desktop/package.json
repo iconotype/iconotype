@@ -1,0 +1,30 @@
+{
+  "name": "@iconotype/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:desktop": "pnpm --filter @iconotype/desktop dev",
+    "dev:web": "vite",
+    "build": "vite build",
+    "bundle": "tauri build",
+    "tauri": "tauri",
+    "build:desktop": "pnpm --filter @iconotype/desktop bundle"
+  },
+  "dependencies": {
+    "@iconotype/core-host": "workspace:*",
+    "@iconotype/core-io": "workspace:*",
+    "@iconotype/core-model": "workspace:*",
+    "@iconotype/ui": "workspace:*",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
+    "@tauri-apps/plugin-dialog": "^2.7.2",
+    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-opener": "^2.5.4"
+  },
+  "devDependencies": {
+    "@iconotype/build-config": "workspace:*",
+    "@tauri-apps/cli": "^2.11.4"
+  }
+}

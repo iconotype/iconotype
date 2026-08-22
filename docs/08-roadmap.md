@@ -39,9 +39,12 @@ A committed `.iconotype.json` per font, quick export straight to configured path
 
 **Verified**: 27 integration tests in real VSCode 1.134.0 — discovery, export to `app/fonts` + `app/css`, completion excluding deselected icons, hover, decorations, usage scanning, SVG import and selection round-tripping to disk. Followed by M5.1: the editor now persists its edits, plus diagnostics with quick fixes, rename-with-references, go-to-definition and incremental usage indexing. See [15-m5-vscode.md](15-m5-vscode.md).
 
-## M6 — Tauri desktop (≈1.5 wks)
-Folder projects, native fs + watch, menus, auto-update, drag-drop from Finder, signed builds for macOS/Windows/Linux.
-**Done when:** installers on GitHub Releases, folder project opens and watches.
+## M6 — Tauri desktop ✅ (see [16](16-m6-desktop.md))
+Native fs + watch, open/save real files with ⌘O/⌘S, a File/Edit menu bar, drag-drop
+from Finder, and a modern palette for the app and the website that the extension does
+not share. `.app` builds at 5.6 MB.
+**Carried forward:** auto-update and signed installers (both need keys and CI secrets),
+and folder-as-project.
 
 ## M7 — Glyph editor (≈4 wks)
 Canvas, layers, select/transform, node editing, arrange, combine (boolean), snapping, viewBox panel, live code pane, history branches.

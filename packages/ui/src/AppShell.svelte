@@ -16,7 +16,18 @@
    * squeezed the artwork into a fifth of the width and gave two places to do the same
    * thing, so the embedded layout drops them and shows the glyph itself instead.
    */
-  let { embedded = false }: { embedded?: boolean } = $props()
+  let {
+    embedded = false,
+    onOpen,
+    onSave,
+    onSaveAs,
+  }: {
+    embedded?: boolean
+    /** desktop only: a real file on disk, opened and saved through native dialogs */
+    onOpen?: () => void
+    onSave?: () => void
+    onSaveAs?: () => void
+  } = $props()
 
   const app = useApp()
   const host = useHost()
@@ -48,6 +59,15 @@
     {#if app.busy}<span class="muted">importing…</span>
     {:else if app.saving}<span class="muted">saving…</span>{/if}
     <span class="spacer"></span>
+    {#if onOpen}
+      <button class="ghost" onclick={onOpen} title="Open a project file (⌘O)">Open…</button>
+    {/if}
+    {#if onSave}
+      <button class="ghost" onclick={onSave} title="Save to the project file (⌘S)">Save</button>
+    {/if}
+    {#if onSaveAs}
+      <button class="ghost" onclick={onSaveAs} title="Save to a new file (⇧⌘S)">Save as…</button>
+    {/if}
     <span class="muted host">{host.name}</span>
     <button class="ghost" disabled={!session.canUndo} onclick={() => session.undo()}>Undo</button>
     <button class="ghost" disabled={!session.canRedo} onclick={() => session.redo()}>Redo</button>

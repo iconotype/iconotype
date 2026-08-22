@@ -107,6 +107,28 @@ first-time visitor for something they may not have. `Host.sampleProjectUrl()` is
 optional, the web and desktop shells ship one, and the extension has the workspace's
 own fonts and needs none.
 
+## What "import" accepts
+
+Three JSON shapes, plus zips and loose SVGs:
+
+| | |
+|---|---|
+| `*.iconotype.json` | our own project file |
+| IcoMoon project / selection / icon set | current exports |
+| older IcoMoon projects | no `ligatures`, a `tempChar` instead, `uid: -1`, per-glyph `width`, `resetPoint` rather than a codepoint each |
+
+The last one already worked — a fixture from a real 2024-era project (`ossweather.json`)
+imports all ten icons with their codepoints and, importantly, their advance widths: the
+wind arrows are 1034 units wide, and dropping that would render every one of them
+squashed.
+
+The first one did **not**. The app took IcoMoon's formats and refused the format it
+writes itself, which is absurd on its face and worse in practice — the desktop app's
+`Open…` accepted it, so the same file worked through one door and not the other. Both
+doors now go through the same importer, and `Open…` takes an IcoMoon file too. Only our
+own file becomes the save target, so ⌘S can never overwrite the IcoMoon project
+someone imported from.
+
 ## Building it
 
 ```bash

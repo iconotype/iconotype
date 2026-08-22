@@ -235,9 +235,28 @@ export class AppStore {
     const text = () => new TextDecoder().decode(f.data)
     try {
       if (/\.json$/i.test(f.name)) {
-        const { importIcoMoon, isIcoMoonFile } = await io()
+        const { importIcoMoon, isIcoMoonFile, isIconFontFile, fromIconFontFile } = await io()
         const data = JSON.parse(text())
-        if (!isIcoMoonFile(data)) throw new Error('JSON is not an IcoMoon project, selection or icon set')
+
+        /**
+         * Our own project file counts as importable.
+         *
+         * It was the one format this refused — you could open an IcoMoon export but
+         * not the thing this app writes, which is absurd on its face and worse in
+         * practice: the desktop app's Open… accepted it, so the same file worked
+         * through one door and not the other.
+         */
+        if (isIconFontFile(data)) {
+          const project = fromIconFontFile(data, this.session.project.id)
+          this.session.replace(project, `Open ${f.name}`)
+          this.selectNone()
+          this.notify('info', `Opened ${f.name}: ${project.sets.reduce((n, s) => n + s.glyphs.length, 0)} icon(s)`)
+          return
+        }
+
+        if (!isIcoMoonFile(data)) {
+          throw new Error('not an Iconotype project, or an IcoMoon project, selection or icon set')
+        }
         const { project, warnings } = importIcoMoon(data, { projectId: this.session.project.id })
         this.session.replace(project, `Import ${f.name}`)
         this.selectNone()

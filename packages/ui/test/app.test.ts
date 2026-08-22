@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import type { Host } from '@iconotype/core-host'
 import { createHistory, emptyProject, type Glyph } from '@iconotype/core-model'
+import { serializeIconFont } from '@iconotype/core-io'
 import { AppStore } from '../src/app.svelte.js'
 import { SessionStore } from '../src/session.svelte.js'
 
@@ -106,5 +109,54 @@ describe('AppStore glyph actions', () => {
     expect(after.tags).toEqual(['house', 'home'])
     expect(session.project.codepoints['home']).toBe(0xe900)
     expect(after.paths[0]).not.toBe('M0 0h512v512h-512z')
+  })
+})
+
+describe('AppStore import', () => {
+  const file = (name: string, text: string) => ({ name, data: new TextEncoder().encode(text) })
+  const fixture = (name: string) =>
+    readFileSync(fileURLToPath(new URL(`../../../fixtures/icomoon/${name}`, import.meta.url)), 'utf8')
+
+  /**
+   * Regression: the importer took IcoMoon's formats and refused our own, so a file
+   * this app had just written could not be opened by it.
+   */
+  it('opens an Iconotype project file', async () => {
+    const { app, session } = store()
+
+    const source = emptyProject('src', 'app')
+    source.preferences.font.family = 'app'
+    source.sets[0]!.glyphs = [glyph('home'), glyph('user')]
+    source.codepoints = { home: 0xe900, user: 0xe901 }
+
+    await app.importFiles([file('app.iconotype.json', serializeIconFont(source))])
+
+    expect(session.project.sets.flatMap((s) => s.glyphs).map((g) => g.name)).toEqual(['home', 'user'])
+    expect(session.project.codepoints['user']).toBe(0xe901)
+    expect(app.notices.some((n) => n.kind === 'error')).toBe(false)
+  })
+
+  it('imports a current IcoMoon project', async () => {
+    const { app, session } = store()
+    await app.importFiles([file('alpimaps.json', fixture('alpimaps.json'))])
+    expect(session.project.sets.flatMap((s) => s.glyphs)).toHaveLength(25)
+  })
+
+  /** An export from an older IcoMoon: no ligatures, `tempChar`, per-glyph `width`. */
+  it('imports an older IcoMoon project', async () => {
+    const { app, session } = store()
+    await app.importFiles([file('ossweather.json', fixture('ossweather.json'))])
+
+    const glyphs = session.project.sets.flatMap((s) => s.glyphs)
+    expect(glyphs).toHaveLength(10)
+    expect(session.project.codepoints['wind_0']).toBe(59648)
+    expect(glyphs.find((g) => g.name === 'wind_0')!.advanceWidth).toBe(1034)
+    expect(session.project.preferences.font.family).toBe('ossweather')
+  })
+
+  it('says what it accepts when handed something else', async () => {
+    const { app } = store()
+    await app.importFiles([file('random.json', '{"hello":"world"}')])
+    expect(app.notices.at(-1)!.text).toMatch(/not an Iconotype project, or an IcoMoon/)
   })
 })

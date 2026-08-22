@@ -2,7 +2,7 @@
   import { AppShell, AppStore, SessionStore, listProjects, loadProject, setApp, setHost, setSession } from '@iconotype/ui'
   import { createTauriHost } from '@iconotype/core-host/tauri'
   import { createHistory, emptyProject } from '@iconotype/core-model'
-  import { parseIconFont, serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io/iconfont-file'
+  import { isIconFontFile, parseIconFont, serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io/iconfont-file'
   import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog'
   import { getCurrentWindow } from '@tauri-apps/api/window'
   import { getCurrentWebview } from '@tauri-apps/api/webview'
@@ -35,14 +35,23 @@
   async function openFile() {
     const picked = await openDialog({
       multiple: false,
-      filters: [{ name: 'Icon font project', extensions: ['json'] }],
+      filters: [{ name: 'Icon font project', extensions: ['json', 'zip'] }],
     })
     if (typeof picked !== 'string') return
     try {
-      const project = parseIconFont(await host.fs.readText(picked), picked)
-      session.replace(project, `Open ${picked.split('/').pop()}`)
-      file = picked
-      setTitle(project.name)
+      const text = await host.fs.readText(picked)
+      const data = JSON.parse(text) as unknown
+      if (isIconFontFile(data)) {
+        const project = parseIconFont(text, picked)
+        session.replace(project, `Open ${picked.split('/').pop()}`)
+        // only OUR file becomes the save target: ⌘S must never overwrite the IcoMoon
+        // project someone imported from
+        file = picked
+        setTitle(project.name)
+        return
+      }
+      await app.importFiles([{ name: picked.split('/').pop() ?? picked, data: await host.fs.read(picked) }])
+      file = null
     } catch (e) {
       app.notify('error', `${picked}: ${(e as Error).message}`)
     }

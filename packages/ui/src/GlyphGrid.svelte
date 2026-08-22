@@ -46,7 +46,10 @@
 >
   {#if empty}
     <div class="empty">
-      <p>Drop an <strong>IcoMoon project</strong> (.json), a <strong>font package</strong> (.zip) or <strong>SVG files</strong> here.</p>
+      <p>
+        Drop an <strong>Iconotype</strong> or <strong>IcoMoon project</strong> (.json),
+        a <strong>font package</strong> (.zip) or <strong>SVG files</strong> here.
+      </p>
       <div class="cta">
         <button onclick={() => app.pickAndImport()}>Choose files…</button>
         {#if sample}

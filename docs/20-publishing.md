@@ -1,6 +1,6 @@
 # 20 — Publishing: what to set up once
 
-Two registries need an account and a token before a release can reach them. Everything
+Three registries need an account and a token before a release can reach them. Everything
 else — the GitHub release, the four desktop bundles, the site — works with no setup at
 all. A release with neither token still succeeds; it just publishes to GitHub only.
 
@@ -28,30 +28,56 @@ build` and a globally installed `iconotype build` are the same command.
 
 ## VSCode marketplace — `iconotype.iconotype-vscode`
 
-This one is fiddlier than it should be, because the marketplace authenticates through
-Azure DevOps rather than through GitHub.
+Fiddlier than it should be, because the marketplace authenticates through Azure DevOps.
+Two things trip everyone up, and both are invisible until you hit them.
 
-1. **Create an Azure DevOps organisation** at <https://dev.azure.com> if you have none.
-   Free. Its name does not matter and is never shown; it exists only to issue the token.
-2. **Create the Personal Access Token.** In Azure DevOps: your avatar →
-   *Personal access tokens* → *New Token*. Two settings matter, and both are easy to
-   get wrong:
-   - **Organization: `All accessible organizations`.** A token scoped to one
-     organisation cannot publish; this is the single most common cause of a
-     `401 Unauthorized` from `vsce`.
-   - **Scopes: `Custom defined` → `Marketplace` → `Manage`.** *Acquire* and *Publish*
-     are not enough.
+### You need an Azure DevOps organisation first
 
-   Expiry is up to a year; the release will start failing when it lapses, so it is
-   worth a calendar entry.
-3. **Create the publisher** at
-   <https://marketplace.visualstudio.com/manage/createpublisher>. The **publisher ID
-   must be exactly `iconotype`** — it is what `publisher` in `apps/vscode/package.json`
-   says, and the two cannot disagree. The display name can be anything.
-4. **Check the token before trusting it**: `npx @vscode/vsce login iconotype`, paste it,
-   and it will tell you immediately whether it works. This is worth doing at a terminal
-   rather than discovering it in a release run.
-5. Add it to the repository as the secret **`VSCE_PAT`**.
+Not a company account, not a paid one, and nothing to do with Azure the cloud. The
+*Personal access tokens* page does not exist until an organisation does, which is why
+it cannot be found before this step.
+
+1. Go to <https://dev.azure.com> and sign in with any Microsoft account — a personal
+   outlook.com or gmail-backed one is fine. Create one on the spot if you have none.
+2. First sign-in offers to **create an organisation**: any name (it is never shown to
+   anyone), pick a region, *Continue*. Free, no billing, no project needed.
+
+### Then the token
+
+3. Open <https://dev.azure.com/_usersSettings/tokens>, or the *User settings* dropdown
+   next to your avatar → **Personal access tokens** → **New Token**.
+4. **Organization: `All accessible organizations`.** A token scoped to one organisation
+   cannot publish, and the failure is a bare `401` much later.
+5. **Scopes: `Custom defined`** → click **`Show all scopes`** at the bottom of the list.
+   Marketplace is *not* in the short list — this is the step that hides it — then scroll
+   to **Marketplace** and tick **`Manage`**. `Acquire` and `Publish` are not enough.
+6. *Create*, and copy the token: it is shown once.
+
+### Then the publisher
+
+7. <https://marketplace.visualstudio.com/manage/createpublisher>. The **ID must be
+   exactly `iconotype`** — it is what `publisher` in `apps/vscode/package.json` says,
+   and the two cannot disagree. The display name is free text.
+8. Check it before trusting it: `npx @vscode/vsce login iconotype`, paste the token. It
+   answers immediately, which beats finding out inside a release run.
+9. Add it as the repository secret **`VSCE_PAT`**.
+
+## Open VSX — for VSCodium and everything else
+
+VSCodium, Gitpod, Cursor and the other non-Microsoft builds cannot install from the
+Microsoft marketplace; they use <https://open-vsx.org>. Publishing there is a good idea
+regardless, and its token needs **no Azure account at all**:
+
+1. Sign in to <https://open-vsx.org> with GitHub.
+2. Agree to the publisher agreement (Profile → *Publisher Agreement*) — a publish fails
+   with `Publisher agreement not signed` otherwise.
+3. Profile → **Access Tokens** → generate one.
+4. Add it as the repository secret **`OVSX_PAT`**.
+5. Claim the namespace once: `npx ovsx create-namespace iconotype -p <token>`.
+
+The release publishes to whichever of the two has a token. If Azure is more trouble than
+it is worth today, `OVSX_PAT` alone is a perfectly reasonable place to start — and it is
+the one that covers the editor this project was developed in.
 
 ### What the extension already has
 

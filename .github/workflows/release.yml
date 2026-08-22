@@ -193,6 +193,7 @@ jobs:
       id-token: write
     env:
       VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -228,6 +229,16 @@ jobs:
           npx --yes @vscode/vsce publish \
             --no-dependencies \
             --packagePath artifacts/extension/iconotype.vsix \
+            ${{ needs.version.outputs.prerelease == 'true' && '--pre-release' || '' }}
+
+      # VSCodium, Gitpod, Cursor and the other builds that cannot use Microsoft's
+      # marketplace install from Open VSX. Its token comes from a GitHub login, so it
+      # is also the one available without an Azure DevOps account at all.
+      - name: Open VSX
+        if: env.OVSX_PAT != ''
+        run: |
+          npx --yes ovsx publish artifacts/extension/iconotype.vsix \
+            --pat "$OVSX_PAT" \
             ${{ needs.version.outputs.prerelease == 'true' && '--pre-release' || '' }}
 
       - name: npm

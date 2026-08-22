@@ -15,12 +15,18 @@ Ships as **three targets from one codebase**:
 | Desktop | Tauri v2 | real filesystem, folder watch, CLI bridge |
 | VSCode | extension + webview | the differentiator: font-aware editing |
 
-## Decisions locked
+## Decisions
 
-- **UI**: Svelte 5 (runes) + Vite
-- **Font engine**: pure JS (`opentype.js` writer + `woff2-encoder` / `ttf2woff` / `ttf2eot`), runs identically in browser, Node, Tauri, VSCode
-- **Editing**: viewer/fixer first, visual glyph editor in phase M5
-- **Core packages are DOM-free** — no `DOMParser`, no `document`. XML via `svgson`, geometry via `paper.js` headless.
+- **UI**: Svelte 5 (runes) + Vite. One component tree, three shells.
+- **Font engine**: pure JS — `svg2ttf` writes the TTF, `ttf2woff` and `woff2-encoder`
+  wrap it. `opentype.js` was tried first and disqualified: it emits CFF/OTTO, stamps
+  `head.modified` with the current time (which quietly broke a determinism test), and
+  y-flips `Path.fromSVG` per glyph. See [09](docs/09-libraries.md).
+- **Codepoints are an API**: append-only allocation from the PUA, written to
+  `codepoints.lock`. A rename moves a name, never a number.
+- **Deterministic**: the same project produces the same bytes. No `Date.now()` in core.
+- **Core packages are DOM-free** — no `DOMParser`, no `document`. XML via `svgson`,
+  geometry via headless `paper.js`.
 
 ## Spikes — both blocking risks resolved
 
@@ -44,8 +50,10 @@ packages/
   cli/           iconotype build | lint | fix | diff | scan | info
   ui/            Svelte 5 components, stores, OPFS persistence
 apps/
-  web/           Vite SPA → GitHub Pages
+  web/           Vite SPA → GitHub Pages, OPFS storage, File System Access where offered
+  desktop/       Tauri v2: real files, native dialogs, drag-drop from the file manager
   vscode/        icon-font manager: grid, completion, previews, usage, quick export
+  site/          the product page — plain HTML, no framework
 spikes/          the two de-risking experiments
 examples/        icons-ci.yml — regenerate a font in CI with a breaking-change gate
 fixtures/
@@ -58,13 +66,16 @@ pnpm install
 pnpm dev            # web app
 pnpm dev:site       # product page
 pnpm dev:desktop    # tauri window (needs the Rust toolchain)
-pnpm test           # 346 tests, incl. 75-fixture visual regression
+pnpm test           # 347 tests, incl. 75-fixture visual regression
 pnpm test:vscode    # 52 integration tests in real VSCode
 pnpm check          # svelte-check + tsc
-pnpm build          # web + vscode
+pnpm build          # every app
 ```
 
-Not yet a git repo — `git init && git add -A` then push to trigger the Pages and CI workflows in `.github/workflows/`.
+CI runs the tests, the VSCode suite under xvfb and a `cargo check` of the desktop crate
+on every push. `main` deploys the site and the web app to Pages; a `v*` tag cuts a
+release — four desktop bundles, the `.vsix`, and the CLI to npm. See
+[19](docs/19-website-and-releases.md).
 
 ## Docs
 
@@ -83,3 +94,7 @@ Not yet a git repo — `git init && git add -A` then push to trigger the Pages a
 13. [M3 the fixer](docs/13-m3-fixer.md)
 14. [M4 exports & CLI](docs/14-m4-exports-cli.md)
 15. [M5 VSCode extension](docs/15-m5-vscode.md)
+16. [M6 desktop app](docs/16-m6-desktop.md)
+17. [M7 glyph editor](docs/17-m7-glyph-editor.md)
+18. [The UX pass](docs/18-ux-pass.md)
+19. [Website & releases](docs/19-website-and-releases.md)

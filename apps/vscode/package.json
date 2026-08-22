@@ -455,6 +455,25 @@
     "Other",
     "Visualization"
   ],
+  "keywords": [
+    "icon font",
+    "icomoon",
+    "svg",
+    "woff2",
+    "webfont",
+    "icons",
+    "fonticon",
+    "glyph"
+  ],
+  "galleryBanner": {
+    "color": "#0e1014",
+    "theme": "dark"
+  },
+  "homepage": "https://iconotype.github.io/iconotype/",
+  "bugs": {
+    "url": "https://github.com/iconotype/iconotype/issues"
+  },
+  "qna": "https://github.com/iconotype/iconotype/issues",
   "license": "MIT",
   "repository": {
     "type": "git",

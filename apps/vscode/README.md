@@ -3,6 +3,13 @@
 Manage a project's icon fonts without leaving the editor: see them, complete them,
 find them, and export straight into your build.
 
+<!-- the marketplace renders this README on its own origin, so image paths must be
+     absolute or they resolve to nothing -->
+![The icon grid and the glyph editor](https://raw.githubusercontent.com/iconotype/iconotype/main/docs/media/app-editor.png)
+
+Part of [Iconotype](https://iconotype.github.io/iconotype/) — the same project file
+opens in the web app, the desktop app and here.
+
 ## Getting started
 
 **Already have an IcoMoon project?** Run `Iconotype: Import IcoMoon Project…` — the

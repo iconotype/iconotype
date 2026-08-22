@@ -239,14 +239,14 @@
           are the same bytes.
         </p>
         <pre><code># turn an existing IcoMoon project into a committed one
-npx iconotype init --input icomoon/project.json \
+npx @iconotype/cli init --input icomoon/project.json \
   --fonts-dir app/fonts --styles-dir app/css --style-kind scss-variables
 
 # build it wherever the project file says
-npx iconotype build --input app.iconotype.json
+npx @iconotype/cli build --input app.iconotype.json
 
 # fail the build if a codepoint moved
-npx iconotype diff --input app.iconotype.json --against origin/main</code></pre>
+npx @iconotype/cli diff --input app.iconotype.json --against origin/main</code></pre>
       </section>
     </main>
 

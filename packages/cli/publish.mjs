@@ -5,8 +5,11 @@ import { execFileSync } from 'node:child_process'
  * Assembles the npm package.
  *
  * The workspace manifest cannot be published as it stands: its `@iconotype/*`
- * dependencies are `workspace:*`, which means nothing outside this repository, and its
- * name is scoped to an org that does not need to exist for `npx iconotype` to work.
+ * dependencies are `workspace:*`, which means nothing outside this repository.
+ *
+ * The published name is `@iconotype/cli`; the binary it installs stays `iconotype`,
+ * so `npx @iconotype/cli build` and a globally installed `iconotype build` are the
+ * same command.
  *
  * The bundle already contains every one of our own modules (see build.mjs), so those
  * dependencies vanish; the third-party ones stay, because they are external for
@@ -26,7 +29,7 @@ const dependencies = Object.fromEntries(
 )
 
 writeFileSync(new URL('./package.json', out), JSON.stringify({
-  name: 'iconotype',
+  name: '@iconotype/cli',
   version,
   description: 'Build, fix and export icon fonts. Imports IcoMoon projects.',
   license: 'MIT',

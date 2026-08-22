@@ -11,7 +11,7 @@ you are already in. Imports IcoMoon projects. Open source, no account, no upload
 
 [![ci](https://github.com/iconotype/iconotype/actions/workflows/ci.yml/badge.svg)](https://github.com/iconotype/iconotype/actions/workflows/ci.yml)
 [![pages](https://github.com/iconotype/iconotype/actions/workflows/pages.yml/badge.svg)](https://github.com/iconotype/iconotype/actions/workflows/pages.yml)
-[![npm](https://img.shields.io/npm/v/iconotype?color=6366f1&label=npm)](https://www.npmjs.com/package/iconotype)
+[![npm](https://img.shields.io/npm/v/%40iconotype%2Fcli?color=6366f1&label=npm)](https://www.npmjs.com/package/@iconotype/cli)
 [![license](https://img.shields.io/badge/license-MIT-6366f1)](LICENSE)
 
 [**Web app**](https://iconotype.github.io/iconotype/app/) ·
@@ -39,7 +39,7 @@ pull request that would break a font already in production.
 
 ```bash
 # CLI — the same build the apps run
-npm install -g iconotype     # or: npx iconotype --help
+npm install -g @iconotype/cli    # or: npx @iconotype/cli --help
 ```
 
 Desktop builds for macOS, Windows and Linux are on the
@@ -53,7 +53,7 @@ The [web app](https://iconotype.github.io/iconotype/app/) needs nothing at all.
 Already have an IcoMoon project? Point at it and keep your codepoints:
 
 ```bash
-npx iconotype init --input icomoon/project.json \
+npx @iconotype/cli init --input icomoon/project.json \
   --fonts-dir app/fonts --styles-dir app/css --style-kind scss-variables
 ```
 
@@ -61,15 +61,15 @@ That writes `<name>.iconotype.json` — commit it — and a `codepoints.lock`. T
 laptop or a runner:
 
 ```bash
-npx iconotype build --input app.iconotype.json
+npx @iconotype/cli build --input app.iconotype.json
 # built 27 glyph(s) → app/fonts/app.woff2, app/fonts/app.woff, app/fonts/app.ttf, app/css/_app.scss
 ```
 
 Same input, same bytes, every time. In CI, add the gate:
 
 ```bash
-npx iconotype diff --input app.iconotype.json --against origin/main   # non-zero if a codepoint moved
-npx iconotype scan --input app.iconotype.json                         # which icons nothing references
+npx @iconotype/cli diff --input app.iconotype.json --against origin/main   # non-zero if a codepoint moved
+npx @iconotype/cli scan --input app.iconotype.json                         # which icons nothing references
 ```
 
 ## What it does
@@ -191,6 +191,7 @@ what broke, and why the code looks the way it does.
 | [09](docs/09-libraries.md) Library evaluation | [10](docs/10-m0-scaffold.md)–[15](docs/15-m5-vscode.md) M0–M5 build log |
 | [16](docs/16-m6-desktop.md) Desktop app | [17](docs/17-m7-glyph-editor.md) Glyph editor |
 | [18](docs/18-ux-pass.md) The UX pass | [19](docs/19-website-and-releases.md) Website & releases |
+| [20](docs/20-publishing.md) Publishing setup | |
 
 ## Contributing
 

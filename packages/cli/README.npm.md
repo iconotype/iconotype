@@ -5,14 +5,14 @@ selections, font packages and folders of SVG.
 
 ```bash
 # turn an existing IcoMoon project into a committed one
-npx iconotype init --input icomoon/project.json \
+npx @iconotype/cli init --input icomoon/project.json \
   --fonts-dir app/fonts --styles-dir app/css --style-kind scss-variables
 
 # build it wherever the project file says to
-npx iconotype build --input app.iconotype.json
+npx @iconotype/cli build --input app.iconotype.json
 
 # check nothing moved
-npx iconotype diff --input app.iconotype.json --against origin/main
+npx @iconotype/cli diff --input app.iconotype.json --against origin/main
 ```
 
 Builds are deterministic: the same project produces the same bytes, so a font built on

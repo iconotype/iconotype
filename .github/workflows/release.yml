@@ -174,7 +174,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       # assembles packages/cli/dist-npm: the bundle plus a manifest npm can take —
-      # no workspace: ranges, no private flag, so `npx iconotype` works
+      # no workspace: ranges, no private flag, so `npx @iconotype/cli` works
       - run: node packages/cli/publish.mjs ${{ needs.version.outputs.version }}
       - uses: actions/upload-artifact@v4
         with:

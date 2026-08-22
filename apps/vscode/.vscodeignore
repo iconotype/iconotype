@@ -1,0 +1,13 @@
+# sources and tooling — the extension ships as one bundled file
+src/**
+webview/**
+test/**
+build.mjs
+vite.webview.config.ts
+svelte.config.mjs
+tsconfig*.json
+.vscode-test/**
+**/*.map
+**/*.ts
+!dist/**/*.js
+node_modules/**

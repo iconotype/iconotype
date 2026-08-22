@@ -1,0 +1,8 @@
+{
+  "name": "@glyphsmith/build-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "paper": "^0.12.18" }
+}

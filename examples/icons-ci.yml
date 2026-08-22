@@ -1,0 +1,64 @@
+# Example: regenerate an icon font in CI, with a gate that fails the PR when the
+# change would break every build already using the font.
+#
+# Copy this to .github/workflows/icons.yml in YOUR repo, next to an `icons/` folder
+# of SVGs and the `codepoints.lock` glyphsmith writes beside them. Commit the lock —
+# it is the contract with every stylesheet already referencing these codepoints.
+
+name: icons
+
+on:
+  pull_request:
+    paths: ['icons/**', '.github/workflows/icons.yml']
+  push:
+    branches: [main]
+
+jobs:
+  icons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # diff needs the base revision to compare against
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - run: npm install -g @glyphsmith/cli
+
+      # 1. Refuse artwork the fixer cannot handle, and hold the line on warnings.
+      - name: Lint source SVGs
+        run: glyphsmith lint --input icons --max-warnings 0
+
+      # 2. Build. Deterministic: identical input produces identical bytes, so a
+      #    no-op change shows up as an empty diff rather than a churned binary.
+      - name: Build font
+        run: glyphsmith build --input icons --out dist --types --components react
+
+      # 3. The gate. A removed or moved codepoint means a stale stylesheet now renders
+      #    the WRONG icon, which no test in the consuming app would catch.
+      - name: Check for breaking codepoint changes
+        if: github.event_name == 'pull_request'
+        run: |
+          git show "origin/${{ github.base_ref }}:dist/selection.json" > /tmp/before.json 2>/dev/null \
+            || { echo "no baseline on the base branch, skipping the gate"; exit 0; }
+          glyphsmith diff /tmp/before.json dist/selection.json
+
+      # 4. Report icons nobody references. Informational — delete them, or don't.
+      - name: Report unused icons
+        continue-on-error: true
+        run: glyphsmith scan --input icons --source src
+
+      # 5. The lockfile must be committed, or the next build reallocates codepoints.
+      - name: Fail if the lockfile drifted
+        run: |
+          git diff --exit-code icons/codepoints.lock || {
+            echo "::error::codepoints.lock changed — commit it, it is part of the font's API"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: icon-font
+          path: dist

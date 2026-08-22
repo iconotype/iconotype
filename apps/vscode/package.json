@@ -1,0 +1,459 @@
+{
+  "name": "glyphsmith-vscode",
+  "displayName": "Glyphsmith — icon fonts",
+  "publisher": "glyphsmith",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "./dist/extension.js",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "activationEvents": [
+    "workspaceContains:**/*.glyphsmith.json"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "glyphsmith.open",
+        "title": "Open Editor",
+        "category": "Glyphsmith",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "glyphsmith.export",
+        "title": "Export Font",
+        "category": "Glyphsmith",
+        "icon": "$(export)"
+      },
+      {
+        "command": "glyphsmith.exportAll",
+        "title": "Export All Fonts",
+        "category": "Glyphsmith",
+        "icon": "$(export)"
+      },
+      {
+        "command": "glyphsmith.addIcons",
+        "title": "Add Icons from SVG…",
+        "category": "Glyphsmith",
+        "icon": "$(add)"
+      },
+      {
+        "command": "glyphsmith.removeIcon",
+        "title": "Remove Icon",
+        "category": "Glyphsmith",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "glyphsmith.toggleIcon",
+        "title": "Include/Exclude from Export",
+        "category": "Glyphsmith",
+        "icon": "$(check)"
+      },
+      {
+        "command": "glyphsmith.insertIcon",
+        "title": "Insert Icon Reference…",
+        "category": "Glyphsmith",
+        "icon": "$(symbol-color)"
+      },
+      {
+        "command": "glyphsmith.scanUsage",
+        "title": "Scan Icon Usage",
+        "category": "Glyphsmith",
+        "icon": "$(search)"
+      },
+      {
+        "command": "glyphsmith.newFont",
+        "title": "New Icon Font…",
+        "category": "Glyphsmith",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "glyphsmith.revealIcon",
+        "title": "Show Icon in Grid",
+        "category": "Glyphsmith"
+      },
+      {
+        "command": "glyphsmith.importProject",
+        "title": "Import IcoMoon Project…",
+        "category": "Glyphsmith",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "glyphsmith.importIcons",
+        "title": "Add Icons from Project or Zip…",
+        "category": "Glyphsmith",
+        "icon": "$(library)"
+      },
+      {
+        "command": "glyphsmith.showUsage",
+        "title": "Show Icon Usage",
+        "category": "Glyphsmith",
+        "icon": "$(references)"
+      },
+      {
+        "command": "glyphsmith.replaceIcon",
+        "title": "Replace Icon Artwork…",
+        "category": "Glyphsmith",
+        "icon": "$(replace)"
+      },
+      {
+        "command": "glyphsmith.flattenIcon",
+        "title": "Flatten to One Colour",
+        "category": "Glyphsmith",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "glyphsmith.exportPending",
+        "title": "Export Fonts With Pending Changes",
+        "category": "Glyphsmith",
+        "icon": "$(cloud-upload)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "glyphsmith",
+          "title": "Icon Fonts",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "glyphsmith": [
+        {
+          "id": "glyphsmith.iconGrid",
+          "name": "Icons",
+          "type": "webview"
+        },
+        {
+          "id": "glyphsmith.fonts",
+          "name": "Fonts"
+        },
+        {
+          "id": "glyphsmith.usage",
+          "name": "Usage"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "glyphsmith.importProject",
+          "when": "view == glyphsmith.fonts",
+          "group": "navigation@0"
+        },
+        {
+          "command": "glyphsmith.importProject",
+          "when": "view == glyphsmith.iconGrid",
+          "group": "navigation@0"
+        },
+        {
+          "command": "glyphsmith.newFont",
+          "when": "view == glyphsmith.fonts",
+          "group": "navigation@1"
+        },
+        {
+          "command": "glyphsmith.exportAll",
+          "when": "view == glyphsmith.fonts",
+          "group": "navigation@2"
+        },
+        {
+          "command": "glyphsmith.scanUsage",
+          "when": "view == glyphsmith.usage",
+          "group": "navigation@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "glyphsmith.export",
+          "when": "view == glyphsmith.fonts && viewItem == glyphsmith.font",
+          "group": "inline@1"
+        },
+        {
+          "command": "glyphsmith.addIcons",
+          "when": "view == glyphsmith.fonts && viewItem == glyphsmith.font",
+          "group": "inline@2"
+        },
+        {
+          "command": "glyphsmith.importIcons",
+          "when": "view == glyphsmith.fonts && viewItem == glyphsmith.font",
+          "group": "glyphsmith@1"
+        },
+        {
+          "command": "glyphsmith.open",
+          "when": "view == glyphsmith.fonts && viewItem == glyphsmith.font",
+          "group": "inline@3"
+        },
+        {
+          "command": "glyphsmith.toggleIcon",
+          "when": "view == glyphsmith.fonts && viewItem =~ /glyphsmith.icon/",
+          "group": "inline@1"
+        },
+        {
+          "command": "glyphsmith.removeIcon",
+          "when": "view == glyphsmith.fonts && viewItem =~ /glyphsmith.icon/",
+          "group": "inline@2"
+        },
+        {
+          "command": "glyphsmith.showUsage",
+          "when": "view == glyphsmith.fonts && viewItem =~ /glyphsmith.icon/",
+          "group": "glyphsmith@1"
+        },
+        {
+          "command": "glyphsmith.replaceIcon",
+          "when": "view == glyphsmith.fonts && viewItem =~ /glyphsmith.icon/",
+          "group": "glyphsmith@2"
+        },
+        {
+          "command": "glyphsmith.flattenIcon",
+          "when": "view == glyphsmith.fonts && viewItem =~ /glyphsmith.icon/",
+          "group": "glyphsmith@3"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "glyphsmith.export",
+          "when": "resourceFilename =~ /\\.glyphsmith\\.json$/",
+          "group": "glyphsmith"
+        },
+        {
+          "command": "glyphsmith.importProject",
+          "when": "resourceExtname =~ /\\.(json|zip)$/ && !(resourceFilename =~ /\\.glyphsmith\\.json$/)",
+          "group": "glyphsmith"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "glyphsmith.revealIcon",
+          "when": "false"
+        },
+        {
+          "command": "glyphsmith.removeIcon",
+          "when": "false"
+        },
+        {
+          "command": "glyphsmith.toggleIcon",
+          "when": "false"
+        },
+        {
+          "command": "glyphsmith.replaceIcon",
+          "when": "false"
+        },
+        {
+          "command": "glyphsmith.flattenIcon",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Glyphsmith",
+      "properties": {
+        "glyphsmith.projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Icon font files to load, relative to each workspace folder. Leave empty to discover every `*.glyphsmith.json` automatically.",
+          "scope": "resource"
+        },
+        "glyphsmith.defaults.fontsDir": {
+          "type": "string",
+          "default": "fonts",
+          "markdownDescription": "Where font files are written for projects that do not set `output.fonts.dir` themselves. Example: `app/fonts`.",
+          "scope": "resource"
+        },
+        "glyphsmith.defaults.stylesDir": {
+          "type": "string",
+          "default": "css",
+          "markdownDescription": "Where the stylesheet or variables file is written for projects that do not configure it. Example: `app/css`.",
+          "scope": "resource"
+        },
+        "glyphsmith.defaults.styleKind": {
+          "type": "string",
+          "default": "css",
+          "enum": [
+            "css",
+            "scss",
+            "less",
+            "scss-variables",
+            "less-variables",
+            "css-variables",
+            "json",
+            "dart"
+          ],
+          "enumDescriptions": [
+            "@font-face and one rule per icon",
+            "The same, as .scss",
+            "The same, as .less",
+            "$app-home: \"\\e900\"; — variables only",
+            "@app-home: \"\\e900\"; — variables only",
+            ":root { --app-home: \"\\e900\" }",
+            "{ \"home\": \"e900\" } — for tooling",
+            "A Flutter IconData class"
+          ],
+          "scope": "resource"
+        },
+        "glyphsmith.defaults.formats": {
+          "type": "array",
+          "default": [
+            "woff2",
+            "woff",
+            "ttf"
+          ],
+          "items": {
+            "type": "string",
+            "enum": [
+              "woff2",
+              "woff",
+              "ttf",
+              "svg"
+            ]
+          },
+          "description": "Font formats to write when a project does not specify its own.",
+          "scope": "resource"
+        },
+        "glyphsmith.autoExport": {
+          "type": "string",
+          "enum": [
+            "off",
+            "onSave",
+            "onChange"
+          ],
+          "enumDescriptions": [
+            "Export only when you ask. The status bar says when files are out of date.",
+            "Export when the project file is saved.",
+            "Export as soon as anything changes — a toggle in the grid, an edit in the editor."
+          ],
+          "default": "off",
+          "markdownDescription": "When to write font files and stylesheets. `onChange` keeps the build always current at the cost of a font build per edit (debounced).",
+          "scope": "resource"
+        },
+        "glyphsmith.exportOnSave": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Deprecated: use `#glyphsmith.autoExport#`. `true` still means `onSave`.",
+          "scope": "resource"
+        },
+        "glyphsmith.decorations.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the icon itself next to references like `app-home` in your code."
+        },
+        "glyphsmith.usage.scanOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Scan the workspace for icon usage when the window opens. Off by default on large repositories."
+        },
+        "glyphsmith.usage.include": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Glob of files to search for icon references. Empty uses a sensible default covering web source files.",
+          "scope": "resource"
+        },
+        "glyphsmith.usage.exclude": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Raw glob of files to skip, overriding `#glyphsmith.usage.excludeDirs#` entirely. Only needed for something a directory list cannot express.",
+          "scope": "resource"
+        },
+        "glyphsmith.usage.excludeDirs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "node_modules",
+            "dist",
+            "build",
+            "out",
+            "target",
+            "coverage",
+            "vendor",
+            "platforms",
+            "Pods",
+            ".git",
+            ".gradle",
+            ".yarn",
+            ".bundle",
+            ".svelte-kit",
+            ".next",
+            ".nuxt",
+            ".output",
+            ".venv",
+            "__pycache__"
+          ],
+          "markdownDescription": "Directory names skipped when scanning for icon usage, at any depth. Remove one to scan it. A generated copy of your source — `platforms/` in a mobile project, a vendored `.yarn/` — can be tens of thousands of files and will exhaust `#glyphsmith.usage.maxFiles#` before your own code is reached.",
+          "scope": "resource"
+        },
+        "glyphsmith.usage.useWorkspaceExcludes": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Also skip whatever `#search.exclude#` and `#files.exclude#` already hide, on top of `#glyphsmith.usage.excludeDirs#`.",
+          "scope": "resource"
+        },
+        "glyphsmith.usage.maxFiles": {
+          "type": "number",
+          "default": 40000,
+          "minimum": 1,
+          "markdownDescription": "Most files one usage scan will read. Hitting it makes the result partial, which is reported rather than passed off as \"unused\".",
+          "scope": "resource"
+        },
+        "glyphsmith.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Warn about references to icons that do not exist, or that are excluded from the built font."
+        }
+      }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "*.glyphsmith.json",
+        "url": "./schema/iconfont.schema.json"
+      }
+    ],
+    "viewsWelcome": [
+      {
+        "view": "glyphsmith.fonts",
+        "contents": "No icon font in this workspace yet.\n\nImport an existing IcoMoon project, a font package zip, or a folder of SVGs.\n[Import IcoMoon project…](command:glyphsmith.importProject)\n\nOr start from nothing:\n[New icon font](command:glyphsmith.newFont)"
+      },
+      {
+        "view": "glyphsmith.usage",
+        "contents": "Find every place your icons are referenced.\n[Scan icon usage](command:glyphsmith.scanUsage)",
+        "when": "glyphsmith.hasFonts"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "vite build -c vite.webview.config.ts && node build.mjs",
+    "test": "pnpm build && node ./test/runTest.cjs",
+    "package": "pnpm build && vsce package --no-dependencies --out glyphsmith.vsix"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@glyphsmith/build-config": "workspace:*",
+    "@types/vscode": "^1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "esbuild": "^0.25.0",
+    "glob": "^11.0.0",
+    "mocha": "^11.0.0",
+    "@glyphsmith/core-host": "workspace:*",
+    "@glyphsmith/core-model": "workspace:*",
+    "@glyphsmith/ui": "workspace:*",
+    "@glyphsmith/core-export": "workspace:*",
+    "@glyphsmith/core-svg": "workspace:*",
+    "@vscode/vsce": "^3.9.2",
+    "css-tree": "^3.2.1"
+  },
+  "description": "Manage a project's icon fonts: grid, inline previews, autocompletion, usage, and one-click export to your build.",
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glyphsmith/glyphsmith"
+  }
+}

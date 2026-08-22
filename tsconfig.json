@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker"
+    ],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowJs": true,
+    "types": [
+      "vitest/globals",
+      "node",
+      "vite/client"
+    ],
+    "paths": {
+      "@glyphsmith/core-io/*": [
+        "./packages/core-io/src/*.ts"
+      ],
+      "@glyphsmith/core-export/*": [
+        "./packages/core-export/src/*.ts"
+      ],
+      "@glyphsmith/*": [
+        "./packages/*/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*",
+    "apps/*/src/**/*",
+    "packages/*/test/**/*",
+    "packages/*/src/types/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/dist",
+    "spikes"
+  ]
+}

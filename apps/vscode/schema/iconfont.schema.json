@@ -1,0 +1,346 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Glyphsmith icon font",
+  "description": "A committed icon font project: the artwork, its codepoints, and where a build writes its output.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "name",
+    "icons"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "description": "Identifies the font: the family name, the class prefix root, and what autocompletion triggers on."
+    },
+    "height": {
+      "type": "integer",
+      "default": 1024,
+      "description": "Coordinate space the paths are drawn in. Independent of the output em size."
+    },
+    "font": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "type": "string",
+          "description": "font-family name in the generated CSS"
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Class prefix, e.g. \"app-\". Autocompletion triggers on it. May interpolate ${i} (glyph index) and ${u} (codepoint in hex).",
+          "default": "icon-"
+        },
+        "usagePrefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Prefixes your CODE writes, when a build step rewrites them — e.g. a webpack alias that maps \"alpimaps-hiking\" onto the \"icon-hiking\" class. Completion, usage, rename and diagnostics look for these as well as for the class prefix; the first is what tooling inserts."
+        },
+        "postfix": {
+          "type": "string",
+          "description": "Class suffix. May interpolate ${i} and ${u}, e.g. \"-${u}\" gives .icon-home-e900."
+        },
+        "emSize": {
+          "type": "integer",
+          "default": 1024,
+          "description": "Units per em in the built font."
+        },
+        "baseline": {
+          "type": "number",
+          "default": 6.25,
+          "description": "Descender, as a percentage of the em."
+        },
+        "whitespace": {
+          "type": "number",
+          "default": 50,
+          "description": "Space glyph advance, as a percentage of the em."
+        },
+        "version": {
+          "type": "string",
+          "default": "1.0"
+        },
+        "classPerGlyph": {
+          "type": "boolean",
+          "default": true,
+          "description": "Emit .icon-home:before { content } for every icon."
+        },
+        "propertyPerGlyph": {
+          "type": "boolean",
+          "default": false,
+          "description": "Emit --icon-home: \"\\e900\" on :root, for referencing a codepoint from your own rules."
+        },
+        "glyphNames": {
+          "type": "boolean",
+          "default": true,
+          "description": "Write human-readable names into the font's post table. Off makes the font slightly smaller."
+        },
+        "palettePrefix": {
+          "type": "string",
+          "default": "palette",
+          "description": "Class prefix for multicolor palettes: \"palette\" gives .palette1, .palette2."
+        },
+        "allColorPalettes": {
+          "type": "boolean",
+          "default": false,
+          "description": "Emit a rule set for every colour palette, not just the active one."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Written into the font's name table, where a font inspector or a licence audit will read it.",
+          "properties": {
+            "copyright": {
+              "type": "string"
+            },
+            "designer": {
+              "type": "string"
+            },
+            "designerURL": {
+              "type": "string"
+            },
+            "license": {
+              "type": "string"
+            },
+            "licenseURL": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "description": "Where a build writes its files. Committed so the editor, the CLI and CI agree.",
+      "properties": {
+        "fonts": {
+          "type": "object",
+          "required": [
+            "dir",
+            "formats"
+          ],
+          "properties": {
+            "dir": {
+              "type": "string",
+              "description": "Workspace-relative directory, e.g. \"app/fonts\"."
+            },
+            "formats": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "woff2",
+                  "woff",
+                  "ttf",
+                  "svg"
+                ]
+              }
+            },
+            "publicPath": {
+              "type": "string",
+              "description": "What the @font-face src should point at. Computed relative to each stylesheet when omitted."
+            }
+          }
+        },
+        "styles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "path"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "css",
+                  "scss",
+                  "less",
+                  "scss-variables",
+                  "less-variables",
+                  "css-variables",
+                  "json",
+                  "dart"
+                ],
+                "enumDescriptions": [
+                  "@font-face and one rule per icon",
+                  "The same, as .scss",
+                  "The same, as .less",
+                  "$app-home: \"\\e900\"; with the family and font path up front",
+                  "@app-home: \"\\e900\";",
+                  ":root { --app-home: \"\\e900\" }",
+                  "{ \"home\": \"e900\" } for tooling",
+                  "A Flutter IconData class"
+                ]
+              },
+              "path": {
+                "type": "string",
+                "description": "Workspace-relative file, e.g. \"app/css/_icons.scss\"."
+              }
+            }
+          }
+        },
+        "types": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "A .d.ts union of every icon name."
+            }
+          }
+        },
+        "sprite": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "demo": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "icons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "code",
+          "paths"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Used for the class name and for autocompletion."
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]+$",
+            "description": "Codepoint in hex, without U+. Never change one: it is the font's API."
+          },
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]+$"
+            },
+            "description": "Extra codepoints for a multicolor icon's additional layers."
+          },
+          "selected": {
+            "type": "boolean",
+            "default": true,
+            "description": "false keeps the artwork but leaves it out of the built font."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ligatures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grid": {
+            "type": "integer",
+            "description": "Source grid the artwork was drawn on. 0 means none."
+          },
+          "width": {
+            "type": "number",
+            "description": "Advance width in coordinate units. Omit for square."
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "SVG path data, already normalized."
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Per-layer fill, only for multicolor icons."
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "license": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              },
+              "importedFrom": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "credits": {
+      "type": "array",
+      "description": "Licence and attribution for the artwork's origin.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "licenseURL": {
+            "type": "string"
+          },
+          "designer": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

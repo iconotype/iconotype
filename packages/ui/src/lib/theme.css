@@ -1,0 +1,27 @@
+/*
+ * One stylesheet, three hosts.
+ * VSCode overrides --vscode-*; web and desktop fall through to the second value.
+ * No inline <style> anywhere — that is what buys the strict style-src CSP.
+ */
+:root {
+  --gs-bg: var(--vscode-editor-background, #1e1e22);
+  --gs-fg: var(--vscode-foreground, #e6e6e6);
+  --gs-muted: var(--vscode-descriptionForeground, #9a9aa2);
+  --gs-border: var(--vscode-panel-border, #33333a);
+  --gs-accent: var(--vscode-button-background, #3b6fd4);
+  --gs-accent-fg: var(--vscode-button-foreground, #fff);
+  --gs-hover: var(--vscode-list-hoverBackground, #2a2a30);
+  --gs-active: var(--vscode-list-activeSelectionBackground, #33415e);
+  --gs-error: var(--vscode-errorForeground, #f14c4c);
+  --gs-font: var(--vscode-font-family, ui-sans-serif, system-ui, sans-serif);
+  --gs-mono: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, monospace);
+  --gs-size: var(--vscode-font-size, 13px);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--gs-bg); color: var(--gs-fg); font: var(--gs-size)/1.5 var(--gs-font); }
+button {
+  font: inherit; border: 1px solid transparent; border-radius: 3px; padding: 3px 10px;
+  background: var(--gs-accent); color: var(--gs-accent-fg); cursor: pointer;
+}
+button.ghost { background: transparent; color: var(--gs-fg); border-color: var(--gs-border); }
+button:disabled { opacity: .45; cursor: default; }

@@ -1,0 +1,21 @@
+{
+  "name": "@glyphsmith/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@glyphsmith/core-host": "workspace:*",
+    "@glyphsmith/core-model": "workspace:*",
+    "@glyphsmith/core-io": "workspace:*",
+    "@glyphsmith/core-svg": "workspace:*",
+    "@glyphsmith/core-font": "workspace:*",
+    "@glyphsmith/core-export": "workspace:*"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  }
+}

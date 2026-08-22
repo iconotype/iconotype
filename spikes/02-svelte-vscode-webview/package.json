@@ -1,0 +1,33 @@
+{
+  "name": "spike-svelte-vscode-webview",
+  "private": true,
+  "version": "0.0.0",
+  "main": "./src/extension.js",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "spike.open",
+        "title": "Spike: Open Webview"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@types/mocha": "^10.0.10",
+    "@types/vscode": "^1.134.0",
+    "@vscode/test-electron": "^3.1.0",
+    "esbuild": "^0.28.2",
+    "glob": "^13.0.6",
+    "mocha": "^11.8.0",
+    "svelte": "^5.56.10",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  },
+  "publisher": "spike"
+}

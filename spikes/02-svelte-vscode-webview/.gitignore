@@ -1,0 +1,5 @@
+node_modules/
+dist/
+dist-full/
+dist-core/
+.vscode-test/

@@ -1,0 +1,28 @@
+# glyphsmith codepoint lock — append-only.
+# Changing an existing line is a BREAKING change for every consumer of this font.
+
+change_left	U+e900
+change_right	U+e901
+left-arrow	U+e902
+left-turn-1	U+e903
+left-turn	U+e904
+right-arrow	U+e905
+right-turn-1	U+e906
+right-turn	U+e907
+roundabout	U+e908
+u-turn-no	U+e909
+u-turn	U+e90a
+up-arrow	U+e90b
+flag-checkered	U+e90c
+paper-plane-o, send-o	U+e90d
+paper-plane, send	U+e90e
+compass-calibrate	U+e90f
+directions_walk	U+e910
+mountain-biking	U+e911
+enduro	U+e912
+gravel	U+e913
+hiking	U+e914
+mountainairing	U+e915
+road-cycling	U+e916..U+e918
+running	U+e919
+touring	U+e91a

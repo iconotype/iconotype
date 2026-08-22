@@ -1,0 +1,446 @@
+{
+  "transform-translate": {
+    "expect": [
+      "TRANSFORM_BAKED"
+    ],
+    "pixel": true
+  },
+  "transform-scale": {
+    "expect": [
+      "TRANSFORM_BAKED"
+    ],
+    "pixel": true
+  },
+  "transform-rotate-about-point": {
+    "expect": [
+      "TRANSFORM_BAKED"
+    ],
+    "pixel": true
+  },
+  "transform-matrix": {
+    "expect": [
+      "TRANSFORM_BAKED"
+    ],
+    "pixel": true
+  },
+  "transform-nested-groups": {
+    "expect": [
+      "TRANSFORM_BAKED"
+    ],
+    "pixel": true
+  },
+  "transform-skew": {
+    "expect": [
+      "TRANSFORM_BAKED"
+    ],
+    "pixel": true
+  },
+  "shape-rect": {
+    "expect": [
+      "SHAPE_CONVERTED"
+    ],
+    "pixel": true
+  },
+  "shape-rect-rounded": {
+    "expect": [
+      "SHAPE_CONVERTED"
+    ],
+    "pixel": true
+  },
+  "shape-rect-rx-clamped": {
+    "expect": [
+      "SHAPE_CONVERTED"
+    ],
+    "pixel": true,
+    "note": "rx larger than half the width must clamp, not explode"
+  },
+  "shape-circle": {
+    "expect": [
+      "SHAPE_CONVERTED"
+    ],
+    "pixel": true
+  },
+  "shape-ellipse": {
+    "expect": [
+      "SHAPE_CONVERTED"
+    ],
+    "pixel": true
+  },
+  "shape-polygon": {
+    "expect": [
+      "SHAPE_CONVERTED"
+    ],
+    "pixel": true
+  },
+  "shape-polyline-stroked": {
+    "expect": [
+      "SHAPE_CONVERTED",
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "shape-line-stroked": {
+    "expect": [
+      "SHAPE_CONVERTED",
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "path-arcs": {
+    "expect": [],
+    "pixel": true,
+    "note": "arcs must become cubics; fonts have no arc command"
+  },
+  "path-relative-commands": {
+    "expect": [],
+    "pixel": true
+  },
+  "path-shorthand-curves": {
+    "expect": [],
+    "pixel": true
+  },
+  "path-high-precision": {
+    "expect": [],
+    "pixel": true
+  },
+  "path-open": {
+    "expect": [
+      "OPEN_CONTOUR"
+    ],
+    "pixel": false,
+    "note": "an open filled path is auto-closed, which legitimately changes the render"
+  },
+  "path-self-intersecting-star": {
+    "expect": [
+      "SELF_INTERSECT"
+    ],
+    "pixel": false,
+    "note": "a pentagram resolved to non-zero loses the inner hole an even-odd render shows"
+  },
+  "stroke-basic": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "stroke-miter-sharp": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "stroke-round-join": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "stroke-bevel-join": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "stroke-round-cap": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "stroke-dasharray": {
+    "expect": [
+      "STROKE_DASHARRAY"
+    ],
+    "pixel": false,
+    "note": "dashes are outlined as a solid stroke for now"
+  },
+  "stroke-plus-fill": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "stroke-on-scaled-group": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true,
+    "note": "stroke width must scale with the transform"
+  },
+  "stroke-nonuniform-scale": {
+    "expect": [
+      "STROKE_NONUNIFORM"
+    ],
+    "pixel": false
+  },
+  "stroke-lucide-style": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true,
+    "note": "the shape of a typical stroke icon set"
+  },
+  "winding-evenodd-bullseye": {
+    "expect": [
+      "EVENODD_CONVERTED"
+    ],
+    "pixel": true
+  },
+  "winding-evenodd-donut": {
+    "expect": [
+      "EVENODD_CONVERTED"
+    ],
+    "pixel": true
+  },
+  "winding-nonzero-donut": {
+    "expect": [],
+    "pixel": true,
+    "note": "already non-zero with a reversed hole; must pass through unchanged"
+  },
+  "winding-evenodd-inherited": {
+    "expect": [
+      "EVENODD_CONVERTED"
+    ],
+    "pixel": true,
+    "note": "fill-rule inherits from the group"
+  },
+  "clip-rect": {
+    "expect": [
+      "CLIP_APPLIED"
+    ],
+    "pixel": true
+  },
+  "clip-circle": {
+    "expect": [
+      "CLIP_APPLIED"
+    ],
+    "pixel": true
+  },
+  "clip-on-group": {
+    "expect": [
+      "CLIP_APPLIED"
+    ],
+    "pixel": true
+  },
+  "clip-object-bounding-box": {
+    "expect": [
+      "CLIP_APPROXIMATED"
+    ],
+    "pixel": false
+  },
+  "mask-white-keeps": {
+    "expect": [
+      "MASK_APPROXIMATED"
+    ],
+    "pixel": true
+  },
+  "mask-black-cuts": {
+    "expect": [
+      "MASK_APPROXIMATED"
+    ],
+    "pixel": true
+  },
+  "use-simple": {
+    "expect": [
+      "USE_RESOLVED"
+    ],
+    "pixel": true
+  },
+  "use-with-transform": {
+    "expect": [
+      "USE_RESOLVED"
+    ],
+    "pixel": true
+  },
+  "use-symbol": {
+    "expect": [
+      "USE_RESOLVED"
+    ],
+    "pixel": true
+  },
+  "use-xlink-href": {
+    "expect": [
+      "USE_RESOLVED"
+    ],
+    "pixel": true
+  },
+  "use-missing-target": {
+    "expect": [
+      "EXTERNAL_REF"
+    ],
+    "pixel": true
+  },
+  "style-block-tag": {
+    "expect": [
+      "STYLE_INLINED"
+    ],
+    "pixel": true
+  },
+  "style-block-class": {
+    "expect": [
+      "STYLE_INLINED",
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "style-inline-attribute": {
+    "expect": [
+      "STROKE_OUTLINED"
+    ],
+    "pixel": true
+  },
+  "style-specificity": {
+    "expect": [
+      "STYLE_INLINED"
+    ],
+    "pixel": true,
+    "note": "the id rule wins, so the rect is filled rather than dropped"
+  },
+  "style-inline-beats-css": {
+    "expect": [
+      "STYLE_INLINED"
+    ],
+    "pixel": true
+  },
+  "style-unsupported-selector": {
+    "expect": [
+      "UNSUPPORTED_SELECTOR"
+    ],
+    "pixel": true
+  },
+  "unsupported-text": {
+    "expect": [
+      "TEXT_ELEMENT",
+      "EMPTY"
+    ],
+    "pixel": false
+  },
+  "unsupported-image": {
+    "expect": [
+      "IMAGE_EMBEDDED",
+      "EMPTY"
+    ],
+    "pixel": false
+  },
+  "unsupported-gradient-fill": {
+    "expect": [
+      "GRADIENT_UNSUPPORTED"
+    ],
+    "pixel": false
+  },
+  "unsupported-filter": {
+    "expect": [
+      "FILTER_DROPPED"
+    ],
+    "pixel": false
+  },
+  "unsupported-script": {
+    "expect": [
+      "SCRIPT_STRIPPED"
+    ],
+    "pixel": true
+  },
+  "unsupported-external-ref": {
+    "expect": [
+      "EXTERNAL_REF"
+    ],
+    "pixel": true,
+    "note": "the reference is stripped; the local rect still becomes the glyph"
+  },
+  "structure-nested-svg": {
+    "expect": [
+      "NESTED_SVG"
+    ],
+    "pixel": false
+  },
+  "structure-unused-defs": {
+    "expect": [],
+    "pixel": true
+  },
+  "structure-empty": {
+    "expect": [
+      "EMPTY"
+    ],
+    "pixel": false
+  },
+  "structure-no-viewbox": {
+    "expect": [],
+    "pixel": true,
+    "note": "width/height stand in for a missing viewBox"
+  },
+  "structure-viewbox-offset": {
+    "expect": [],
+    "pixel": true,
+    "note": "a non-zero viewBox origin must be normalized away"
+  },
+  "structure-viewbox-nonsquare": {
+    "expect": [],
+    "pixel": false,
+    "note": "fitted into a square em box with letterboxing, so it cannot match pixel for pixel"
+  },
+  "quality-tiny-detail": {
+    "expect": [
+      "TINY_DETAIL"
+    ],
+    "pixel": false
+  },
+  "quality-zero-area": {
+    "expect": [
+      "ZERO_AREA_REMOVED"
+    ],
+    "pixel": true
+  },
+  "quality-duplicate-points": {
+    "expect": [],
+    "pixel": true
+  },
+  "quality-out-of-box": {
+    "expect": [],
+    "pixel": false,
+    "note": "artwork drawn outside its own viewBox"
+  },
+  "quality-many-segments": {
+    "expect": [],
+    "pixel": true
+  },
+  "colour-two-fills": {
+    "expect": [
+      "MULTIPLE_COLORS"
+    ],
+    "pixel": true
+  },
+  "colour-three-fills": {
+    "expect": [
+      "MULTIPLE_COLORS"
+    ],
+    "pixel": true
+  },
+  "colour-partial-opacity": {
+    "expect": [
+      "OPACITY_FLATTENED"
+    ],
+    "pixel": false
+  },
+  "colour-invisible-shape": {
+    "expect": [
+      "OPACITY_FLATTENED"
+    ],
+    "pixel": true
+  },
+  "editor-inkscape-cruft": {
+    "expect": [],
+    "pixel": true
+  },
+  "editor-figma-export": {
+    "expect": [
+      "CLIP_APPLIED"
+    ],
+    "pixel": true
+  },
+  "editor-illustrator-style-block": {
+    "expect": [
+      "STYLE_INLINED"
+    ],
+    "pixel": true
+  }
+}

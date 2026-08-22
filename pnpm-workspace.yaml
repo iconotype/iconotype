@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - apps/*
+allowBuilds:
+  '@vscode/vsce-sign': true
+  esbuild: true
+  keytar: true
+minimumReleaseAgeExclude:
+  - svelte@5.56.10

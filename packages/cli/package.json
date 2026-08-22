@@ -1,0 +1,35 @@
+{
+  "name": "@glyphsmith/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "glyphsmith": "./bin/glyphsmith.cjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@glyphsmith/core-export": "workspace:*",
+    "@glyphsmith/core-font": "workspace:*",
+    "@glyphsmith/core-io": "workspace:*",
+    "@glyphsmith/core-model": "workspace:*",
+    "@glyphsmith/core-svg": "workspace:*",
+    "@resvg/resvg-js": "^2.6.2",
+    "css-tree": "^3.2.1",
+    "fflate": "^0.8.3",
+    "paper": "^0.12.18",
+    "paperjs-offset": "^2.2.1",
+    "svg2ttf": "^6.1.0",
+    "svgpath": "^2.6.0",
+    "svgson": "^5.3.1",
+    "ttf2woff": "^3.0.0",
+    "woff2-encoder": "^2.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

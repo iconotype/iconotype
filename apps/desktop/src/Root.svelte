@@ -1,11 +1,15 @@
 <script lang="ts">
-  import { AppShell, AppStore, SessionStore, listProjects, loadProject, setApp, setHost, setSession } from '@iconotype/ui'
+  import {
+    AppShell, AppStore, SessionStore, listProjects, loadProject, recordRecent,
+    setApp, setHost, setSession, type RecentProject,
+  } from '@iconotype/ui'
   import { createTauriHost } from '@iconotype/core-host/tauri'
   import { createHistory, emptyProject } from '@iconotype/core-model'
   import { isIconFontFile, parseIconFont, serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io/iconfont-file'
   import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog'
   import { getCurrentWindow } from '@tauri-apps/api/window'
   import { getCurrentWebview } from '@tauri-apps/api/webview'
+  import { homeDir } from '@tauri-apps/api/path'
   import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/menu'
   import { onMount } from 'svelte'
 
@@ -28,6 +32,11 @@
 
   /** The `.iconotype.json` this window is editing, when it came from disk. */
   let file = $state<string | null>(null)
+  let home = $state<string | undefined>(undefined)
+
+  /** Remembers a file so it can be reopened from the Recent menu. */
+  const remember = (path: string, name: string) =>
+    void recordRecent(host, { path, name, openedAt: now() })
 
   const setTitle = (name: string, dirty = false) =>
     void getCurrentWindow().setTitle(`${dirty ? '• ' : ''}${name} — Iconotype`)
@@ -47,6 +56,7 @@
         // only OUR file becomes the save target: ⌘S must never overwrite the IcoMoon
         // project someone imported from
         file = picked
+        remember(picked, project.name)
         setTitle(project.name)
         return
       }
@@ -70,6 +80,7 @@
     try {
       await host.fs.write(target, serializeIconFont(session.project))
       file = target
+      remember(target, session.project.name)
       app.notify('info', `Saved ${target}`)
       setTitle(session.project.name)
     } catch (e) {
@@ -106,6 +117,22 @@
    * read straight off disk, where a browser only ever hands over an opaque File.
    * `GlyphGrid`'s drop handler still works in the web build; this is the desktop's.
    */
+  onMount(() => { void homeDir().then((h) => { home = h.replace(/\/+$/, '') }) })
+
+  /** Reopens a file from the Recent menu, dropping entries that have gone away. */
+  async function openRecent(entry: RecentProject) {
+    if (!entry.path) return
+    try {
+      const project = parseIconFont(await host.fs.readText(entry.path), entry.path)
+      session.replace(project, `Open ${entry.name}`)
+      file = entry.path
+      remember(entry.path, project.name)
+      setTitle(project.name)
+    } catch (e) {
+      app.notify('error', `${entry.path}: ${(e as Error).message}`)
+    }
+  }
+
   onMount(() => {
     const unlisten = getCurrentWebview().onDragDropEvent(async (event) => {
       if (event.payload.type !== 'drop') return
@@ -177,4 +204,10 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<AppShell onOpen={openFile} onSave={() => saveFile(false)} onSaveAs={() => saveFile(true)} />
+<AppShell
+  onOpen={openFile}
+  onSave={() => saveFile(false)}
+  onSaveAs={() => saveFile(true)}
+  onPickRecent={openRecent}
+  {home}
+/>

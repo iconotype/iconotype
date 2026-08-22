@@ -33,7 +33,15 @@
   let width = $state(0)
   let height = $state(600)
 
-  const cellTotal = $derived(cellSize + 26 + gap)          // icon + label + gap
+  /**
+   * A cell is its artwork plus a fixed amount of chrome, and the chrome is measured.
+   *
+   * It used to be a flat `cellSize + 26`, tuned against the extension's 11px type.
+   * Under the app palette — 14px, roomier padding — a cell is taller than that, so
+   * every absolutely-positioned row sat on top of the one below it.
+   */
+  let chrome = $state(0)
+  const cellTotal = $derived(cellSize + (chrome || 26) + gap)
   const columns = $derived(Math.max(1, Math.floor((width || 1) / (cellSize + 24 + gap))))
 
   type Row =
@@ -73,6 +81,59 @@
   const last = $derived(Math.min(rows.length, findRow(scrollTop + height) + overscan + 1))
   const visible = $derived(rows.slice(first, last).map((row, i) => ({ row, top: offsets[first + i]! })))
 
+  /**
+   * Watches one rendered row of cells; they are all the same height.
+   *
+   * The first read is synchronous rather than left to the observer. A
+   * ResizeObserver callback is delivered on a rendering frame, and a page that is not
+   * being composited — a background tab, a hidden panel — produces none, so the rows
+   * would keep their estimated height and overlap until something painted.
+   * `getBoundingClientRect` forces layout there and then, which always works; the
+   * observer stays for what comes later, like a font loading or the window zooming.
+   */
+  let probe: HTMLElement | null = null
+
+  /**
+   * What a cell costs BEYOND its artwork: padding, the name, the codepoint.
+   *
+   * Measuring the whole cell was the obvious thing and the wrong one — it has to be
+   * re-measured every time the size slider moves, and the measurement lands a beat
+   * behind the DOM, so a row stayed short while its cells grew and they overlapped
+   * again. The chrome does not change with the slider, so measuring THAT once gives a
+   * row height that is correct the instant the size changes.
+   */
+  const readProbe = () => {
+    const height = probe?.getBoundingClientRect().height ?? 0
+    if (height <= 0) return
+    const next = Math.max(0, height - cellSize)
+    if (Math.abs(next - chrome) > 0.5) chrome = next
+  }
+
+  const measureCells = (node: HTMLElement) => {
+    probe = node
+    queueMicrotask(readProbe)
+    const ro = new ResizeObserver(readProbe)
+    ro.observe(node)
+    return {
+      destroy: () => {
+        ro.disconnect()
+        if (probe === node) probe = null
+      },
+    }
+  }
+
+  /**
+   * Re-measure when the size changes.
+   *
+   * Only to catch a theme or font change; the row height itself no longer depends on
+   * this being timely, because it is derived from `cellSize` directly.
+   */
+  $effect(() => {
+    // the comparison is what makes the dependency real: a bare `cellSize` statement is
+    // an unused expression and the compiler does not track it
+    if (cellSize > 0) readProbe()
+  })
+
   const measure = (node: HTMLDivElement) => {
     const ro = new ResizeObserver(([entry]) => {
       width = entry!.contentRect.width
@@ -95,7 +156,12 @@
         {#if row.kind === 'header'}
           {@render header({ key: row.section.key, title: row.section.title, count: row.section.items.length })}
         {:else}
-          <div class="cells" style:grid-template-columns="repeat({columns}, minmax(0, 1fr))" style:gap="{gap}px">
+          <div
+            class="cells"
+            use:measureCells
+            style:grid-template-columns="repeat({columns}, minmax(0, 1fr))"
+            style:gap="{gap}px"
+          >
             {#each row.section.items.slice(row.from, row.from + columns) as item (row.section.key + row.from + item.id)}
               {@render cell(item, row.section.key)}
             {/each}

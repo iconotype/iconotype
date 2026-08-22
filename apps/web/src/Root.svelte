@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { AppShell, AppStore, SessionStore, listProjects, loadProject, setApp, setHost, setSession } from '@iconotype/ui'
+  import {
+    AppShell, AppStore, SessionStore, listProjects, loadProject, recordRecent,
+    setApp, setHost, setSession, type RecentProject,
+  } from '@iconotype/ui'
   import { createWebHost } from '@iconotype/core-host/web'
   import { createHistory, emptyProject } from '@iconotype/core-model'
 
@@ -13,6 +16,18 @@
   setSession(session)
   setApp(app)
 
+  /** Reopens a project from browser storage, by the id the recents list carries. */
+  async function openRecent(entry: RecentProject) {
+    if (!entry.id) return
+    try {
+      const project = await loadProject(host, entry.id)
+      session.replace(project, `Open ${entry.name}`)
+      await recordRecent(host, { id: entry.id, name: project.name, openedAt: now() })
+    } catch (e) {
+      app.notify('error', `could not open "${entry.name}": ${(e as Error).message}`)
+    }
+  }
+
   // reopen the most recent project from OPFS
   $effect(() => {
     void (async () => {
@@ -25,6 +40,17 @@
       }
     })()
   })
+
+  /**
+   * Every project the browser has kept is a recent one.
+   *
+   * There are no paths here — OPFS is a private store — so the id is the identity and
+   * the menu says "browser storage" where the desktop shows a folder.
+   */
+  $effect(() => {
+    const { id, name } = session.project
+    void recordRecent(host, { id, name, openedAt: now() })
+  })
 </script>
 
-<AppShell />
+<AppShell onPickRecent={openRecent} />

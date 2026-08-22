@@ -5,8 +5,10 @@
   import FixPanel from './FixPanel.svelte'
   import HistoryPanel from './HistoryPanel.svelte'
   import Notices from './Notices.svelte'
+  import RecentsMenu from './RecentsMenu.svelte'
   import SetPanel from './SetPanel.svelte'
   import Toolbar from './Toolbar.svelte'
+  import type { RecentProject } from './recents.js'
   import { useApp } from './app.svelte.js'
   import { useHost } from './session.svelte.js'
 
@@ -21,12 +23,18 @@
     onOpen,
     onSave,
     onSaveAs,
+    onPickRecent,
+    home,
   }: {
     embedded?: boolean
     /** desktop only: a real file on disk, opened and saved through native dialogs */
     onOpen?: () => void
     onSave?: () => void
     onSaveAs?: () => void
+    /** reopen a project from the recents list; without it the menu is not shown */
+    onPickRecent?: (entry: RecentProject) => void
+    /** home directory, so recent paths can be shortened to `~/…` */
+    home?: string
   } = $props()
 
   const app = useApp()
@@ -62,6 +70,7 @@
     {#if onOpen}
       <button class="ghost" onclick={onOpen} title="Open a project file (⌘O)">Open…</button>
     {/if}
+    {#if onPickRecent}<RecentsMenu onPick={onPickRecent} {home} />{/if}
     {#if onSave}
       <button class="ghost" onclick={onSave} title="Save to the project file (⌘S)">Save</button>
     {/if}

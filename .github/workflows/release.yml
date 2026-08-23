@@ -54,7 +54,7 @@ jobs:
           git add -A
           git commit -qm "chore(release): ${{ steps.cut.outputs.version }}"
           git tag "${{ steps.cut.outputs.tag }}"
-          git push --follow-tags origin "HEAD:$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME" "refs/tags/${{ steps.cut.outputs.tag }}"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   desktop:

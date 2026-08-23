@@ -53,7 +53,9 @@ jobs:
           # -a stages only files git already knows about
           git add -A
           git commit -qm "chore(release): ${{ steps.cut.outputs.version }}"
-          git tag "${{ steps.cut.outputs.tag }}"
+          # annotated, not lightweight: --follow-tags ignores lightweight tags, and a
+          # tag that stays local fails every job that checks the release out by tag
+          git tag -a "${{ steps.cut.outputs.tag }}" -m "${{ steps.cut.outputs.tag }}"
           git push --follow-tags origin "HEAD:$GITHUB_REF_NAME"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 

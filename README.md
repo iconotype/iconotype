@@ -30,7 +30,7 @@ editor, your terminal or your CI — no account, no upload, no zip to unpack.
   for the site and for anywhere that unfurls video.
 -->
 
-<img src="docs/media/demo.gif" alt="Searching 230+ icon libraries, adding icons, exporting the package, the font in use on a page, fixing a glyph on the em square, and the page rebuilt" width="880">
+<img src="docs/media/demo.gif" alt="Searching 230+ icon libraries, adding icons, exporting the package, the font in use on a web page, fixing a glyph on the em square, and the page rebuilt with it" width="880">
 
 </div>
 

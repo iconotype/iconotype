@@ -109,6 +109,12 @@ static frame compresses to almost nothing, a moving one to almost the whole thin
 pointer directs attention instead, and is drawn in because a headless browser has no
 cursor to record.
 
+The page markup carries BOTH classes — `class="icon icon-hiking"` — because the
+stylesheet puts the family on the base class and the codepoint on the icon class. The
+first cut of this video wrote only the second and recorded a page of stray dashes: the
+character was there, rendered in the body font. The same mistake was in the generated
+snippets, and is fixed there too.
+
 The web page at the end is not a mock-up. The recorder clicks Download package, catches
 the browser download, unpacks the zip, and serves it over a local port with a small page
 that links `style.css` and puts the classes next to text — so the icons on that page are

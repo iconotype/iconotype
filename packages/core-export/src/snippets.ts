@@ -82,6 +82,15 @@ interface Context {
   /** what the SOURCE writes, when a build step rewrites it — `alpimaps-hiking` */
   usagePrefix: string
   icons: SnippetIcon[]
+  /**
+   * The class that carries the font, when there is one.
+   *
+   * With `selector: 'class'` the stylesheet declares the family on `.icon` and nothing
+   * else, so `class="icon-home"` alone gets the codepoint from `:before` and renders it
+   * in whatever the page's body font is — an empty box, or a stray dash. With
+   * `selector: 'attribute'` the rule matches the prefix itself and no base class exists.
+   */
+  baseClass: string | undefined
   /** the stylesheet, as the project's output config places it (or as the zip does) */
   stylePath: string
   /** a stylesheet a BROWSER can link: never the .scss the project may build from */
@@ -117,6 +126,7 @@ function context(project: Project, options: SnippetOptions): Context {
     prefix: prefs.prefix,
     usagePrefix: prefs.usagePrefixes?.[0] ?? prefs.prefix,
     icons,
+    baseClass: prefs.selector === 'class' ? prefs.classSelector.replace(/^\./, '') : undefined,
     // a snippet points at ONE file; the first destination is the one a reader means
     stylePath: strip(firstPath(sheet?.path, 'style.css')),
     cssPath: strip(firstPath(plainCss?.path, sheet?.kind === 'css' ? firstPath(sheet.path) : 'style.css')),
@@ -167,6 +177,8 @@ export function sampleIcons(project: Project, count = 3): SnippetIcon[] {
 function htmlSnippets(c: Context): Snippet[] {
   const [first, second] = c.icons
   const icon = first!
+  /** what a reader has to write for the glyph to actually render */
+  const classes = (name: string) => (c.baseClass ? `${c.baseClass} ${name}` : name)
   const out: Snippet[] = [
     {
       id: 'html-link',
@@ -182,17 +194,17 @@ function htmlSnippets(c: Context): Snippet[] {
         '',
         `<!-- decoration: the button already says what it does -->`,
         `<button>`,
-        `  <i class="${icon.className}" aria-hidden="true"></i>`,
+        `  <i class="${classes(icon.className)}" aria-hidden="true"></i>`,
         `  ${humanize(icon.name)}`,
         `</button>`,
         '',
         `<!-- the icon IS the label: name it, or a screen reader announces nothing -->`,
         `<button aria-label="${humanize(icon.name)}">`,
-        `  <i class="${icon.className}" aria-hidden="true"></i>`,
+        `  <i class="${classes(icon.className)}" aria-hidden="true"></i>`,
         `</button>`,
       ].join('\n'),
       note:
-        `The generated \`@font-face\` uses \`font-display: block\`, so an icon is invisible — not fallback-glyphed — until the font lands. That is the right trade for icons, and it is why the preload is worth the line. \`crossorigin\` is required on the preload even for same-origin fonts; without it the browser fetches the file twice.`,
+        `${c.baseClass ? `Both classes are needed: the stylesheet puts the font family on \`.${c.baseClass}\` and the codepoint on \`.${icon.className}\`, so an element with only the second one renders the character in your body font — an empty box, or a stray dash. ` : ''}The generated \`@font-face\` uses \`font-display: block\`, so an icon is invisible — not fallback-glyphed — until the font lands. That is the right trade for icons, and it is why the preload is worth the line. \`crossorigin\` is required on the preload even for same-origin fonts; without it the browser fetches the file twice.`,
     },
     {
       id: 'html-own-css',
@@ -466,7 +478,7 @@ function nextSnippets(c: Context): Snippet[] {
         `export function ${pascalCase(icon.name)}Button() {`,
         `  return (`,
         `    <button aria-label="${humanize(icon.name)}">`,
-        `      <i className="${icon.className}" aria-hidden="true" />`,
+        `      <i className="${c.baseClass ? `${c.baseClass} ${icon.className}` : icon.className}" aria-hidden="true" />`,
         `    </button>`,
         `  )`,
         `}`,

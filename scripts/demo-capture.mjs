@@ -45,9 +45,18 @@ await new Promise((r) => server.listen(SITE_PORT, r))
  * Written from the stylesheet the export produced rather than from a list kept here, so
  * it cannot drift from what the project actually contains.
  */
-function writeSite(classes) {
+function writeSite(classes, base) {
   const [primary, ...rest] = classes
-  const row = (cls, label) => `<li><i class="${cls}"></i><span>${label}</span></li>`
+  /**
+   * Both classes, always.
+   *
+   * The stylesheet puts the family on the base class and the codepoint on the icon
+   * class. A page with only the second renders the character in its body font — which
+   * is what the first cut of this video showed: rows of stray dashes where the icons
+   * should be.
+   */
+  const cls = (name) => (base ? `${base} ${name}` : name)
+  const row = (name, label) => `<li><i class="${cls(name)}"></i><span>${label}</span></li>`
   writeFileSync(join(WORK, 'index.html'), `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Trailhead</title>
@@ -73,13 +82,13 @@ function writeSite(classes) {
   .cta i { font-size: 20px; }
 </style></head>
 <body><div class="wrap">
-  <header><i class="${primary}"></i><b>Trailhead</b><span>your app, your font</span></header>
+  <header><i class="${cls(primary)}"></i><b>Trailhead</b><span>your app, your font</span></header>
   <h1>Every route, one icon set.</h1>
   <p class="lede">The same font this page loads was built, fixed and exported next door.</p>
   <ul>
-    ${rest.slice(0, 3).map((c, i) => row(c, ['Hiking · 12 km loop', 'Mountain biking · gravel', 'Compass bearing 214°'][i] ?? 'Route')).join('\n    ')}
+    ${rest.slice(0, 3).map((c, i) => row(c, ['Hiking · 12 km loop', 'Ridge traverse · 840 m', 'Trailhead · 20 min away'][i] ?? 'Route')).join('\n    ')}
   </ul>
-  <a class="cta"><i class="${primary}"></i>Plan a route</a>
+  <a class="cta"><i class="${cls(primary)}"></i>Plan a route</a>
 </div></body></html>
 `)
 }
@@ -170,12 +179,14 @@ const exportPackage = async () => {
   execFileSync('unzip', ['-o', '-q', zip, '-d', WORK])
   const css = readFileSync(join(WORK, 'style.css'), 'utf8')
   const classes = [...css.matchAll(/\.([\w-]+):before/g)].map((m) => m[1])
-  const wanted = ['hiking', 'mountain-biking', 'compass-calibrate']
+  // whichever selector the stylesheet hangs `font-family` on, read rather than assumed
+  const base = css.match(/^\.([\w-]+)\s*\{[^}]*font-family:/m)?.[1]
+  const wanted = ['hiking', 'walk', 'trail', 'run']
   const chosen = [
     ...classes.filter((c) => wanted.some((w) => c.endsWith(w))),
     ...classes.filter((c) => !wanted.some((w) => c.endsWith(w))),
   ]
-  writeSite([...new Set(chosen)].slice(0, 4))
+  writeSite([...new Set(chosen)].slice(0, 4), base)
   return classes
 }
 
@@ -193,7 +204,7 @@ await pointer(app)
  */
 await app.locator('button[title^="Search Lucide"]').click()
 await app.waitForSelector('.library input[type=search]')
-await app.locator('.library input[type=search]').fill('compass')
+await app.locator('.library input[type=search]').fill('hiking')
 await app.waitForSelector('.library .results .cell', { timeout: 60000 })
 await app.locator('.library button:has-text("Cancel")').click()
 await app.waitForSelector('.library', { state: 'detached' })
@@ -208,7 +219,7 @@ await clickAt('button[title^="Search Lucide"]', { travel: 420 })
 await app.waitForSelector('.library input[type=search]')
 await hold(400)
 // typed rather than filled: the results narrowing as the query lands is the demo
-await app.locator('.library input[type=search]').type('compass', { delay: 105 })
+await app.locator('.library input[type=search]').type('hiking', { delay: 105 })
 await app.waitForSelector('.library .results .cell', { timeout: 30000 })
 await hold(800)
 for (const nth of [2, 5, 8, 11]) {
@@ -245,8 +256,12 @@ await app.waitForSelector('button[title^="Scale the artwork"]', { timeout: 20000
 await hold(1400)
 
 // ── 6. fixed on the em square, where the fixing belongs ──────────────────────
+// fitting to the em box is the fix; mirroring is what makes it legible three metres
+// from the screen, since the walker on the page turns round with it
 await clickAt('button[title^="Scale the artwork"]', { travel: 420 })
-await hold(1600)
+await hold(800)
+await clickAt('button[title^="Mirror"]', { travel: 260, settle: 220 })
+await hold(1200)
 await clickAt('button[title^="Back to the"]', { travel: 380 })
 await hold(900)
 

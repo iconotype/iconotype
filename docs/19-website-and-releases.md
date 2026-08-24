@@ -94,3 +94,13 @@ should not require anyone's certificate.
 CI also runs `cargo check` on the desktop crate for every pull request, which is only
 affordable because of the Rust cache — and is the difference between finding a broken
 Rust side now or at release time.
+
+## The social preview
+
+`pnpm social` renders `docs/media/social-preview.png` — 1280×640, the size GitHub asks
+for and every unfurl downstream reuses. It is drawn from the project's own parts: the
+mark as the app draws it, and eight real glyphs pulled out of the alpimaps fixture,
+because a link card for an icon tool that shows no icons is a card about nothing.
+
+GitHub has no API for this one. Upload it by hand: **Settings → General → Social
+preview → Upload an image**. Re-run the script and re-upload when the wording changes.

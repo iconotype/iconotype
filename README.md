@@ -6,19 +6,30 @@
 
 **Icon fonts, without the round trip.**
 
-Build, fix and ship icon fonts — in the browser, on the desktop, or from the editor
-you are already in. Imports IcoMoon projects. Open source, no account, no upload.
+An open-source IcoMoon alternative that lives where your code does. Import an IcoMoon
+project, fix the SVGs, lock the codepoints, and export `woff2`/CSS/SCSS from your
+editor, your terminal or your CI — no account, no upload, no zip to unpack.
 
 [![ci](https://github.com/iconotype/iconotype/actions/workflows/ci.yml/badge.svg)](https://github.com/iconotype/iconotype/actions/workflows/ci.yml)
-[![pages](https://github.com/iconotype/iconotype/actions/workflows/pages.yml/badge.svg)](https://github.com/iconotype/iconotype/actions/workflows/pages.yml)
+[![vscode marketplace](https://img.shields.io/visual-studio-marketplace/v/iconotype.iconotype-vscode?color=6366f1&label=vscode)](https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode)
+[![open vsx](https://img.shields.io/open-vsx/v/iconotype/iconotype-vscode?color=6366f1&label=open%20vsx)](https://open-vsx.org/extension/iconotype/iconotype-vscode)
 [![npm](https://img.shields.io/npm/v/%40iconotype%2Fcli?color=6366f1&label=npm)](https://www.npmjs.com/package/@iconotype/cli)
 [![license](https://img.shields.io/badge/license-MIT-6366f1)](LICENSE)
 
-[**Web app**](https://iconotype.github.io/iconotype/app/) ·
+### [▶ Try it in your browser](https://iconotype.github.io/iconotype/app/) — nothing to install
+
 [Website](https://iconotype.github.io/iconotype/) ·
-[Desktop](https://github.com/iconotype/iconotype/releases/latest) ·
-[VSCode](https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode) ·
+[VSCode extension](https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode) ·
+[Desktop app](https://github.com/iconotype/iconotype/releases/latest) ·
+[CLI](https://www.npmjs.com/package/@iconotype/cli) ·
 [Docs](docs/)
+
+<!--
+  The demo loop goes here, once recorded: drop a folder of SVGs on the grid → the fixer
+  report → tick two icons out of the build → Export → the class completing in a .scss
+  file with the glyph drawn inline next to it. Ten seconds, no cursor hunting, 1200px
+  wide. Replace the screenshot below with it; a still cannot show that this is fast.
+-->
 
 <img src="docs/media/app-grid.png" alt="The icon grid: three sets, per-icon include ticks, export settings" width="820">
 
@@ -34,6 +45,23 @@ old cached stylesheet now renders a bicycle where a home icon used to be.
 Iconotype keeps the whole thing in the repository. The project is a committed JSON file,
 the build is deterministic, the codepoints are append-only and locked, and CI can fail a
 pull request that would break a font already in production.
+
+## Coming from IcoMoon or Fontello
+
+Both are good tools, and this imports IcoMoon's formats losslessly — project files,
+`selection.json` and downloaded font packages, codepoints included. What changes:
+
+| | Iconotype | IcoMoon | Fontello |
+|---|---|---|---|
+| Project lives in your repo, reviewable in a diff | committed JSON | in the browser, or a downloaded file | `config.json` |
+| Build a font with no network | `iconotype build` | — | CLI posts the config to fontello.com |
+| Runs inside your editor | VSCode extension | — | — |
+| Codepoints locked, with a CI gate on drift | `codepoints.lock` + `iconotype diff` | — | — |
+| Licence and designer credit carried into the CSS | yes | — | — |
+| Licence | MIT | proprietary service | MIT (client + server) |
+
+If you only need a font once, IcoMoon is a fine way to get one. This is for a font that
+ships repeatedly, from a repository, with other people reviewing it.
 
 ## Install
 
@@ -126,8 +154,15 @@ CSS custom properties · JSON map · Flutter `IconData` · sprite sheet + CSS ·
 favicons · React and Vue components · a `.d.ts` union of every icon name.
 
 Or point the project file at your build and skip the zip entirely: the export writes
-`app/fonts/*` and `app/css/_icons.scss` in place, and identical bytes are not rewritten,
-so a no-op export leaves the working tree clean.
+`app/fonts/*` and `app/css/_icons.scss` in place, identical bytes are not rewritten, so
+a no-op export leaves the working tree clean — and any output can name several
+destinations when the same stylesheet has to exist in two apps.
+
+Then **How to use it** hands over the part no export ever includes: the build wiring,
+generated for your project — its family, its class prefix, its paths, its real
+codepoints — for plain HTML, Vite, webpack, Next.js, an SVG sprite, React/Vue/Svelte
+components, NativeScript and Flutter. It ships in the package as `USAGE.md`, so the
+notes travel with the files they are about.
 
 ### Treats codepoints as an API
 
@@ -189,7 +224,7 @@ bytes every run), and y-flips `Path.fromSVG` per glyph. The full evaluation is i
 ```bash
 pnpm install
 pnpm dev            # web app          pnpm dev:desktop   # tauri window (needs Rust)
-pnpm dev:site       # product page     pnpm test          # 347 unit tests
+pnpm dev:site       # product page     pnpm test          # 401 unit tests
 pnpm check          # svelte-check + tsc                  pnpm test:vscode   # 52 in real VSCode
 pnpm build          # every app
 ```

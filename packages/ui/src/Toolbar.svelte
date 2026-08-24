@@ -15,12 +15,14 @@
     onOpen,
     onSave,
     onSaveAs,
+    onRevealFile,
     onPickRecent,
     home,
   }: {
     onOpen?: () => void
     onSave?: () => void
     onSaveAs?: () => void
+    onRevealFile?: () => void
     onPickRecent?: (entry: RecentProject) => void
     home?: string
   } = $props()
@@ -41,6 +43,13 @@
   {/if}
   {#if onSaveAs}
     <button class="ghost" onclick={onSaveAs} title="Save to a new file (⇧⌘S)">Save as…</button>
+  {/if}
+  {#if onRevealFile}
+    <button
+      class="ghost"
+      onclick={onRevealFile}
+      title="Open the project file in your editor — changes to it are picked up here"
+    >Edit JSON</button>
   {/if}
 
   {#if app.mode === 'browse'}

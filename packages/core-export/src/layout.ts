@@ -1,4 +1,5 @@
 import type { OutputConfig, Project, StyleOutputKind } from '@iconotype/core-model'
+import { asPaths } from '@iconotype/core-model'
 
 /**
  * Paths, names and fingerprints — everything about an export that can be decided
@@ -132,17 +133,23 @@ export function buildStamp(project: Project): string {
   return ((h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0'))
 }
 
-/** Every workspace-relative path a build of this project writes. */
+/**
+ * Every workspace-relative path a build of this project writes.
+ *
+ * One output can name several destinations, so this is a flat list of all of them —
+ * callers use it to watch, to clean, or to tell whether a file on disk is generated,
+ * and every copy has to answer yes to that last question.
+ */
 export function outputPaths(project: Project): string[] {
   const output = project.output
   if (!output) return []
   const family = project.preferences.font.family
-  const dir = output.fonts ? clean(output.fonts.dir).replace(/\/?$/, '/') : ''
+  const dirs = asPaths(output.fonts?.dir).map((dir) => clean(dir).replace(/\/?$/, '/'))
   return [
-    ...(output.fonts?.formats ?? []).map((format) => `${dir}${family}.${format}`),
-    ...(output.styles ?? []).map((style) => clean(style.path)),
-    ...(output.types ? [clean(output.types.path)] : []),
-    ...(output.sprite ? [clean(output.sprite.path)] : []),
-    ...(output.demo ? [clean(output.demo.path)] : []),
+    ...dirs.flatMap((dir) => (output.fonts?.formats ?? []).map((format) => `${dir}${family}.${format}`)),
+    ...(output.styles ?? []).flatMap((style) => asPaths(style.path).map(clean)),
+    ...asPaths(output.types?.path).map(clean),
+    ...asPaths(output.sprite?.path).map(clean),
+    ...asPaths(output.demo?.path).map(clean),
   ]
 }

@@ -1,16 +1,20 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "What the window is allowed to do. Filesystem access is scoped to the app's own data directory; anything outside it has to come from a dialog the user answered.",
+  "description": "What the window is allowed to do. Filesystem access is scoped to the app's own data directory; anything outside it has to come from a dialog the user answered. Three permissions are here because no default set carries them: `start-dragging`, without which the title bar cannot move the window (the overlay title bar style draws the webview over the native band, so a drag travels through `data-tauri-drag-region`); `fs:watch`, so an edit made to the project file outside the app is noticed; and `opener:open-path`, so that file can be opened in whatever the system uses for JSON.",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "core:window:allow-set-title",
+    "core:window:allow-start-dragging",
     "opener:default",
+    "opener:allow-open-path",
     "dialog:default",
     "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-write-text",
     "fs:default",
+    "fs:allow-watch",
+    "fs:allow-unwatch",
     "fs:allow-appdata-read-recursive",
     "fs:allow-appdata-write-recursive",
     "fs:allow-appdata-meta-recursive"

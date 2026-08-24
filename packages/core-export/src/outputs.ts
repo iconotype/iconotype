@@ -1,4 +1,5 @@
-import type { OutputConfig, Project, StyleOutput } from '@iconotype/core-model'
+import type { OutputConfig, Paths, Project, StyleOutput } from '@iconotype/core-model'
+import { asPaths, firstPath } from '@iconotype/core-model'
 import { buildCss, buildDemoHtml, buildFont, buildVariables, groupIcons, type FontBuild } from '@iconotype/core-font'
 import { exportDart } from './dart.js'
 import { exportSpriteSymbols } from './svg.js'
@@ -76,8 +77,13 @@ export async function resolveOutputs(
   const build = await buildFont(project, { formats, timestamp: options.timestamp ?? 0 })
   const files: OutputFile[] = []
 
-  if (output.fonts) {
-    const dir = clean(output.fonts.dir).replace(/\/*$/, '/')
+  /** the same bytes, once per destination the config names */
+  const emit = (paths: Paths | undefined, data: Uint8Array | string, kind: OutputFile['kind']) => {
+    for (const path of asPaths(paths)) files.push({ path: clean(path), data, kind })
+  }
+
+  const fontDirs = asPaths(output.fonts?.dir).map((dir) => clean(dir).replace(/\/*$/, '/'))
+  for (const dir of fontDirs) {
     for (const format of formats) {
       const data = format === 'svg' ? build.svg : build[format]
       if (data) files.push({ path: `${dir}${family}.${format}`, data, kind: 'font' })
@@ -85,20 +91,28 @@ export async function resolveOutputs(
   }
 
   for (const style of output.styles ?? []) {
+    /**
+     * A stylesheet written to two places still carries ONE font url.
+     *
+     * Two copies of the same sheet at different depths would each want a different
+     * `../`, and there is no way to satisfy both from one file — so the url is
+     * computed for the first destination, and a project that needs otherwise sets
+     * `publicPath` to something absolute, which is the honest fix anyway.
+     */
     const fontPath = output.fonts
-      ? (output.fonts.publicPath ?? relativeFontPath(style.path, output.fonts.dir))
+      ? (output.fonts.publicPath ?? relativeFontPath(firstPath(style.path), firstPath(output.fonts.dir)))
       : 'fonts/'
     const data =
       style.kind === 'css' || style.kind === 'scss' || style.kind === 'less'
         ? buildCss(project, build, { fontPath, formats, version: options.version })
         : buildVariableBlock(project, build, style.kind, fontPath)
-    files.push({ path: clean(style.path), data, kind: 'style' })
+    emit(style.path, data, 'style')
   }
 
   const entries = iconsOf(project).filter((e) => e.glyph.selected !== false)
-  if (output.types) files.push({ path: clean(output.types.path), data: exportTypes(project, entries), kind: 'types' })
-  if (output.sprite) files.push({ path: clean(output.sprite.path), data: exportSpriteSymbols(project, entries), kind: 'sprite' })
-  if (output.demo) files.push({ path: clean(output.demo.path), data: buildDemoHtml(project, build), kind: 'demo' })
+  if (output.types) emit(output.types.path, exportTypes(project, entries), 'types')
+  if (output.sprite) emit(output.sprite.path, exportSpriteSymbols(project, entries), 'sprite')
+  if (output.demo) emit(output.demo.path, buildDemoHtml(project, build), 'demo')
 
   return { files, build }
 }

@@ -7,6 +7,7 @@
   import { createHistory, emptyProject } from '@iconotype/core-model'
   import { isIconFontFile, parseIconFont, serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io/iconfont-file'
   import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog'
+  import { openPath } from '@tauri-apps/plugin-opener'
   import { getCurrentWindow } from '@tauri-apps/api/window'
   import { getCurrentWebview } from '@tauri-apps/api/webview'
   import { homeDir } from '@tauri-apps/api/path'
@@ -45,6 +46,17 @@
   /** The `.iconotype.json` this window is editing, when it came from disk. */
   let file = $state<string | null>(null)
   let home = $state<string | undefined>(undefined)
+  /**
+   * The document as of the last read or write, in OUR serialization.
+   *
+   * Two questions need it. "Did that change come from us?" — a save fires the watcher
+   * too, and reloading after every ⌘S would throw away the undo history for nothing.
+   * And "would reloading lose work?" — if the window no longer serializes to this,
+   * there are unsaved edits, and a file on disk does not get to overwrite them
+   * silently. Both comparisons are made on the serialized form rather than on the
+   * file's bytes, so someone reformatting the JSON by hand does not read as an edit.
+   */
+  let synced = $state<string | null>(null)
 
   /** Remembers a file so it can be reopened from the Recent menu. */
   const remember = (path: string, name: string) =>
@@ -65,6 +77,7 @@
       if (isIconFontFile(data)) {
         const project = parseIconFont(text, picked)
         session.open(project, `Open ${picked.split('/').pop()}`)
+        synced = serializeIconFont(project)
         // only OUR file becomes the save target: ⌘S must never overwrite the IcoMoon
         // project someone imported from
         file = picked
@@ -90,7 +103,9 @@
       target = chosen
     }
     try {
-      await host.fs.write(target, serializeIconFont(session.project))
+      const text = serializeIconFont(session.project)
+      await host.fs.write(target, text)
+      synced = text
       file = target
       remember(target, session.project.name)
       app.notify('info', `Saved ${target}`)
@@ -98,6 +113,60 @@
     } catch (e) {
       app.notify('error', `could not save: ${(e as Error).message}`)
     }
+  }
+
+  /** Hand the project file to whatever the system opens JSON with. */
+  async function revealFile() {
+    if (!file) return
+    try {
+      await openPath(file)
+    } catch (e) {
+      app.notify('error', `could not open ${file}: ${(e as Error).message}`)
+    }
+  }
+
+  /**
+   * The file, edited elsewhere.
+   *
+   * Someone will change an output path in the JSON by hand, or a `git checkout` will
+   * move it under the app. Watching it makes the window agree with the disk instead of
+   * quietly holding a stale copy — and a reload is a new timeline, exactly like an
+   * open, because the undo stack of the old document does not describe the new one.
+   */
+  $effect(() => {
+    const path = file
+    if (!path || !host.fs.watch) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const watcher = host.fs.watch(path, () => {
+      // editors write in two or three bursts; act once the dust settles
+      clearTimeout(timer)
+      timer = setTimeout(() => void reload(path), 150)
+    })
+
+    return () => { clearTimeout(timer); watcher.dispose() }
+  })
+
+  async function reload(path: string) {
+    const name = path.split('/').pop() ?? path
+    let project: ReturnType<typeof parseIconFont>
+    try {
+      project = parseIconFont(await host.fs.readText(path), path)
+    } catch (e) {
+      // gone, half-written, or saved by rename — a later event brings the finished file
+      app.notify('warn', `${name} changed on disk but could not be read: ${(e as Error).message}`)
+      return
+    }
+    const incoming = serializeIconFont(project)
+    if (incoming === synced) return                                   // our own write coming back
+    if (serializeIconFont(session.project) !== synced) {
+      app.notify('warn', `${name} changed on disk — not reloaded, this window has unsaved edits`)
+      return
+    }
+    session.open(project, `Reload ${name}`)
+    synced = incoming
+    setTitle(project.name)
+    app.notify('info', `Reloaded ${name} from disk`)
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -135,8 +204,10 @@
   async function openRecent(entry: RecentProject) {
     if (!entry.path) return
     try {
-      const project = parseIconFont(await host.fs.readText(entry.path), entry.path)
+      const text = await host.fs.readText(entry.path)
+      const project = parseIconFont(text, entry.path)
       session.open(project, `Open ${entry.name}`)
+      synced = serializeIconFont(project)
       file = entry.path
       remember(entry.path, project.name)
       setTitle(project.name)
@@ -220,6 +291,7 @@
   onOpen={openFile}
   onSave={() => saveFile(false)}
   onSaveAs={() => saveFile(true)}
+  onRevealFile={file ? revealFile : undefined}
   onPickRecent={openRecent}
   {home}
   {titleBarInset}

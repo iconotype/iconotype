@@ -11,6 +11,11 @@ on:
         required: true
         default: all
         options: [all, extension, desktop, web]
+      sign:
+        description: 'Sign and notarize the macOS build (needs the Apple secrets)'
+        type: boolean
+        required: false
+        default: false
   pull_request:
 
 env:
@@ -60,6 +65,10 @@ jobs:
 
   desktop:
     if: ${{ github.event_name == 'workflow_dispatch' && contains(fromJSON('["all","desktop"]'), inputs.targets) }}
+    # A step cannot test env it declares itself, so the gate lives at job level. See the
+    # same pattern in release.yml, where getting this wrong disabled signing silently.
+    env:
+      SIGN_MACOS: ${{ inputs.sign && secrets.APPLE_CERTIFICATE != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -86,13 +95,43 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri -> target
           key: ${{ matrix.name }}
-      # unsigned on purpose: a test build should not need anyone's certificate
+      # Unsigned by default: a test build should not need anyone's certificate, and a
+      # pull request from a fork cannot read the secrets anyway. Tick "sign" on the run
+      # to get something other people's Macs will actually open.
+      - name: Enable code signing
+        if: startsWith(matrix.platform, 'macos') && env.SIGN_MACOS == 'true'
+        run: |
+          {
+            echo "ENABLE_CODE_SIGNING=1"
+            echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}"
+            echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}"
+            echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}"
+            echo "APPLE_ID=${{ secrets.APPLE_ID }}"
+            echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}"
+            echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}"
+          } >> "$GITHUB_ENV"
+
       - id: build
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: apps/desktop
+
+      - name: Verify the signature
+        if: startsWith(matrix.platform, 'macos') && env.SIGN_MACOS == 'true'
+        run: |
+          set -euo pipefail
+          app=$(find apps/desktop/src-tauri/target -path '*/release/bundle/macos/*.app' -maxdepth 6 -print -quit)
+          [ -n "$app" ] || { echo "no .app was bundled"; exit 1; }
+          codesign -dvv "$app" 2>&1 | tee /dev/stderr | grep -q 'Authority=Developer ID Application' || {
+            echo "::error::bundle is not signed with a Developer ID — check APPLE_SIGNING_IDENTITY"
+            exit 1
+          }
+          xcrun stapler validate "$app" || {
+            echo "::error::notarization ticket missing — the app will be blocked on first launch elsewhere"
+            exit 1
+          }
       - name: Collect the bundles
         shell: bash
         run: |
@@ -100,6 +139,16 @@ jobs:
           mkdir -p out
           for path in $(echo '${{ steps.build.outputs.artifactPaths }}' | tr -d '[]"' | tr ',' '\n'); do
             [ -e "$path" ] && cp -r "$path" out/ || true
+          done
+          # A .app is a tree of symlinks whose signature seals them, and
+          # `upload-artifact` re-zips what it is given with a zip that keeps neither
+          # symlinks nor extended attributes — so a downloaded .app arrives subtly
+          # broken and reports itself unsigned. `ditto` writes the archive Apple's own
+          # tools read, and the .dmg beside it was already safe.
+          for app in out/*.app; do
+            [ -e "$app" ] || continue
+            ditto -c -k --keepParent --sequesterRsrc "$app" "${app}.zip"
+            rm -rf "$app"
           done
           ls -la out
       - uses: actions/upload-artifact@v4

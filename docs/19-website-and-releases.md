@@ -134,12 +134,19 @@ ffmpeg -y -framerate 12 -i .demo-frames/%05d.png \
   -vf "scale=1280:-2:flags=lanczos,format=yuv420p" \
   -c:v libx264 -preset slow -crf 20 -movflags +faststart -r 24 docs/media/demo.mp4
 
-ffmpeg -y -framerate 12 -i .demo-frames/%05d.png \
-  -vf "scale=860:-2:flags=lanczos,palettegen=max_colors=96:stats_mode=diff" /tmp/pal.png
-ffmpeg -y -framerate 12 -i .demo-frames/%05d.png -i /tmp/pal.png \
-  -lavfi "scale=860:-2:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
+ffmpeg -y -framerate 20 -i .demo-frames/%05d.png \
+  -vf "scale=880:-2:flags=lanczos,palettegen=max_colors=96:stats_mode=diff" /tmp/pal.png
+ffmpeg -y -framerate 20 -i .demo-frames/%05d.png -i /tmp/pal.png \
+  -lavfi "scale=880:-2:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
   -loop 0 docs/media/demo.gif
 ```
+
+Note the two framerates. The mp4 runs at the speed it was captured, because someone who
+clicked a video meant to watch it. The GIF plays the same frames at 20fps — two thirds
+of the running time, 15 seconds — because a README loop is glanced at, not watched, and
+it restarts forever whether or not anyone is looking. 20fps is also exactly 5
+centiseconds a frame, and GIF stores its delays in centiseconds: any rate that does not
+divide cleanly gets rounded per frame and plays with a stutter.
 
 The GIF is what README shows: GitHub will not play an mp4 committed to a repository.
 The mp4 is a quarter of the size at twice the resolution, so it is what the site and any

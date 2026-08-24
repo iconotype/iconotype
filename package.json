@@ -15,7 +15,8 @@
     "test:vscode": "pnpm --filter iconotype-vscode test",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.json --noEmit",
     "spike:paper": "pnpm --filter spike-paper-headless exec node spike.mjs",
-    "demo": "node scripts/demo-capture.mjs"
+"demo": "node scripts/demo-capture.mjs",
+    "social": "pnpm --filter @iconotype/cli exec node scripts/social-preview.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^6.2.1",

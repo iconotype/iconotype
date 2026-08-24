@@ -13,6 +13,7 @@
   import { homeDir } from '@tauri-apps/api/path'
   import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/menu'
   import { onMount } from 'svelte'
+  import UpdateBanner from './UpdateBanner.svelte'
 
   /**
    * The desktop shell.
@@ -287,13 +288,28 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<AppShell
-  onOpen={openFile}
-  onSave={() => saveFile(false)}
-  onSaveAs={() => saveFile(true)}
-  onRevealFile={file ? revealFile : undefined}
-  onPickRecent={openRecent}
-  {home}
-  {titleBarInset}
-  {titleBarHeight}
-/>
+<!--
+  The banner sits ABOVE the shell rather than over it: the shell is a full-height flex
+  child here, so it gives up the few pixels instead of the window growing a scrollbar
+  and losing its bottom edge.
+-->
+<div class="window">
+  <UpdateBanner onError={(message) => app.notify('error', message)} />
+
+  <AppShell
+    onOpen={openFile}
+    onSave={() => saveFile(false)}
+    onSaveAs={() => saveFile(true)}
+    onRevealFile={file ? revealFile : undefined}
+    onPickRecent={openRecent}
+    {home}
+    {titleBarInset}
+    {titleBarHeight}
+  />
+</div>
+
+<style>
+  .window { display: flex; flex-direction: column; height: 100vh; }
+  /* the shell declares 100vh of its own; as a flex child it shrinks to what is left */
+  .window > :global(.shell) { flex: 1 1 auto; min-height: 0; }
+</style>

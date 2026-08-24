@@ -1,14 +1,31 @@
 # Iconotype — icon fonts in VSCode
 
-Manage a project's icon fonts without leaving the editor: see them, complete them,
-find them, and export straight into your build.
+**An open-source IcoMoon alternative that lives in your editor.** Import an IcoMoon
+project, see your icons where you use them, complete them by name, and export the font
+straight into your build — no account, no upload, no zip to unpack.
+
+[![marketplace](https://img.shields.io/visual-studio-marketplace/v/iconotype.iconotype-vscode?color=6366f1&label=marketplace)](https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode)
+[![installs](https://img.shields.io/visual-studio-marketplace/i/iconotype.iconotype-vscode?color=6366f1)](https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode)
+[![open vsx](https://img.shields.io/open-vsx/v/iconotype/iconotype-vscode?color=6366f1&label=open%20vsx)](https://open-vsx.org/extension/iconotype/iconotype-vscode)
+[![license](https://img.shields.io/badge/license-MIT-6366f1)](https://github.com/iconotype/iconotype/blob/main/LICENSE)
 
 <!-- the marketplace renders this README on its own origin, so image paths must be
      absolute or they resolve to nothing -->
 ![The icon grid and the glyph editor](https://raw.githubusercontent.com/iconotype/iconotype/main/docs/media/app-editor.png)
 
+```
+ext install iconotype.iconotype-vscode
+```
+
 Part of [Iconotype](https://iconotype.github.io/iconotype/) — the same project file
-opens in the web app, the desktop app and here.
+opens in the [web app](https://iconotype.github.io/iconotype/app/) (nothing to install,
+try it first), the desktop app and here.
+
+**What you get:** completion and inline previews of your own icons · diagnostics for a
+typo'd or excluded one · workspace-wide rename with the codepoint pinned · usage, and
+which icons nothing references · one-click export into the paths your project file
+names · an SVG fixer that outlines strokes and bakes transforms so artwork survives the
+trip into a font.
 
 ## Getting started
 
@@ -115,6 +132,13 @@ Completion, hover, usage, rename and diagnostics then look for both, and each us
 site is rewritten in the form it was written in. The Icons panel's **Font settings**
 has a field for it, and the usage scan offers to fill it in when it finds a prefix your
 code uses that the font does not.
+
+## Using the font you built
+
+**How to use it**, in the editor's export panel, generates the build wiring for the
+open project — its family, class prefix, output paths and real codepoints — for plain
+HTML, Vite, webpack, Next.js, an SVG sprite, React/Vue/Svelte components, NativeScript
+and Flutter. It is the part no export includes and everyone works out once, by hand.
 
 ## The same build, in CI
 

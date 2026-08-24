@@ -117,6 +117,13 @@ jobs:
             echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}"
           } >> "$GITHUB_ENV"
 
+      # Updater artifacts are opt-in for the same reason signing is.
+      #
+      # `createUpdaterArtifacts` lives in its own config overlay rather than in
+      # tauri.conf.json: with it on and no signing key, the bundler stops with "private
+      # key not found" and takes the whole release with it. Merged in only when there is
+      # a key to sign with, so a fork, a local build and a release before the secrets
+      # are set all keep working — they simply ship no update manifest.
       - id: build
         uses: tauri-apps/tauri-action@v1
         env:
@@ -125,7 +132,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }}${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && ' --config src-tauri/tauri.updater.conf.json' || '' }}
 
       # to the release only after everything else has built, so they travel as artifacts
       - name: Collect the bundles
@@ -210,6 +217,53 @@ jobs:
         with: { path: artifacts }
       - run: find artifacts -type f | sort
 
+      # The update manifest.
+      #
+      # `tauri-action` can write this itself, but only when it is the thing creating the
+      # release — here it builds and hands back paths, and the release is assembled once
+      # every platform has finished. So it is assembled from what the bundler signed: a
+      # `.sig` next to a bundle means that bundle is an update artifact, which keeps this
+      # from knowing whether Tauri wraps an AppImage in a tarball this month.
+      - name: Update manifest
+        run: |
+          set -euo pipefail
+          export PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          python3 - <<'PY'
+          import json, os, pathlib, urllib.parse
+
+          TAG = "${{ needs.version.outputs.tag }}"
+          PLATFORMS = {
+              "desktop-macos-arm64": "darwin-aarch64",
+              "desktop-macos-x64": "darwin-x86_64",
+              "desktop-linux": "linux-x86_64",
+              "desktop-windows": "windows-x86_64",
+          }
+          base = f"https://github.com/${{ github.repository }}/releases/download/{TAG}"
+
+          platforms = {}
+          for folder, key in PLATFORMS.items():
+              for sig in pathlib.Path("artifacts", folder).glob("*.sig"):
+                  bundle = sig.with_suffix("")
+                  if not bundle.exists():
+                      continue
+                  platforms[key] = {
+                      "signature": sig.read_text().strip(),
+                      "url": f"{base}/{urllib.parse.quote(bundle.name)}",
+                  }
+
+          if not platforms:
+              print("no signed bundles — this release ships without an update manifest")
+              raise SystemExit(0)
+
+          pathlib.Path("artifacts/latest.json").write_text(json.dumps({
+              "version": TAG.lstrip("v"),
+              "notes": "See the release notes.",
+              "pub_date": os.environ["PUB_DATE"],
+              "platforms": platforms,
+          }, indent=2))
+          print(json.dumps(platforms, indent=2))
+          PY
+
       # everything at once: the release with every bundle attached, then the two
       # registries. A failure here leaves the tag and the release, which is the right
       # trade — the artifacts exist and can be re-published by hand.
@@ -222,7 +276,7 @@ jobs:
           body: ${{ needs.version.outputs.notes }}
           prerelease: ${{ needs.version.outputs.prerelease }}
           makeLatest: ${{ needs.version.outputs.prerelease == 'false' }}
-          artifacts: 'artifacts/desktop-*/*,artifacts/extension/*.vsix'
+          artifacts: 'artifacts/desktop-*/*,artifacts/extension/*.vsix,artifacts/latest.json'
           allowUpdates: true
 
       - name: VSCode marketplace

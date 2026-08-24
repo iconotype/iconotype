@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.2 — 2026-08-24
+
+### Features
+
+- **ci:** sign test builds by default (eec1153)
+- **ci:** let the build workflow sign, and stop mangling the .app on the way out (e27c2c6)
+- **desktop:** wire up the auto-updater (bdacab5)
+
+### Fixes
+
+- **ci:** a signed bundle failed the check that says it is signed (e7f1a27)
+- **ci:** signing was gated on a condition that could never be true (cbc2b38)
+
+### Other
+
+- lead with what someone is searching for (3b31cbe)
+
 ## 0.2.1 — 2026-08-24
 
 ### Features

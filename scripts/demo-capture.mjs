@@ -8,9 +8,11 @@ import { mkdirSync, rmSync } from 'node:fs'
  * of docs/19. Nothing here is composited or faked: it drives the real app, so a beat
  * that stops being true stops appearing in the recording.
  *
- * The camera lives in the PAGE, not in ffmpeg: a CSS transform on #app, animated with a
- * transition, so a zoom re-rasterizes the real layout instead of enlarging pixels. The
- * text stays sharp at 2× the way it would if you actually leaned in.
+ * One fixed frame throughout. An earlier take pushed in on each area of interest, the
+ * way app videos do, and it read as seasickness rather than emphasis: the layout is
+ * dense, every move re-flowed what the eye had just found, and a viewer spent the zoom
+ * re-locating themselves instead of watching. The pointer is what directs attention,
+ * so the window is left alone.
  */
 const OUT = process.argv[2] ?? '.demo-frames'
 const FPS = 12
@@ -58,26 +60,6 @@ const centreOf = async (selector) => {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
 }
 
-/** move the camera: a selector to frame, how close, how long the move takes */
-const cam = async (selector, scale, ms = 900) => {
-  const point = selector && scale !== 1 ? await centreOf(selector) : null
-  await page.evaluate(
-    ([point, scale, ms]) => {
-      const app = document.getElementById('app')
-      app.style.transition = `transform ${ms}ms cubic-bezier(.4,0,.2,1)`
-      if (!point) {
-        app.style.transformOrigin = '50% 50%'
-        app.style.transform = 'scale(1)'
-        return
-      }
-      app.style.transformOrigin = `${(point.x / window.innerWidth) * 100}% ${(point.y / window.innerHeight) * 100}%`
-      app.style.transform = `scale(${scale})`
-    },
-    [point, scale, ms],
-  )
-  await hold(ms)
-}
-
 /** a pointer that reads as a cursor, since a headless browser draws none */
 const pointer = async () => {
   await page.addStyleTag({
@@ -120,6 +102,21 @@ const byText = (role, text) => `${role}:has-text("${text}")`
 await page.goto(URL, { waitUntil: 'networkidle' })
 await page.waitForSelector('button:has-text("Load a sample set")', { timeout: 20000 })
 await pointer()
+
+/**
+ * A rehearsal of the search, before anything is recorded.
+ *
+ * The first query of a session pays for the whole collection index — several seconds of
+ * "searching…" that is a cold cache, not the app being slow. Running it once off-camera
+ * means the take shows what the second search onwards actually feels like, without the
+ * recording having to lie about it by cutting frames out of the wait.
+ */
+await page.locator('button[title^="Search Lucide"]').click()
+await page.waitForSelector('.library input[type=search]')
+await page.locator('.library input[type=search]').fill('compass')
+await page.waitForSelector('.library .results .cell', { timeout: 60000 })
+await page.locator('.library button:has-text("Cancel")').click()
+await page.waitForSelector('.library', { state: 'detached' })
 await hold(400)
 
 capturing = true
@@ -131,40 +128,50 @@ await clickAt('button:has-text("Load a sample set")', { travel: 420 })
 await hold(650)
 
 // ── 2. the grid: real artwork, codepoints under every cell ───────────────────
-await cam('main', 1.5, 750)
-await hold(650)
+await hold(500)
 
 // ── 3. taking one icon out of the build ──────────────────────────────────────
 await clickAt('button[aria-label^="Exclude"]', { travel: 380 })
 await hold(500)
-await cam(null, 1, 600)
 
 // ── 4. the export rail: formats, family, prefix ──────────────────────────────
-await cam('aside:has-text("Export")', 1.7, 750)
 await hold(700)
 
 // ── 5. the font, built and then rendered WITH ITSELF ─────────────────────────
-await clickAt('button:has-text("Preview font")', { travel: 380 })
+await clickAt('button:has-text("Preview font")', { travel: 340 })
 // the build is real — wasm woff2 and all — so wait for the proof rather than a guess
 await page.waitForSelector('.preview .sample', { timeout: 30000 })
 // the rail scrolls, and the proof lands below its fold: bring it up before leaning in
 await page.locator('.preview .sample').scrollIntoViewIfNeeded()
 await hold(450)
-await cam('.preview .sample', 1.9, 700)
-await hold(1300)
-await cam(null, 1, 600)
+await hold(1000)
 
 // ── 6. the part no export ships: how to use it ───────────────────────────────
 await clickAt('button:has-text("How to use it")', { travel: 400 })
 await hold(1000)
-await cam('.card pre', 1.45, 750)
 await hold(1000)
 
 // ── 7. another target, same project ──────────────────────────────────────────
 await clickAt('nav .target:has-text("Vite")', { travel: 400 })
-await hold(1500)
-await cam(null, 1, 600)
-await hold(450)
+await hold(1400)
+await clickAt('.card button:has-text("Close")', { travel: 380 })
+await hold(500)
+
+// ── 8. 230+ libraries, searched as one, licences and all ─────────────────────
+await clickAt('button[title^="Search Lucide"]', { travel: 420 })
+await page.waitForSelector('.library input[type=search]')
+await hold(500)
+// typed rather than filled: the results narrowing as the query lands is the demo
+await page.locator('.library input[type=search]').type('compass', { delay: 110 })
+await page.waitForSelector('.library .results .cell', { timeout: 30000 })
+await hold(900)
+for (const nth of [2, 5]) {
+  await clickAt(`.library .results .cell:nth-of-type(${nth})`, { travel: 300, settle: 180 })
+}
+await hold(400)
+await clickAt('.library button:has-text("Add")', { travel: 380 })
+await page.waitForSelector('.library', { state: 'detached', timeout: 30000 })
+await hold(1400)
 
 capturing = false
 await capture

@@ -30,7 +30,7 @@ editor, your terminal or your CI — no account, no upload, no zip to unpack.
   for the site and for anywhere that unfurls video.
 -->
 
-<img src="docs/media/demo.gif" alt="Loading a sample set, excluding an icon, previewing the built font, and copying the build wiring for Vite" width="860">
+<img src="docs/media/demo.gif" alt="Loading a sample set, excluding an icon, previewing the built font, copying the build wiring for Vite, and searching 230+ icon libraries" width="860">
 
 </div>
 

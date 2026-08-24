@@ -101,10 +101,18 @@ Rust side now or at release time.
 `.demo-frames`; the dev server has to be up (`pnpm dev`). Nothing is composited — a
 beat that stops being true stops appearing in the recording.
 
-The camera is a CSS transform on `#app` rather than an ffmpeg crop, so a zoom
-re-rasterizes the layout instead of enlarging pixels and the text stays sharp at 2×,
-the way it would if you actually leaned in. The pointer is drawn in, because a headless
-browser has no cursor to record.
+One fixed frame throughout. An earlier take pushed in on each area of interest, the way
+app videos do, and it read as seasickness rather than emphasis: the layout is dense,
+every move re-flowed what the eye had just found, and a viewer spent the zoom
+re-locating themselves instead of watching. It also cost seven times the file size — a
+static frame compresses to almost nothing, a moving one to almost the whole thing. The
+pointer directs attention instead, and is drawn in because a headless browser has no
+cursor to record.
+
+The library search is rehearsed once off-camera before the take. The first query of a
+session pays for the whole collection index, several seconds of "searching…" that is a
+cold cache rather than the app being slow, and warming it means the recording shows what
+the second search onwards actually feels like without cutting frames out of the wait.
 
 Encoding, once the frames exist:
 

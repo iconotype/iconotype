@@ -40,6 +40,23 @@ const bytes = (v: Uint8Array | { buffer: ArrayBufferLike } | ArrayBuffer): Uint8
  * svg2ttf has none of those, and gives ligature GSUB for free.
  * opentype.js is still the right tool for READING fonts.
  */
+/**
+ * `ttf2woff` is written against Node's Buffer, and a browser has none.
+ *
+ * It is the only step in the pipeline that needs one: svg2ttf is plain arrays and the
+ * WOFF2 encoder is wasm. So the polyfill is fetched at the moment WOFF is asked for and
+ * never otherwise — Node and the CLI never load it at all, and a browser that only
+ * builds WOFF2 does not pay for it either.
+ *
+ * Without this, "Download package" in the web app failed with "Buffer is not defined"
+ * for every project with WOFF among its formats, which is the default.
+ */
+export async function ensureBuffer(target: { Buffer?: unknown } = globalThis): Promise<void> {
+  if (typeof target.Buffer !== 'undefined') return
+  const { Buffer } = await import('buffer/index.js')
+  target.Buffer = Buffer
+}
+
 export async function buildFont(project: Project, opts: BuildOptions = {}): Promise<FontBuild> {
   const formats = new Set<FontFormat>(opts.formats ?? ['svg', 'ttf', 'woff', 'woff2'])
   const source: SvgFontResult = buildSvgFont(project)
@@ -65,7 +82,10 @@ export async function buildFont(project: Project, opts: BuildOptions = {}): Prom
   }).buffer)
 
   if (formats.has('ttf')) build.ttf = ttf
-  if (formats.has('woff')) build.woff = bytes(ttf2woff(ttf, { metadata: undefined }))
+  if (formats.has('woff')) {
+    await ensureBuffer()
+    build.woff = bytes(ttf2woff(ttf, { metadata: undefined }))
+  }
   if (formats.has('woff2')) {
     try {
       build.woff2 = bytes(await compress(ttf))

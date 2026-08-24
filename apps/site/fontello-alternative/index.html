@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A Fontello alternative that builds locally — Iconotype</title>
+    <meta
+      name="description"
+      content="Build icon fonts from your own SVGs without posting a config to a server. Open source, runs in the browser, the terminal or VSCode, with codepoints locked in your repo."
+    />
+    <link rel="icon" href="../mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../src/site.css" />
+    <link rel="canonical" href="https://iconotype.github.io/iconotype/fontello-alternative/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Iconotype" />
+    <meta property="og:url" content="https://iconotype.github.io/iconotype/fontello-alternative/" />
+    <meta property="og:title" content="A Fontello alternative that builds locally" />
+    <meta
+      property="og:description"
+      content="Build icon fonts from your own SVGs without posting a config to a server. Open source, and the codepoints live in your repo."
+    />
+    <meta property="og:image" content="https://iconotype.github.io/iconotype/social-preview.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://iconotype.github.io/iconotype/social-preview.png" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="../">
+        <img src="../mark.svg" alt="" width="28" height="28" />
+        <span>Iconotype</span>
+      </a>
+      <nav>
+        <a href="../#features">Features</a>
+        <a href="../#get">Get it</a>
+        <a href="../#cli">CLI</a>
+        <a class="ghost" href="https://github.com/iconotype/iconotype">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="doc">
+      <h1>A Fontello alternative that builds locally</h1>
+      <p class="lead narrow">
+        Fontello is open source and its CLI is genuinely useful — but the CLI posts your
+        <code>config.json</code> to fontello.com and downloads what comes back, so a build needs
+        the internet and someone else's server to be up. Iconotype builds the font on the machine
+        that asked for it.
+      </p>
+      <div class="cta">
+        <a class="button primary" href="../app/">Open the web app</a>
+        <a class="button" href="https://www.npmjs.com/package/@iconotype/cli">The CLI</a>
+        <a class="button" href="https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode">VSCode extension</a>
+      </div>
+
+      <h2>Moving across, honestly</h2>
+      <p>
+        Fontello's <code>config.json</code> is <strong>not</strong> read yet — if that is what you
+        have, say so on
+        <a href="https://github.com/iconotype/iconotype/issues">the issue tracker</a> and it is a
+        reasonable thing to add. What works today:
+      </p>
+      <ul class="checks">
+        <li>the SVGs you uploaded in the first place — a folder or an archive of them</li>
+        <li>an IcoMoon project, <code>selection.json</code> or font package</li>
+        <li>picking equivalents out of 230+ open collections, licences attached</li>
+      </ul>
+      <p>
+        If your font is already in production, take the codepoints with you: put them in
+        <code>codepoints.lock</code> and every future build honours them, so the classes in your
+        stylesheets keep rendering what they rendered yesterday.
+      </p>
+
+      <h2>What is actually different</h2>
+      <table class="compare">
+        <thead>
+          <tr><th></th><th>Iconotype</th><th>Fontello</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Where the build happens</td>
+            <td>your machine, or your CI runner</td>
+            <td>fontello.com, via its API</td>
+          </tr>
+          <tr>
+            <td>Works with no network</td>
+            <td>yes</td>
+            <td>no</td>
+          </tr>
+          <tr>
+            <td>Inside your editor</td>
+            <td>VSCode extension: completion, previews, rename, usage</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>SVG repair before the build</td>
+            <td>13 stages, 31 reported findings, visual regression tested</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Codepoint drift</td>
+            <td>locked, and <code>iconotype diff</code> fails the PR</td>
+            <td>config holds codes; nothing checks them</td>
+          </tr>
+          <tr>
+            <td>Reproducible output</td>
+            <td>same input, same bytes</td>
+            <td>depends on the service</td>
+          </tr>
+          <tr>
+            <td>Licence</td>
+            <td>MIT</td>
+            <td>MIT</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="fine">
+        Written to be checkable rather than flattering — Fontello's client and server are both open
+        source, and self-hosting its server is a real option if that is the part you mind. If
+        anything here is wrong or has changed,
+        <a href="https://github.com/iconotype/iconotype/issues">say so</a>.
+      </p>
+
+      <h2>The build, in one command</h2>
+      <pre><code># from a folder of SVGs
+npx @iconotype/cli init --input icons/ --fonts-dir app/fonts --styles-dir app/css
+npx @iconotype/cli build --input app.iconotype.json</code></pre>
+      <p>
+        Out comes <code>woff2</code>, <code>woff</code>, <code>ttf</code>, the stylesheet, and
+        whatever else the project asks for: SCSS or LESS variables, a JSON map, a sprite sheet, a
+        <code>.d.ts</code> of every icon name, or a Flutter <code>IconData</code> class. Identical
+        bytes are never rewritten, so a no-op build leaves the working tree clean.
+      </p>
+
+      <h2>Questions</h2>
+      <dl class="faq">
+        <dt>Can Iconotype read a Fontello <code>config.json</code>?</dt>
+        <dd>
+          Not yet. Import the SVGs instead, and carry your codepoints over in
+          <code>codepoints.lock</code> so existing stylesheets keep working.
+        </dd>
+        <dt>Does it need a server?</dt>
+        <dd>
+          No. The font is built where you run it — a browser tab, a desktop app, a CI runner — and
+          nothing is uploaded.
+        </dd>
+        <dt>Can it run in CI?</dt>
+        <dd>
+          That is what it is for. <code>iconotype build</code> is deterministic and
+          <code>iconotype diff</code> fails a pull request that moves or removes a codepoint.
+        </dd>
+        <dt>What does it do about broken SVGs?</dt>
+        <dd>
+          Outlines strokes, bakes transforms, applies clips and masks, converts even-odd fills —
+          and reports anything it cannot represent rather than mangling it quietly.
+        </dd>
+      </dl>
+
+      <section class="closing">
+        <h2>Point it at your icons</h2>
+        <p class="lead narrow">Nothing to install, and nothing leaves your machine.</p>
+        <div class="cta">
+          <a class="button primary" href="../app/">Open the web app</a>
+          <a class="button" href="../">What it does</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        <a href="../">Home</a> ·
+        <a href="../icomoon-alternative/">IcoMoon alternative</a> ·
+        <a href="../svg-to-icon-font/">SVG to icon font</a> ·
+        <a href="https://github.com/iconotype/iconotype">Source</a> ·
+        MIT licensed
+      </p>
+      <p class="fine">Not affiliated with Fontello or IcoMoon.</p>
+    </footer>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Can Iconotype read a Fontello config.json?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Not yet. Import the original SVGs instead, and carry existing codepoints over in codepoints.lock so shipped stylesheets keep working."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does building an icon font with Iconotype need a server?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. The font is built wherever you run it — a browser tab, a desktop app or a CI runner — and nothing is uploaded."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can Iconotype run in CI?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. iconotype build is deterministic, and iconotype diff fails a pull request that moves or removes a codepoint."
+            }
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

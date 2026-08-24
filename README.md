@@ -25,13 +25,12 @@ editor, your terminal or your CI — no account, no upload, no zip to unpack.
 [Docs](docs/)
 
 <!--
-  The demo loop goes here, once recorded: drop a folder of SVGs on the grid → the fixer
-  report → tick two icons out of the build → Export → the class completing in a .scss
-  file with the glyph drawn inline next to it. Ten seconds, no cursor hunting, 1200px
-  wide. Replace the screenshot below with it; a still cannot show that this is fast.
+  Recorded by `pnpm demo` against the real app — no mockup, no compositing. GitHub does
+  not play an mp4 committed to a repository, so the loop is a GIF here and the mp4 is
+  for the site and for anywhere that unfurls video.
 -->
 
-<img src="docs/media/app-grid.png" alt="The icon grid: three sets, per-icon include ticks, export settings" width="820">
+<img src="docs/media/demo.gif" alt="Searching 230+ icon libraries, adding icons, exporting the package, the font in use on a web page, fixing a glyph on the em square, and the page rebuilt with it" width="880">
 
 </div>
 

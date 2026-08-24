@@ -10,3 +10,7 @@ target/
 apps/desktop/src-tauri/gen/
 packages/cli/dist-npm/
 *.tgz
+
+# frames from `pnpm demo`, encoded into docs/media and not committed themselves
+.demo-frames/
+.demo-work/

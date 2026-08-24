@@ -94,3 +94,53 @@ should not require anyone's certificate.
 CI also runs `cargo check` on the desktop crate for every pull request, which is only
 affordable because of the Rust cache — and is the difference between finding a broken
 Rust side now or at release time.
+
+## The demo loop
+
+`pnpm demo` drives the real web app in a headless Chromium and writes frames to
+`.demo-frames`; the dev server has to be up (`pnpm dev`). Nothing is composited — a
+beat that stops being true stops appearing in the recording.
+
+One fixed frame throughout. An earlier take pushed in on each area of interest, the way
+app videos do, and it read as seasickness rather than emphasis: the layout is dense,
+every move re-flowed what the eye had just found, and a viewer spent the zoom
+re-locating themselves instead of watching. It also cost seven times the file size — a
+static frame compresses to almost nothing, a moving one to almost the whole thing. The
+pointer directs attention instead, and is drawn in because a headless browser has no
+cursor to record.
+
+The page markup carries BOTH classes — `class="icon icon-hiking"` — because the
+stylesheet puts the family on the base class and the codepoint on the icon class. The
+first cut of this video wrote only the second and recorded a page of stray dashes: the
+character was there, rendered in the body font. The same mistake was in the generated
+snippets, and is fixed there too.
+
+The web page at the end is not a mock-up. The recorder clicks Download package, catches
+the browser download, unpacks the zip, and serves it over a local port with a small page
+that links `style.css` and puts the classes next to text — so the icons on that page are
+the font the app just built, and the second visit is the same page after the glyph was
+fixed and the package rebuilt. The page is written from the class names found in the
+exported stylesheet, so it cannot drift from what the project actually contains.
+
+The library search is rehearsed once off-camera before the take. The first query of a
+session pays for the whole collection index, several seconds of "searching…" that is a
+cold cache rather than the app being slow, and warming it means the recording shows what
+the second search onwards actually feels like without cutting frames out of the wait.
+
+Encoding, once the frames exist:
+
+```bash
+ffmpeg -y -framerate 12 -i .demo-frames/%05d.png \
+  -vf "scale=1280:-2:flags=lanczos,format=yuv420p" \
+  -c:v libx264 -preset slow -crf 20 -movflags +faststart -r 24 docs/media/demo.mp4
+
+ffmpeg -y -framerate 12 -i .demo-frames/%05d.png \
+  -vf "scale=860:-2:flags=lanczos,palettegen=max_colors=96:stats_mode=diff" /tmp/pal.png
+ffmpeg -y -framerate 12 -i .demo-frames/%05d.png -i /tmp/pal.png \
+  -lavfi "scale=860:-2:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
+  -loop 0 docs/media/demo.gif
+```
+
+The GIF is what README shows: GitHub will not play an mp4 committed to a repository.
+The mp4 is a quarter of the size at twice the resolution, so it is what the site and any
+link unfurl should use.

@@ -47,8 +47,28 @@ describe('snippets', () => {
     const icon = sampleIcons(base)[0]!
     const html = buildSnippets(base, 'html').snippets
     expect(html[0]!.code).toContain(`${family}.woff2`)
-    expect(html[0]!.code).toContain(`class="${icon.className}"`)
+    expect(html[0]!.code).toContain(`class="icon ${icon.className}"`)
     expect(JSON.stringify(buildAllSnippets(base))).not.toContain('your-font')
+  })
+
+  it('writes the base class as well, or the glyph renders in the body font', () => {
+    // `.icon` carries the family, `.icon-home` carries the codepoint: both, or neither works
+    const html = buildSnippets(base, 'html').snippets[0]!.code
+    const icon = sampleIcons(base)[0]!
+    expect(html).toContain(`class="icon ${icon.className}"`)
+    expect(html).not.toContain(`class="${icon.className}"`)
+    expect(buildSnippets(base, 'html').snippets[0]!.note).toContain('Both classes are needed')
+  })
+
+  it('drops the base class when the stylesheet matches the prefix instead', () => {
+    const project: Project = {
+      ...base,
+      preferences: { ...base.preferences, font: { ...base.preferences.font, selector: 'attribute' } },
+    }
+    const icon = sampleIcons(project)[0]!
+    const html = buildSnippets(project, 'html').snippets[0]!.code
+    expect(html).toContain(`class="${icon.className}"`)
+    expect(html).not.toContain('class="icon ')
   })
 
   it('follows the project’s output paths when it has them', () => {

@@ -170,6 +170,15 @@ jobs:
           for path in $(echo '${{ steps.build.outputs.artifactPaths }}' | tr -d '[]"' | tr ',' '\n'); do
             [ -e "$path" ] && cp -r "$path" out/ || true
           done
+          # A .app is a tree of symlinks whose signature seals them, and `upload-artifact`
+          # re-zips with a zip that keeps neither symlinks nor extended attributes — so a
+          # signed bundle would reach the release subtly broken and refuse to open.
+          # `ditto` writes the archive Apple's own tools read; the .dmg was already safe.
+          for app in out/*.app; do
+            [ -e "$app" ] || continue
+            ditto -c -k --keepParent --sequesterRsrc "$app" "${app}.zip"
+            rm -rf "$app"
+          done
           ls -la out
 
       - uses: actions/upload-artifact@v4

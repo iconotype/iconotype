@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://iconotype.github.io/iconotype/sitemap.xml

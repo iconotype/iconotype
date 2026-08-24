@@ -39,8 +39,28 @@ const media = (files: string[]): Plugin => {
  * kilobyte spent before anyone has seen what the thing does. `BASE_PATH` matches the
  * Pages subpath, and the app is deployed underneath it at `app/`.
  */
+/**
+ * One page per thing people search for.
+ *
+ * Directory-shaped entries, so the URLs are `/icomoon-alternative/` rather than
+ * `/icomoon-alternative.html`, and every link between them can stay relative — which is
+ * what lets the whole site move under the Pages subpath without rewriting anything.
+ */
+const page = (name: string) => fileURLToPath(new URL(`./${name}/index.html`, import.meta.url))
+
 export default defineConfig({
   plugins: [media(['demo.mp4', 'demo-poster.jpg', 'social-preview.png'])],
   base: process.env.BASE_PATH ?? '/',
-  build: { target: 'es2022', assetsDir: 'assets' },
+  build: {
+    target: 'es2022',
+    assetsDir: 'assets',
+    rollupOptions: {
+      input: {
+        main: page('.'),
+        icomoon: page('icomoon-alternative'),
+        fontello: page('fontello-alternative'),
+        svg: page('svg-to-icon-font'),
+      },
+    },
+  },
 })

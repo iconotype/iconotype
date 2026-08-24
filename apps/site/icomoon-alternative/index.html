@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>An open-source IcoMoon alternative — Iconotype</title>
+    <meta
+      name="description"
+      content="Import an IcoMoon project or selection.json, keep every codepoint, and build the font offline — from your editor, your terminal or your CI. Free and open source."
+    />
+    <link rel="icon" href="../mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../src/site.css" />
+    <link rel="canonical" href="https://iconotype.github.io/iconotype/icomoon-alternative/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Iconotype" />
+    <meta property="og:url" content="https://iconotype.github.io/iconotype/icomoon-alternative/" />
+    <meta property="og:title" content="An open-source IcoMoon alternative" />
+    <meta
+      property="og:description"
+      content="Import an IcoMoon project, keep every codepoint, and build the font offline — from your editor, your terminal or your CI."
+    />
+    <meta property="og:image" content="https://iconotype.github.io/iconotype/social-preview.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://iconotype.github.io/iconotype/social-preview.png" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="../">
+        <img src="../mark.svg" alt="" width="28" height="28" />
+        <span>Iconotype</span>
+      </a>
+      <nav>
+        <a href="../#features">Features</a>
+        <a href="../#get">Get it</a>
+        <a href="../#cli">CLI</a>
+        <a class="ghost" href="https://github.com/iconotype/iconotype">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="doc">
+      <h1>An open-source IcoMoon alternative</h1>
+      <p class="lead narrow">
+        IcoMoon is a good tool, and for a font you make once it is hard to beat. Iconotype is for
+        the other case: a font that ships repeatedly, from a repository, with other people
+        reviewing it. It imports IcoMoon's own formats, keeps every codepoint, and never asks you
+        to upload anything.
+      </p>
+      <div class="cta">
+        <a class="button primary" href="../app/">Open the web app</a>
+        <a class="button" href="https://marketplace.visualstudio.com/items?itemName=iconotype.iconotype-vscode">VSCode extension</a>
+        <a class="button" href="https://github.com/iconotype/iconotype/releases/latest">Download for desktop</a>
+      </div>
+
+      <h2>Your existing project comes across</h2>
+      <p>
+        The thing that keeps people on IcoMoon is not the editor, it is the
+        <code>selection.json</code> in their repository and the codepoints baked into every
+        stylesheet they have already shipped. Iconotype reads all of it:
+      </p>
+      <ul class="checks">
+        <li>an IcoMoon project file or <code>selection.json</code></li>
+        <li>a downloaded font package <code>.zip</code></li>
+        <li>an archive or folder of plain <code>.svg</code> files</li>
+      </ul>
+      <p>
+        <strong>Codepoints come across exactly as they were.</strong> That is the point: a font
+        you already shipped has its codepoints baked into every built stylesheet, and renumbering
+        them would silently change which glyph each existing class renders. From then on they are
+        append-only and recorded in a lockfile, so no future export can move them either.
+      </p>
+      <pre><code>npx @iconotype/cli init --input icomoon/project.json \
+  --fonts-dir app/fonts --styles-dir app/css --style-kind scss-variables</code></pre>
+      <p class="fine">
+        That writes a committed <code>&lt;name&gt;.iconotype.json</code> and a
+        <code>codepoints.lock</code>. Nothing is uploaded, and the IcoMoon file is left untouched.
+      </p>
+
+      <h2>What is actually different</h2>
+      <table class="compare">
+        <thead>
+          <tr><th></th><th>Iconotype</th><th>IcoMoon</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Where the project lives</td>
+            <td>a JSON file in your repo, reviewable in a diff</td>
+            <td>in the browser, or a file you download</td>
+          </tr>
+          <tr>
+            <td>Building without a network</td>
+            <td><code>iconotype build</code></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Inside your editor</td>
+            <td>VSCode extension: completion, previews, rename, usage</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Codepoint drift</td>
+            <td>locked, and <code>iconotype diff</code> fails the PR</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Licence and designer credit</td>
+            <td>carried into the generated stylesheet</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Reproducible output</td>
+            <td>same input, same bytes</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Licence</td>
+            <td>MIT, self-hostable</td>
+            <td>proprietary service</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="fine">
+        Written to be checkable rather than flattering. If something here is wrong or has changed,
+        <a href="https://github.com/iconotype/iconotype/issues">say so</a> and it gets corrected.
+      </p>
+
+      <h2>What stays the same</h2>
+      <div class="grid three">
+        <article>
+          <h3>The zip you know</h3>
+          <p>
+            Same layout: fonts, <code>style.css</code>, variables, a demo page, and
+            <code>selection.json</code> so you can go back to IcoMoon whenever you like.
+          </p>
+        </article>
+        <article>
+          <h3>Class names and prefixes</h3>
+          <p>
+            <code>.icon-home</code>, prefixes, postfixes and the <code>${u}</code> interpolation
+            IcoMoon supports — so an existing stylesheet keeps working untouched.
+          </p>
+        </article>
+        <article>
+          <h3>Multicolour glyphs</h3>
+          <p>
+            IcoMoon's stacked-layer model, palettes included, rather than a flattened
+            approximation of it.
+          </p>
+        </article>
+      </div>
+
+      <h2>And what you get for moving</h2>
+      <div class="grid three">
+        <article>
+          <h3>230+ libraries, searched at once</h3>
+          <p>
+            Lucide, Material Symbols, MDI, Tabler, Phosphor and hundreds more, each landing with
+            its own licence attached to the artwork.
+          </p>
+        </article>
+        <article>
+          <h3>An SVG fixer with receipts</h3>
+          <p>
+            Strokes outlined, transforms baked, even-odd converted — and anything that cannot
+            survive the trip reported instead of silently mangled.
+          </p>
+        </article>
+        <article>
+          <h3>CI that can say no</h3>
+          <p>
+            <code>iconotype diff</code> fails a pull request that would move a codepoint;
+            <code>scan</code> finds icons nothing references any more.
+          </p>
+        </article>
+      </div>
+
+      <h2>Questions</h2>
+      <dl class="faq">
+        <dt>Can I import my IcoMoon project?</dt>
+        <dd>
+          Yes — the project file, a <code>selection.json</code>, a downloaded font package zip, or
+          a folder of SVGs. Codepoints are preserved exactly.
+        </dd>
+        <dt>Will my existing stylesheets keep working?</dt>
+        <dd>
+          Yes, provided the codepoints do not move, and they do not: allocation is append-only and
+          recorded in a lockfile. Renaming an icon moves its name, never its number.
+        </dd>
+        <dt>Does it work offline?</dt>
+        <dd>
+          Everything except searching the online icon libraries. The fixer, the font build and the
+          export all run locally, in the browser tab, the desktop app or Node.
+        </dd>
+        <dt>Is it really free?</dt>
+        <dd>MIT licensed, no account, no upload, no paid tier.</dd>
+        <dt>Can I go back to IcoMoon?</dt>
+        <dd>
+          Yes. Every export includes a <code>selection.json</code> IcoMoon can open, which is the
+          same file it would have written itself.
+        </dd>
+        <dt>Is this affiliated with IcoMoon?</dt>
+        <dd>No. It reads IcoMoon's file formats; it does not use IcoMoon's service.</dd>
+      </dl>
+
+      <section class="closing">
+        <h2>Try it with your own project</h2>
+        <p class="lead narrow">
+          The web app opens with nothing to install. Drop your <code>selection.json</code> on it
+          and see whether the codepoints line up.
+        </p>
+        <div class="cta">
+          <a class="button primary" href="../app/">Open the web app</a>
+          <a class="button" href="../">What it does</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        <a href="../">Home</a> ·
+        <a href="../fontello-alternative/">Fontello alternative</a> ·
+        <a href="../svg-to-icon-font/">SVG to icon font</a> ·
+        <a href="https://github.com/iconotype/iconotype">Source</a> ·
+        MIT licensed
+      </p>
+      <p class="fine">Not affiliated with IcoMoon. Imports its formats; does not use its service.</p>
+    </footer>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Can I import my IcoMoon project into Iconotype?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes — an IcoMoon project file, a selection.json, a downloaded font package zip, or a folder of SVGs. Codepoints are preserved exactly as they were."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Will my existing stylesheets keep working?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Codepoint allocation is append-only and recorded in a lockfile, so renaming an icon moves its name and never its number."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Iconotype work offline?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Everything except searching the online icon libraries. The SVG fixer, the font build and the export all run locally."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is Iconotype free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. It is MIT licensed, with no account, no upload and no paid tier."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I go back to IcoMoon later?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Every export includes a selection.json that IcoMoon can open."
+            }
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

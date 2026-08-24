@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Turn a folder of SVGs into an icon font — Iconotype</title>
+    <meta
+      name="description"
+      content="Generate woff2, woff, ttf and the stylesheet from a folder of SVG files — in the browser or from the command line, with strokes outlined and codepoints locked."
+    />
+    <link rel="icon" href="../mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../src/site.css" />
+    <link rel="canonical" href="https://iconotype.github.io/iconotype/svg-to-icon-font/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Iconotype" />
+    <meta property="og:url" content="https://iconotype.github.io/iconotype/svg-to-icon-font/" />
+    <meta property="og:title" content="Turn a folder of SVGs into an icon font" />
+    <meta
+      property="og:description"
+      content="woff2, woff, ttf and the stylesheet from a folder of SVGs — in the browser or from the command line, strokes outlined, codepoints locked."
+    />
+    <meta property="og:image" content="https://iconotype.github.io/iconotype/social-preview.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://iconotype.github.io/iconotype/social-preview.png" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="../">
+        <img src="../mark.svg" alt="" width="28" height="28" />
+        <span>Iconotype</span>
+      </a>
+      <nav>
+        <a href="../#features">Features</a>
+        <a href="../#get">Get it</a>
+        <a href="../#cli">CLI</a>
+        <a class="ghost" href="https://github.com/iconotype/iconotype">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="doc">
+      <h1>Turn a folder of SVGs into an icon font</h1>
+      <p class="lead narrow">
+        Point it at a directory. Out come <code>woff2</code>, <code>woff</code>,
+        <code>ttf</code> and a stylesheet, with the geometry a font actually needs — strokes
+        outlined, transforms baked, codepoints assigned once and never moved again.
+      </p>
+      <div class="cta">
+        <a class="button primary" href="../app/">Do it in the browser</a>
+        <a class="button" href="https://www.npmjs.com/package/@iconotype/cli">Install the CLI</a>
+      </div>
+
+      <h2>From the command line</h2>
+      <pre><code>npx @iconotype/cli init --input icons/ \
+  --fonts-dir app/fonts --styles-dir app/css --style-kind scss-variables
+
+npx @iconotype/cli build --input app.iconotype.json
+# built 27 glyph(s) → app/fonts/app.woff2, app/fonts/app.woff, app/fonts/app.ttf, app/css/_app.scss</code></pre>
+      <p>
+        <code>init</code> writes a committed project file and a <code>codepoints.lock</code>;
+        <code>build</code> is what runs afterwards, on a laptop or a runner, and produces identical
+        bytes from identical input. Files whose contents have not changed are not rewritten, so a
+        no-op build leaves the working tree clean.
+      </p>
+
+      <h2>The part that usually goes wrong</h2>
+      <p>
+        A font glyph has no stroke, no transform, no clip and no even-odd fill rule. Artwork drawn
+        anywhere other than a font editor has all four, which is why so many generated icon fonts
+        come out hollow, doubled or empty. Everything that goes in runs through a fixer first:
+      </p>
+      <ul class="checks">
+        <li>inlined <code>&lt;style&gt;</code> rules resolved, <code>&lt;use&gt;</code> dereferenced</li>
+        <li>shapes converted to paths, transforms baked into coordinates</li>
+        <li><strong>strokes outlined into fills</strong>, which is what most stroke-based sets need</li>
+        <li>clips and masks applied, even-odd converted to non-zero, degenerate geometry removed</li>
+      </ul>
+      <p>
+        Anything that cannot survive the trip is <em>reported</em> rather than silently mangled —
+        31 findings, each with a code — and the whole pipeline is pinned by a 75-fixture visual
+        regression suite, so a change that alters what an icon looks like fails the build.
+      </p>
+
+      <h2>What comes out</h2>
+      <div class="grid three">
+        <article>
+          <h3>Fonts</h3>
+          <p><code>woff2</code>, <code>woff</code>, <code>ttf</code> and an SVG font, from one deterministic build.</p>
+        </article>
+        <article>
+          <h3>Stylesheets</h3>
+          <p>CSS, SCSS, LESS, variables-only partials, CSS custom properties, or a JSON name→codepoint map.</p>
+        </article>
+        <article>
+          <h3>Everything else</h3>
+          <p>A sprite sheet, PNGs, favicons, React and Vue components, and a <code>.d.ts</code> union of every icon name.</p>
+        </article>
+      </div>
+
+      <h2>Codepoints are an API</h2>
+      <p>
+        The number behind <code>.icon-home</code> is baked into every stylesheet you have ever
+        shipped and every page a browser has cached. Allocation is append-only from the Private Use
+        Area and recorded in a lockfile: renaming an icon moves its <em>name</em>, never its
+        number, and removing one leaves its codepoint reserved.
+      </p>
+      <pre><code>npx @iconotype/cli diff --input app.iconotype.json --against origin/main   # non-zero if a codepoint moved
+npx @iconotype/cli scan --input app.iconotype.json                         # which icons nothing references</code></pre>
+
+      <h2>Questions</h2>
+      <dl class="faq">
+        <dt>Do my SVGs need preparing first?</dt>
+        <dd>
+          No. Strokes, transforms, clips, masks and even-odd fills are all handled on the way in,
+          and anything unrepresentable is reported with a code rather than mangled.
+        </dd>
+        <dt>Can it run in CI?</dt>
+        <dd>
+          Yes, and that is the point: builds are byte-reproducible, and <code>diff</code> fails a
+          pull request that would move a codepoint.
+        </dd>
+        <dt>Do the icons have to be the same size?</dt>
+        <dd>
+          No. Each set keeps the coordinate grid it was drawn on, and glyphs are fitted to the em
+          box on the way into the font.
+        </dd>
+        <dt>Is there a GUI?</dt>
+        <dd>
+          A web app with nothing to install, a desktop app for macOS, Windows and Linux, and a
+          VSCode extension — all over the same core as the CLI, on the same project file.
+        </dd>
+      </dl>
+
+      <section class="closing">
+        <h2>Try it on your own folder</h2>
+        <p class="lead narrow">Drop the SVGs on the web app and see what the fixer says about them.</p>
+        <div class="cta">
+          <a class="button primary" href="../app/">Open the web app</a>
+          <a class="button" href="../">What it does</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        <a href="../">Home</a> ·
+        <a href="../icomoon-alternative/">IcoMoon alternative</a> ·
+        <a href="../fontello-alternative/">Fontello alternative</a> ·
+        <a href="https://github.com/iconotype/iconotype">Source</a> ·
+        MIT licensed
+      </p>
+    </footer>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        "name": "Turn a folder of SVGs into an icon font",
+        "step": [
+          {
+            "@type": "HowToStep",
+            "name": "Create the project",
+            "text": "Run iconotype init --input icons/ to write a committed project file and a codepoints lockfile."
+          },
+          {
+            "@type": "HowToStep",
+            "name": "Build the font",
+            "text": "Run iconotype build --input app.iconotype.json to produce woff2, woff, ttf and the stylesheet."
+          },
+          {
+            "@type": "HowToStep",
+            "name": "Guard the codepoints",
+            "text": "Run iconotype diff --against origin/main in CI so a pull request that moves a codepoint fails."
+          }
+        ]
+      }
+    </script>
+  </body>
+</html>

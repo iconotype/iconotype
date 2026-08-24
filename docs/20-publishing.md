@@ -113,8 +113,42 @@ the extension carries the plain `x.y.z` while npm and the GitHub release carry
 Without secrets the bundles are unsigned: macOS shows the Gatekeeper warning, Windows
 SmartScreen complains. To sign, set `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
 `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_TEAM_ID` and `APPLE_PASSWORD`; the workflow
-only touches them when a certificate is present. `TAURI_SIGNING_PRIVATE_KEY` and its
-password are for the auto-updater, which is not wired up yet.
+only touches them when a certificate is present.
+
+## The auto-updater
+
+The app checks `releases/latest/download/latest.json` four seconds after launch and
+offers what it finds; nothing downloads or restarts without a click, because a tool
+that replaces itself under an unsaved document is a tool that loses work.
+
+It signs with its own key, unrelated to Apple's — Gatekeeper says the app may run,
+minisign says the update came from you:
+
+```bash
+npx @tauri-apps/cli signer generate -w ~/.tauri/iconotype.key
+```
+
+The private key goes in `TAURI_SIGNING_PRIVATE_KEY` and its password — give it one, an
+empty GitHub secret is rejected — in `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. The public
+half is committed, at `plugins.updater.pubkey`. **Back the private key up.** It cannot
+be recovered, and without it every installed copy rejects every future update: the only
+remaining fix is asking people to download the app again by hand.
+
+Updater artifacts are opt-in the same way signing is, and for a sharper reason:
+`createUpdaterArtifacts` with no key in the environment stops the bundler dead and
+takes the release with it. So it lives in `tauri.updater.conf.json`, which the workflow
+merges over the main config only when `TAURI_SIGNING_PRIVATE_KEY` is set. A fork, a
+local `pnpm bundle` and a release cut before the secrets exist all still work — they
+ship no `latest.json`, and installed copies keep checking an endpoint that answers 404,
+which the app treats as "nothing new" rather than as an error.
+
+`latest.json` is assembled in the publish job rather than by `tauri-action`, which can
+only write it when it is the thing creating the release. It is built from what the
+bundler signed: a `.sig` beside a bundle means that bundle is an update artifact.
+
+Note the ordering with macOS. An update replaces the `.app` in place, so shipping the
+updater before the Developer ID signing above gets you an update that installs and then
+will not open.
 
 ## The first release
 

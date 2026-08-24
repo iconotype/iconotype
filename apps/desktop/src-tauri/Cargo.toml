@@ -14,11 +14,17 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# `generate_context!` expands to serde_json calls once the config carries a plugin
+# section, so the crate has to depend on it directly even though no code here names it
+serde_json = "1"
 tauri = { version = "2", features = [] }
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-opener = "2"
+# the auto-updater, and the relaunch that finishes it
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 [profile.release]
 codegen-units = 1

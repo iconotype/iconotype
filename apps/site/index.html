@@ -67,6 +67,25 @@
         </div>
       </section>
 
+      <!--
+        The loop, muted and autoplaying: it is a diagram that moves, not a film. Controls
+        appear on hover for anyone who wants to stop it, and the poster carries the first
+        frame for the browsers — iOS on low power, mostly — that decline to autoplay.
+      -->
+      <section class="demo">
+        <video
+          src="./demo.mp4"
+          poster="./demo-poster.jpg"
+          autoplay muted loop playsinline controls preload="metadata"
+          width="1280" height="734"
+          aria-label="Searching the icon libraries, adding icons, exporting the package, the font in use on a page, fixing a glyph, and the page rebuilt with it"
+        ></video>
+        <p class="caption">
+          Real app, one take: four icons out of 230+ collections, exported, used on a page,
+          fixed on the em square, and the page rebuilt with the new font.
+        </p>
+      </section>
+
       <section class="strip">
         <div><strong>IcoMoon in, anything out</strong><span>Projects, selections, font packages, folders of SVG.</span></div>
         <div><strong>Codepoints never move</strong><span>Append-only, locked, checked in CI.</span></div>

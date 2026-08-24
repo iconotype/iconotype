@@ -84,6 +84,15 @@ h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.08; letter-spacing: -0.03
 .button.primary:hover { background: var(--accent-hover); color: var(--accent-fg); }
 
 .hero-art svg { width: 100%; height: auto; }
+
+/* the demo loop: a window, sitting where a screenshot would have */
+.demo { margin: 8px 0 44px; }
+.demo video {
+  display: block; width: 100%; height: auto; border-radius: 14px;
+  border: 1px solid var(--border); box-shadow: var(--shadow, 0 18px 50px rgba(0, 0, 0, .35));
+  background: var(--surface);
+}
+.demo .caption { color: var(--muted); font-size: 14px; margin: 12px 2px 0; }
 .hero-art .frame { fill: var(--surface); stroke: var(--border); stroke-width: 2; }
 .hero-art .guide { stroke: var(--accent); stroke-width: 1.5; opacity: .45; }
 .hero-art .guide.vertical { stroke-dasharray: 7 7; opacity: .25; }

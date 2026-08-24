@@ -2,7 +2,7 @@
   "name": "iconotype",
   "private": true,
   "type": "module",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "engines": {
     "node": ">=20"
   },
@@ -15,7 +15,7 @@
     "test:vscode": "pnpm --filter iconotype-vscode test",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.json --noEmit",
     "spike:paper": "pnpm --filter spike-paper-headless exec node spike.mjs",
-"demo": "node scripts/demo-capture.mjs",
+    "demo": "node scripts/demo-capture.mjs",
     "social": "pnpm --filter @iconotype/cli exec node scripts/social-preview.mjs"
   },
   "devDependencies": {

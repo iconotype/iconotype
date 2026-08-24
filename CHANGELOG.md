@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.3 — 2026-08-24
+
+### Features
+
+- **site:** a page for each thing people search for (1ef2d74)
+- **site:** make a shared link look like something (ae16708)
+- **site:** a social preview card, generated from the project's own parts (73c0fd7)
+- **site:** put the demo loop on the product page (5d259e8)
+- **site:** the demo starts with the search and ends on a real page (126659d)
+- **site:** search the libraries in the demo, and hold the camera still (f168afc)
+- **site:** record the demo loop from the real app (85783ff)
+
+### Fixes
+
+- **ci:** both Macs were sent the same update (55eae5c)
+- **site:** play the README loop at 20fps (c056df0)
+- **export:** the snippets taught markup that renders nothing (c450c4f)
+- **font:** WOFF could not be built in a browser at all (621bc1f)
+
 ## 0.2.2 — 2026-08-24
 
 ### Features

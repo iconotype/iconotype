@@ -125,10 +125,18 @@ jobs:
           set -euo pipefail
           app=$(find apps/desktop/src-tauri/target -path '*/release/bundle/macos/*.app' -maxdepth 6 -print -quit)
           [ -n "$app" ] || { echo "no .app was bundled"; exit 1; }
-          codesign -dvv "$app" 2>&1 | tee /dev/stderr | grep -q 'Authority=Developer ID Application' || {
-            echo "::error::bundle is not signed with a Developer ID — check APPLE_SIGNING_IDENTITY"
-            exit 1
-          }
+          # No pipe here on purpose. `… | tee /dev/stderr | grep -q` reads well and is
+          # wrong: grep exits at the first match, tee dies of EPIPE, and `pipefail` takes
+          # tee's status — so a correctly signed bundle failed this check.
+          info=$(codesign -dvv "$app" 2>&1)
+          echo "$info"
+          case "$info" in
+            *"Authority=Developer ID Application"*) ;;
+            *)
+              echo "::error::bundle is not signed with a Developer ID — check APPLE_SIGNING_IDENTITY"
+              exit 1
+              ;;
+          esac
           xcrun stapler validate "$app" || {
             echo "::error::notarization ticket missing — the app will be blocked on first launch elsewhere"
             exit 1

@@ -94,3 +94,32 @@ should not require anyone's certificate.
 CI also runs `cargo check` on the desktop crate for every pull request, which is only
 affordable because of the Rust cache — and is the difference between finding a broken
 Rust side now or at release time.
+
+## The demo loop
+
+`pnpm demo` drives the real web app in a headless Chromium and writes frames to
+`.demo-frames`; the dev server has to be up (`pnpm dev`). Nothing is composited — a
+beat that stops being true stops appearing in the recording.
+
+The camera is a CSS transform on `#app` rather than an ffmpeg crop, so a zoom
+re-rasterizes the layout instead of enlarging pixels and the text stays sharp at 2×,
+the way it would if you actually leaned in. The pointer is drawn in, because a headless
+browser has no cursor to record.
+
+Encoding, once the frames exist:
+
+```bash
+ffmpeg -y -framerate 12 -i .demo-frames/%05d.png \
+  -vf "scale=1280:-2:flags=lanczos,format=yuv420p" \
+  -c:v libx264 -preset slow -crf 20 -movflags +faststart -r 24 docs/media/demo.mp4
+
+ffmpeg -y -framerate 12 -i .demo-frames/%05d.png \
+  -vf "scale=860:-2:flags=lanczos,palettegen=max_colors=96:stats_mode=diff" /tmp/pal.png
+ffmpeg -y -framerate 12 -i .demo-frames/%05d.png -i /tmp/pal.png \
+  -lavfi "scale=860:-2:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
+  -loop 0 docs/media/demo.gif
+```
+
+The GIF is what README shows: GitHub will not play an mp4 committed to a repository.
+The mp4 is a quarter of the size at twice the resolution, so it is what the site and any
+link unfurl should use.

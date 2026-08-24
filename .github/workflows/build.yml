@@ -12,10 +12,10 @@ on:
         default: all
         options: [all, extension, desktop, web]
       sign:
-        description: 'Sign and notarize the macOS build (needs the Apple secrets)'
+        description: 'Sign and notarize the macOS build (untick for a faster unsigned build)'
         type: boolean
         required: false
-        default: false
+        default: true
   pull_request:
 
 env:
@@ -95,9 +95,10 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri -> target
           key: ${{ matrix.name }}
-      # Unsigned by default: a test build should not need anyone's certificate, and a
-      # pull request from a fork cannot read the secrets anyway. Tick "sign" on the run
-      # to get something other people's Macs will actually open.
+      # Signed by default, because an unsigned test build cannot be tested: macOS blocks
+      # it everywhere except the machine that produced it. Untick "sign" for a faster
+      # run, and a fork gets one whether it asks or not — its secrets are empty, the
+      # gate reads false, and the build simply comes out unsigned rather than failing.
       - name: Enable code signing
         if: startsWith(matrix.platform, 'macos') && env.SIGN_MACOS == 'true'
         run: |

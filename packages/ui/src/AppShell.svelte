@@ -5,11 +5,12 @@
   import ExportPanel from './ExportPanel.svelte'
   import FixPanel from './FixPanel.svelte'
   import HistoryPanel from './HistoryPanel.svelte'
+  import Icon from './Icon.svelte'
   import IconLibrary from './IconLibrary.svelte'
   import Notices from './Notices.svelte'
-  import RecentsMenu from './RecentsMenu.svelte'
   import SetPanel from './SetPanel.svelte'
   import ShortcutsOverlay from './ShortcutsOverlay.svelte'
+  import Splitter from './Splitter.svelte'
   import Toolbar from './Toolbar.svelte'
   import { loadUiPrefs, saveUiPrefs, type RecentProject } from './recents.js'
   import { onMount } from 'svelte'
@@ -29,6 +30,8 @@
     onSaveAs,
     onPickRecent,
     home,
+    titleBarInset = 0,
+    titleBarHeight = 0,
   }: {
     embedded?: boolean
     /** desktop only: a real file on disk, opened and saved through native dialogs */
@@ -39,26 +42,52 @@
     onPickRecent?: (entry: RecentProject) => void
     /** home directory, so recent paths can be shortened to `~/…` */
     home?: string
+    /**
+     * Space to leave at the left of the title bar for the window's own buttons.
+     *
+     * The desktop window is frameless, so the traffic lights float over whatever is
+     * in that corner; the shell that knows the platform says how much room they need.
+     */
+    titleBarInset?: number
+    /**
+     * How tall that bar is, when the window's own buttons are sitting in it.
+     *
+     * The point of a custom title bar is that it IS the title bar — one band with the
+     * window buttons and the app in it. At the shell's usual 52px the buttons sit near
+     * the top of a bar whose text is centred, which reads as two rows stacked rather
+     * than one, so the shell that owns the window says how tall the band actually is.
+     */
+    titleBarHeight?: number
   } = $props()
 
   const app = useApp()
   const host = useHost()
   const session = $derived(app.session)
 
-  /** What ⌘Z would undo, named — so it is never a surprise. */
-  /** Only the open panes take a column, or a closed one leaves a gap behind. */
+  const showSets = $derived(!embedded && app.showSets && app.mode === 'browse')
+
+  /**
+   * Undo lives in the toolbar, which the embedded shell does not have — so there it
+   * stays in the title bar. What ⌘Z would undo is named, so it is never a surprise.
+   */
+  const undoLabel = $derived(session.canUndo ? `Undo ${session.timeline.at(-1)?.label ?? ''}` : 'Nothing to undo')
+  const redoLabel = $derived(session.canRedo ? 'Redo' : 'Nothing to redo')
+
+  /**
+   * Only the open panes take a column, or a closed one leaves a gap behind — and each
+   * open pane brings its own splitter, so the handle never outlives the pane.
+   */
   const columns = $derived(
     embedded
       ? '1fr 200px'
       : [
-          app.showSets && app.mode === 'browse' ? '200px' : null,
+          showSets ? `${app.sidebarWidth}px` : null,
+          showSets ? 'var(--gs-split)' : null,
           'minmax(0, 1fr)',
-          app.showRail ? '320px' : null,
+          app.showRail ? 'var(--gs-split)' : null,
+          app.showRail ? `${app.railWidth}px` : null,
         ].filter(Boolean).join(' '),
   )
-
-  const undoLabel = $derived(session.canUndo ? `Undo ${session.timeline.at(-1)?.label ?? ''}` : 'Nothing to undo')
-  const redoLabel = $derived(session.canRedo ? 'Redo' : 'Nothing to redo')
 
   /** An explicit choice beats the system one; 'system' removes the attribute. */
   $effect(() => {
@@ -76,8 +105,8 @@
   /**
    * Chrome preferences, remembered.
    *
-   * Loaded once, then written on every change — they are four booleans, and a person
-   * who closed a panel yesterday expects it closed today.
+   * Loaded once, then written on every change — a person who closed a panel yesterday,
+   * or dragged it narrower, expects to find it that way today.
    */
   let prefsLoaded = $state(false)
   onMount(async () => {
@@ -86,11 +115,16 @@
     if (typeof prefs.showSets === 'boolean') app.showSets = prefs.showSets
     if (typeof prefs.showRail === 'boolean') app.showRail = prefs.showRail
     if (typeof prefs.cellSize === 'number') app.cellSize = prefs.cellSize
+    if (typeof prefs.sidebarWidth === 'number') app.sidebarWidth = prefs.sidebarWidth
+    if (typeof prefs.railWidth === 'number') app.railWidth = prefs.railWidth
     prefsLoaded = true
   })
 
   $effect(() => {
-    const prefs = { theme: app.theme, showSets: app.showSets, showRail: app.showRail, cellSize: app.cellSize }
+    const prefs = {
+      theme: app.theme, showSets: app.showSets, showRail: app.showRail, cellSize: app.cellSize,
+      sidebarWidth: app.sidebarWidth, railWidth: app.railWidth,
+    }
     if (!prefsLoaded) return
     void saveUiPrefs(host, prefs)
   })
@@ -99,6 +133,12 @@
     const tag = (target as HTMLElement | null)?.tagName
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
   }
+
+  const themeIcon = $derived(
+    app.theme === 'dark' ? 'theme-dark' as const
+    : app.theme === 'light' ? 'theme-light' as const
+    : 'theme-auto' as const,
+  )
 
   function onKeydown(e: KeyboardEvent) {
     const mod = e.metaKey || e.ctrlKey
@@ -128,6 +168,19 @@
       ;(document.querySelector('input[type=search]') as HTMLInputElement | null)?.focus()
       return
     }
+    /**
+     * Arrows walk the grid.
+     *
+     * The editor uses the same keys to nudge geometry, which is why this only runs in
+     * browse mode; ↑/↓ move by whatever the grid is currently laying out per row, so
+     * they follow the icons rather than a guess about the window's width.
+     */
+    if (e.key === 'ArrowLeft') { e.preventDefault(); app.moveCursor(-1); return }
+    if (e.key === 'ArrowRight') { e.preventDefault(); app.moveCursor(1); return }
+    if (e.key === 'ArrowUp') { e.preventDefault(); app.moveCursor(-app.gridColumns); return }
+    if (e.key === 'ArrowDown') { e.preventDefault(); app.moveCursor(app.gridColumns); return }
+    if (e.key === 'Home') { e.preventDefault(); app.moveCursor(-Infinity); return }
+    if (e.key === 'End') { e.preventDefault(); app.moveCursor(Infinity); return }
     if (e.key === 'Enter' || e.key === 'e') {
       const [first] = app.selection
       if (first) { e.preventDefault(); app.edit(first) }
@@ -147,52 +200,73 @@
 <svelte:window onkeydown={onKeydown} />
 
 <div class="shell">
-  <header>
-    {#if !embedded}<span class="brand">Iconotype</span>{/if}
-    <strong>{session.project.name}</strong>
-    <span class="muted">{session.project.sets.length} set(s) · {session.glyphCount} glyph(s)</span>
-    {#if app.busy}<span class="muted">importing…</span>
-    {:else if app.saving}<span class="muted">saving…</span>{/if}
-    <span class="spacer"></span>
+  <!--
+    The title bar: who you are and what you have open, and nothing you click by
+    accident. The window's own layout switches sit at its right, where every editor
+    with a custom title bar puts them.
+  -->
+  <header
+    data-tauri-drag-region
+    class:native={titleBarHeight}
+    style:padding-left="{titleBarInset + 12}px"
+    style:min-height={titleBarHeight ? `${titleBarHeight}px` : null}
+  >
+    <!--
+      Every non-interactive piece carries the drag attribute: the frameless desktop
+      window is moved by whatever is under the pointer, and a bare <strong> with the
+      project's name in it is otherwise a dead spot in the title bar.
+    -->
+    {#if !embedded}<span class="brand" data-tauri-drag-region>Iconotype</span>{/if}
+    <strong data-tauri-drag-region>{session.project.name}</strong>
+    <span class="muted" data-tauri-drag-region>
+      {session.project.sets.length} set(s) · {session.glyphCount} glyph(s)
+    </span>
+    {#if app.busy}<span class="muted" data-tauri-drag-region>importing…</span>
+    {:else if app.saving}<span class="muted" data-tauri-drag-region>saving…</span>{/if}
+    <span class="spacer" data-tauri-drag-region></span>
+    {#if embedded}
+      <button class="ghost icon" disabled={!session.canUndo} onclick={() => session.undo()} title={undoLabel} aria-label={undoLabel}>
+        <Icon name="undo" />
+      </button>
+      <button class="ghost icon" disabled={!session.canRedo} onclick={() => session.redo()} title={redoLabel} aria-label={redoLabel}>
+        <Icon name="redo" />
+      </button>
+    {/if}
     {#if !embedded}
       {#if app.mode === 'browse'}
         <button
           class="ghost icon"
           class:on={app.showSets}
           onclick={() => (app.showSets = !app.showSets)}
-          title="Sets panel (⌘1)"
-        >☰</button>
+          title="{app.showSets ? 'Hide' : 'Show'} the sets panel (⌘1)"
+          aria-label="{app.showSets ? 'Hide' : 'Show'} the sets panel"
+          aria-pressed={app.showSets}
+        ><Icon name={app.showSets ? 'sidebar-left' : 'sidebar-left-off'} /></button>
       {/if}
       <button
         class="ghost icon"
         class:on={app.showRail}
         onclick={() => (app.showRail = !app.showRail)}
-        title={app.mode === 'edit' ? 'Fix panel (⌘2)' : 'Export panel (⌘2)'}
-      >▤</button>
+        title="{app.showRail ? 'Hide' : 'Show'} the {app.mode === 'edit' ? 'fix' : 'export'} panel (⌘2)"
+        aria-label="{app.showRail ? 'Hide' : 'Show'} the side panel"
+        aria-pressed={app.showRail}
+      ><Icon name={app.showRail ? 'sidebar-right' : 'sidebar-right-off'} /></button>
       <button
         class="ghost icon"
         onclick={() => (app.theme = app.theme === 'dark' ? 'light' : app.theme === 'light' ? 'system' : 'dark')}
         title={`Theme: ${app.theme} — click to change`}
-      >{app.theme === 'dark' ? '🌙' : app.theme === 'light' ? '☀️' : '◐'}</button>
-      <button class="ghost icon" onclick={() => (app.showShortcuts = !app.showShortcuts)} title="Keyboard shortcuts (?)">?</button>
+        aria-label={`Theme: ${app.theme}`}
+      ><Icon name={themeIcon} /></button>
+      <button
+        class="ghost icon"
+        onclick={() => (app.showShortcuts = !app.showShortcuts)}
+        title="Keyboard shortcuts (?)"
+        aria-label="Keyboard shortcuts"
+      ><Icon name="keyboard" /></button>
     {/if}
-    {#if onOpen}
-      <button class="ghost" onclick={onOpen} title="Open a project file (⌘O)">Open…</button>
-    {/if}
-    {#if onPickRecent}<RecentsMenu onPick={onPickRecent} {home} />{/if}
-    {#if onSave}
-      <button class="ghost" onclick={onSave} title="Save to the project file (⌘S)">Save</button>
-    {/if}
-    {#if onSaveAs}
-      <button class="ghost" onclick={onSaveAs} title="Save to a new file (⇧⌘S)">Save as…</button>
-    {/if}
-    <span class="muted host">{host.name}</span>
-    <button class="ghost" disabled={!session.canUndo} onclick={() => session.undo()} title={undoLabel}>Undo</button>
-    <button class="ghost" disabled={!session.canRedo} onclick={() => session.redo()} title={redoLabel}>Redo</button>
   </header>
 
-  <!-- browsing has a toolbar; editing has the editor's own header and nothing else -->
-  {#if !embedded && app.mode === 'browse'}<Toolbar />{/if}
+  {#if !embedded}<Toolbar {onOpen} {onSave} {onSaveAs} {onPickRecent} {home} />{/if}
 
   <main class:embedded style:grid-template-columns={columns}>
     {#if embedded}
@@ -200,9 +274,13 @@
       {#if app.editing}<GlyphEditor />{:else}<GlyphDetail />{/if}
       <HistoryPanel />
     {:else}
-      {#if app.showSets && app.mode === 'browse'}<SetPanel />{/if}
+      {#if showSets}
+        <SetPanel />
+        <Splitter bind:value={app.sidebarWidth} side="left" label="Sets panel" initial={220} min={160} max={420} />
+      {/if}
       {#if app.editing}<GlyphEditor />{:else}<GlyphGrid />{/if}
       {#if app.showRail}
+        <Splitter bind:value={app.railWidth} side="right" label="Side panel" initial={320} min={240} max={560} />
         <!--
           One rail, and only what belongs to the current mode. Mixing the export
           settings with a glyph's findings meant half the panel was answering a
@@ -232,16 +310,19 @@
 </div>
 
 <style>
-  .shell { display: flex; flex-direction: column; height: 100vh; }
+  .shell { display: flex; flex-direction: column; height: 100vh; --gs-split: 9px; }
   header {
     display: flex; align-items: center; gap: 10px;
     min-height: var(--gs-header); padding: 0 var(--gs-pad);
     background: var(--gs-surface); border-bottom: 1px solid var(--gs-border);
   }
   header strong { font-size: calc(var(--gs-size) + 1px); letter-spacing: -0.01em; }
+  /* sharing the band with the window buttons: shorter, tighter, smaller targets */
+  header.native { gap: 8px; }
+  header.native .brand { padding-right: 8px; }
+  header.native .icon { padding: 3px; }
   .spacer { flex: 1; }
   .muted { color: var(--gs-muted); font-size: var(--gs-size-sm); }
-  .host { font-family: var(--gs-mono); }
   main { flex: 1; display: grid; min-height: 0; gap: var(--gs-gap); padding: var(--gs-gap); }
   .rail { display: flex; flex-direction: column; gap: var(--gs-gap); min-height: 0; overflow: auto;
           background: transparent !important; box-shadow: none !important; }
@@ -254,7 +335,7 @@
     font-weight: 650; letter-spacing: -0.02em; padding-right: 10px; margin-right: 2px;
     border-right: 1px solid var(--gs-border); color: var(--gs-accent);
   }
-  .icon { padding: 4px 8px; }
+  .icon { display: grid; place-items: center; padding: 5px; }
   .icon.on { border-color: var(--gs-accent); color: var(--gs-accent); }
   /*
    * Each pane is a surface. With --gs-gap: 0 and a hairline divider that reads as one
@@ -267,6 +348,8 @@
     box-shadow: var(--gs-shadow);
     min-height: 0;
   }
+  /* the drag handles are not panes: no surface, no shadow, no rounding */
+  main > :global(.splitter) { background: transparent; box-shadow: none; border-radius: 0; }
   @media (max-width: 720px) {
     main.embedded { grid-template-columns: 1fr !important; grid-template-rows: 1fr auto; overflow: auto; }
   }

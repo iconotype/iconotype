@@ -692,7 +692,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidSaveTextDocument(async (document) => {
       // keep the usage index current without rescanning the whole workspace
       usage.updateFile(document.uri, document.getText())
-      if (!document.uri.path.endsWith(ICONFONT_EXTENSION) && !document.uri.path.endsWith('.glyphsmith.json')) return
+      if (!document.uri.path.endsWith(ICONFONT_EXTENSION)) return
       if (autoExportMode(document.uri) !== 'onSave') return
       const font = registry.get(document.uri)
       if (font) await runExport(font)

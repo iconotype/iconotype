@@ -16,6 +16,8 @@
     headerHeight = 34,
     gap = 8,
     overscan = 3,
+    focus = null,
+    oncolumns,
     cell,
     header,
   }: {
@@ -24,6 +26,10 @@
     headerHeight?: number
     gap?: number
     overscan?: number
+    /** the item to keep on screen: which section, and its index within it */
+    focus?: { key: string; index: number } | null
+    /** how many cells fit per row, whenever that changes */
+    oncolumns?: (columns: number) => void
     cell: Snippet<[any, string]>
     header: Snippet<[{ key: string; title: string; count: number }]>
   } = $props()
@@ -132,6 +138,35 @@
     // the comparison is what makes the dependency real: a bare `cellSize` statement is
     // an unused expression and the compiler does not track it
     if (cellSize > 0) readProbe()
+  })
+
+  $effect(() => { oncolumns?.(columns) })
+
+  /**
+   * Follows the keyboard cursor.
+   *
+   * Windowing means the selected cell may not exist in the DOM at all, so this cannot
+   * be `scrollIntoView` — the row's offset is already known, and scrolling to it is
+   * what makes the row render. Only a *change* of focus scrolls: the effect also reads
+   * the scroll position, and acting on that would fight the wheel.
+   */
+  let followed = ''
+  $effect(() => {
+    const at = focus
+    const id = at ? `${at.key}:${at.index}` : ''
+    if (id === followed) return
+    followed = id
+    if (!at || !viewport) return
+    const index = rows.findIndex(
+      (row) => row.kind === 'cells' && row.section.key === at.key &&
+        at.index >= row.from && at.index < row.from + columns,
+    )
+    if (index < 0) return
+    const top = offsets[index]!
+    const bottom = top + rows[index]!.h
+    // the section header is sticky-adjacent: leave room for it when scrolling up
+    if (top < scrollTop) viewport.scrollTo({ top: Math.max(0, top - headerHeight) })
+    else if (bottom > scrollTop + height) viewport.scrollTo({ top: bottom - height })
   })
 
   const measure = (node: HTMLDivElement) => {

@@ -66,6 +66,8 @@ export interface UiPrefs {
   showSets?: boolean
   showRail?: boolean
   cellSize?: number
+  sidebarWidth?: number
+  railWidth?: number
 }
 
 const UI_FILE = 'ui.json'

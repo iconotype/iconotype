@@ -10,8 +10,7 @@
     "vscode": "^1.90.0"
   },
   "activationEvents": [
-    "workspaceContains:**/*.iconotype.json",
-    "workspaceContains:**/*.glyphsmith.json"
+    "workspaceContains:**/*.iconotype.json"
   ],
   "contributes": {
     "commands": [
@@ -422,10 +421,6 @@
     "jsonValidation": [
       {
         "fileMatch": "*.iconotype.json",
-        "url": "./schema/iconfont.schema.json"
-      },
-      {
-        "fileMatch": "*.glyphsmith.json",
         "url": "./schema/iconfont.schema.json"
       }
     ],

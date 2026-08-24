@@ -38,12 +38,6 @@ export interface IconRef {
 }
 
 const GLOB = `**/*${ICONFONT_EXTENSION}`
-/**
- * The extension was called Glyphsmith until it collided with an existing app. Projects
- * committed under the old name keep working: same format, same schemaVersion, only the
- * filename differs, and nobody should have to rename a file to open their own icons.
- */
-const LEGACY_GLOB = '**/*.glyphsmith.json'
 
 export class IconFontRegistry implements vscode.Disposable {
   #fonts = new Map<string, IconFont>()
@@ -115,19 +109,13 @@ export class IconFontRegistry implements vscode.Disposable {
           (vscode.workspace.workspaceFolders ?? []).map((folder) => vscode.Uri.joinPath(folder.uri, rel)))
       : [
           ...await vscode.workspace.findFiles(GLOB, '**/node_modules/**'),
-          ...await vscode.workspace.findFiles(LEGACY_GLOB, '**/node_modules/**'),
         ]
 
     await Promise.all(uris.map((uri) => this.load(uri)))
 
     this.#watcher = vscode.workspace.createFileSystemWatcher(GLOB)
-    const legacyWatcher = vscode.workspace.createFileSystemWatcher(LEGACY_GLOB)
     this.#disposables.push(
       this.#watcher,
-      legacyWatcher,
-      legacyWatcher.onDidCreate((uri) => void this.load(uri)),
-      legacyWatcher.onDidChange((uri) => void this.load(uri)),
-      legacyWatcher.onDidDelete((uri) => { this.#fonts.delete(uri.toString()); this.#emitter.fire() }),
       this.#watcher.onDidCreate((uri) => void this.load(uri)),
       this.#watcher.onDidChange((uri) => void this.load(uri)),
       this.#watcher.onDidDelete((uri) => {

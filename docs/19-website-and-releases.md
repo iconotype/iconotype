@@ -151,3 +151,12 @@ divide cleanly gets rounded per frame and plays with a stutter.
 The GIF is what README shows: GitHub will not play an mp4 committed to a repository.
 The mp4 is a quarter of the size at twice the resolution, so it is what the site and any
 link unfurl should use.
+## The social preview
+
+`pnpm social` renders `docs/media/social-preview.png` — 1280×640, the size GitHub asks
+for and every unfurl downstream reuses. It is drawn from the project's own parts: the
+mark as the app draws it, and eight real glyphs pulled out of the alpimaps fixture,
+because a link card for an icon tool that shows no icons is a card about nothing.
+
+GitHub has no API for this one. Upload it by hand: **Settings → General → Social
+preview → Upload an image**. Re-run the script and re-upload when the wording changes.

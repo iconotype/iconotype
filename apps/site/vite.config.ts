@@ -13,7 +13,9 @@ import { defineConfig, type Plugin } from 'vite'
 const media = (files: string[]): Plugin => {
   const read = (name: string) =>
     readFileSync(fileURLToPath(new URL(`../../docs/media/${name}`, import.meta.url)))
-  const TYPES: Record<string, string> = { mp4: 'video/mp4', jpg: 'image/jpeg', gif: 'image/gif' }
+  const TYPES: Record<string, string> = {
+    mp4: 'video/mp4', jpg: 'image/jpeg', gif: 'image/gif', png: 'image/png',
+  }
   return {
     name: 'iconotype-media',
     configureServer(server) {
@@ -38,7 +40,7 @@ const media = (files: string[]): Plugin => {
  * Pages subpath, and the app is deployed underneath it at `app/`.
  */
 export default defineConfig({
-  plugins: [media(['demo.mp4', 'demo-poster.jpg'])],
+  plugins: [media(['demo.mp4', 'demo-poster.jpg', 'social-preview.png'])],
   base: process.env.BASE_PATH ?? '/',
   build: { target: 'es2022', assetsDir: 'assets' },
 })

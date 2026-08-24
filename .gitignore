@@ -13,3 +13,4 @@ packages/cli/dist-npm/
 
 # frames from `pnpm demo`, encoded into docs/media and not committed themselves
 .demo-frames/
+.demo-work/

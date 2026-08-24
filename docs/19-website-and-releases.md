@@ -109,6 +109,13 @@ static frame compresses to almost nothing, a moving one to almost the whole thin
 pointer directs attention instead, and is drawn in because a headless browser has no
 cursor to record.
 
+The web page at the end is not a mock-up. The recorder clicks Download package, catches
+the browser download, unpacks the zip, and serves it over a local port with a small page
+that links `style.css` and puts the classes next to text — so the icons on that page are
+the font the app just built, and the second visit is the same page after the glyph was
+fixed and the package rebuilt. The page is written from the class names found in the
+exported stylesheet, so it cannot drift from what the project actually contains.
+
 The library search is rehearsed once off-camera before the take. The first query of a
 session pays for the whole collection index, several seconds of "searching…" that is a
 cold cache rather than the app being slow, and warming it means the recording shows what

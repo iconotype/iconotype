@@ -15,6 +15,16 @@
       .map(({ set, glyphs }) => ({ key: set.id, title: set.name, items: glyphs, set })),
   )
   const heightOf = (key: string) => app.session.project.sets.find((s) => s.id === key)?.height ?? 1024
+
+  /** Where the keyboard cursor is, in the terms the windowed grid can scroll to. */
+  const focus = $derived.by(() => {
+    if (!app.cursor) return null
+    for (const section of sections) {
+      const index = section.items.findIndex((g) => g.id === app.cursor)
+      if (index >= 0) return { key: section.key, index }
+    }
+    return null
+  })
   const empty = $derived(app.session.glyphCount === 0)
 
   /**
@@ -63,7 +73,7 @@
   {:else if app.matchCount === 0}
     <div class="empty"><p>No glyph matches “{app.search}”.</p></div>
   {:else}
-    <VirtualGrid {sections} cellSize={app.cellSize}>
+    <VirtualGrid {sections} cellSize={app.cellSize} {focus} oncolumns={(n) => (app.gridColumns = n)}>
       {#snippet header({ key, title, count })}
         <h2><span>{title}</span> <span class="muted">{count}</span></h2>
       {/snippet}

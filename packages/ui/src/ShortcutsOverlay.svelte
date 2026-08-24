@@ -10,6 +10,8 @@
 
   const browse: Array<[string, string]> = [
     ['/', 'Search'],
+    ['← → ↑ ↓', 'Move through the icons'],
+    ['home, end', 'First / last icon'],
     ['click', 'Select an icon'],
     ['⌘ click', 'Add to the selection'],
     ['⇧ click', 'Select a range'],

@@ -4,6 +4,14 @@
 
   const severityOrder = { error: 0, warning: 1, info: 2 } as const
   const current = $derived(app.lintFocus)
+  /**
+   * Whether the fixer would actually change this glyph.
+   *
+   * Import already runs the pipeline, so with the sliders at their defaults "after" is
+   * the same geometry as "before" — and the overlay drew one exactly on top of the
+   * other, which read as a missing preview rather than as nothing to do. Say it.
+   */
+  const unchanged = $derived(!!current && current.before.join() === current.after.join())
 </script>
 
 <aside>
@@ -53,17 +61,30 @@
 
   {#if current}
     <h2>{current.glyph.name}</h2>
+    <!--
+      Two tiles, not one overlay. The overlay alone could not show "before" at all when
+      the fix moved nothing, and side by side is how you actually compare two drawings;
+      the right-hand tile keeps the original ghosted underneath so a shift of two units
+      still shows up where it happened.
+    -->
     <div class="preview">
-      <svg viewBox="0 0 {current.height} {current.height}" aria-label="before and after">
-        <!-- original in red underneath, fixed result on top -->
-        {#each current.before as d}<path {d} class="before" />{/each}
-        {#each current.after as d}<path {d} class="after" />{/each}
-      </svg>
-      <ul class="legend">
-        <li><i class="swatch before"></i> before</li>
-        <li><i class="swatch after"></i> after</li>
-      </ul>
+      <figure>
+        <svg viewBox="0 0 {current.height} {current.height}" aria-label="before">
+          {#each current.before as d}<path {d} class="before solid" />{/each}
+        </svg>
+        <figcaption>before</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 {current.height} {current.height}" aria-label="after">
+          {#each current.before as d}<path {d} class="before" />{/each}
+          {#each current.after as d}<path {d} class="after" />{/each}
+        </svg>
+        <figcaption>after</figcaption>
+      </figure>
     </div>
+    {#if unchanged}
+      <p class="muted">These settings change nothing here — before and after are identical.</p>
+    {/if}
     <ul class="findings">
       {#each [...current.findings].sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]) as f}
         <li class={f.severity}>
@@ -91,14 +112,13 @@
   .summary { font-size: 11px; margin: 0; color: var(--gs-muted); }
   .err { color: var(--gs-error); }
   .warn { color: var(--gs-warn); }
-  .preview svg { width: 100%; max-width: 150px; display: block; margin: 0 auto; background: var(--gs-hover); border-radius: var(--gs-radius); }
+  .preview { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preview figure { margin: 0; display: grid; gap: 4px; }
+  .preview svg { width: 100%; display: block; background: var(--gs-hover); border-radius: var(--gs-radius); }
+  .preview figcaption { text-align: center; font-size: 10px; color: var(--gs-muted); }
   .preview .before { fill: var(--gs-error); opacity: .45; }
+  .preview .before.solid { opacity: .8; }
   .preview .after { fill: var(--gs-fg); }
-  .legend { list-style: none; display: flex; gap: 10px; justify-content: center; padding: 0; margin: 6px 0 0; font-size: 10px; color: var(--gs-muted); }
-  .legend li { display: flex; align-items: center; gap: 4px; }
-  .swatch { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
-  .swatch.before { background: var(--gs-error); opacity: .45; }
-  .swatch.after { background: var(--gs-fg); }
   .findings { list-style: none; padding: 0; margin: 0; display: grid; gap: 5px; font-size: 11px; }
   .findings li { display: grid; gap: 1px; }
   .findings code { font-size: 9px; letter-spacing: .04em; color: var(--gs-muted); }

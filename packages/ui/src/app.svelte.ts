@@ -69,6 +69,17 @@ export class AppStore {
   showSets = $state(true)
   showRail = $state(true)
   showShortcuts = $state(false)
+  /**
+   * Pane widths, in pixels, dragged by the splitters either side of the grid.
+   *
+   * A set list of names and a rail of export settings do not want the same width as
+   * each other, let alone the same width on a 13" laptop and a 32" display — so they
+   * are draggable, clamped to something still usable, and remembered.
+   */
+  sidebarWidth = $state(220)
+  railWidth = $state(320)
+  /** how many cells the grid is laying out per row; ↑/↓ move by this much */
+  gridColumns = $state(1)
   /** 'system' follows the OS; the other two override it */
   theme = $state<'system' | 'light' | 'dark'>('system')
 
@@ -118,16 +129,39 @@ export class AppStore {
 
   // ── selection ────────────────────────────────────────────────────────────────
   isSelected = (id: GlyphId) => this.selection.has(id)
-  /** where a shift-click range starts from */
-  #anchor: GlyphId | null = null
+  /**
+   * The glyph the keyboard is on: where a shift-click range starts, and what the
+   * arrow keys move. The grid scrolls it back into view when it moves.
+   */
+  cursor = $state.raw<GlyphId | null>(null)
 
   toggle(id: GlyphId, additive: boolean) {
     const next = additive ? new Set(this.selection) : new Set<GlyphId>()
     next.has(id) ? next.delete(id) : next.add(id)
     this.selection = next
-    this.#anchor = id
+    this.cursor = id
     if (next.has(id)) void this.focusGlyph(id)
     else if (this.lintFocus?.glyph.id === id) this.lintFocus = null
+    void this.#refreshQuick()
+  }
+
+  /**
+   * Moves the cursor through the grid, in display order.
+   *
+   * Reviewing a set is "look, next, next" and it should not need the mouse: ←/→ step
+   * one, ↑/↓ step a row, and each lands as a fresh single selection so the rail is
+   * always answering for the icon you are looking at.
+   */
+  moveCursor(delta: number) {
+    const order = this.filteredSets.flatMap((s) => s.glyphs.map((g) => g.id))
+    if (!order.length) return
+    const at = this.cursor ? order.indexOf(this.cursor) : -1
+    // with nothing under the cursor yet, step in from the end the key came from
+    const base = at < 0 ? (delta > 0 ? -1 : order.length) : at
+    const next = order[Math.min(order.length - 1, Math.max(0, base + delta))]!
+    this.selection = new Set([next])
+    this.cursor = next
+    void this.focusGlyph(next)
     void this.#refreshQuick()
   }
   selectAll() { this.selection = new Set(this.filteredSets.flatMap((s) => s.glyphs.map((g) => g.id))) }
@@ -140,7 +174,7 @@ export class AppStore {
    */
   selectTo(id: GlyphId) {
     const order = this.filteredSets.flatMap((s) => s.glyphs.map((g) => g.id))
-    const anchor = this.#anchor && order.includes(this.#anchor) ? this.#anchor : order[0]
+    const anchor = this.cursor && order.includes(this.cursor) ? this.cursor : order[0]
     const from = order.indexOf(anchor!)
     const to = order.indexOf(id)
     if (from < 0 || to < 0) return
@@ -198,6 +232,8 @@ export class AppStore {
     this.editing = id
     if (id) {
       this.selection = new Set([id])
+      // leaving the editor should land on the icon you were just editing
+      this.cursor = id
       void this.focusGlyph(id)
     }
   }

@@ -82,5 +82,18 @@ input, select, textarea {
 }
 input:focus, select:focus { border-color: var(--gs-accent); }
 
+/*
+ * While a splitter is being dragged.
+ *
+ * Set on <body> for the length of the gesture: the pointer is outside the handle for
+ * most of a drag, so the rule has to cover everything it passes over rather than the
+ * handle itself.
+ */
+body.gs-resizing, body.gs-resizing * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  cursor: col-resize !important;
+}
+
 /* codepoints and hex read as columns, not as prose */
 code, .mono { font-family: var(--gs-mono); font-variant-numeric: tabular-nums; }

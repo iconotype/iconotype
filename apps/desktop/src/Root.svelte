@@ -30,6 +30,18 @@
   setSession(session)
   setApp(app)
 
+  /**
+   * How much of the title bar belongs to the window, not to us.
+   *
+   * The window is frameless (`titleBarStyle: Transparent`), so on macOS the traffic
+   * lights are painted over the top-left corner of the page and anything we put there
+   * lands underneath them.
+   */
+  const macos = navigator.userAgent.includes('Macintosh')
+  const titleBarInset = macos ? 74 : 0
+  /** the height of the macOS title bar the buttons are drawn in, so we share the band */
+  const titleBarHeight = macos ? 38 : 0
+
   /** The `.iconotype.json` this window is editing, when it came from disk. */
   let file = $state<string | null>(null)
   let home = $state<string | undefined>(undefined)
@@ -210,4 +222,6 @@
   onSaveAs={() => saveFile(true)}
   onPickRecent={openRecent}
   {home}
+  {titleBarInset}
+  {titleBarHeight}
 />

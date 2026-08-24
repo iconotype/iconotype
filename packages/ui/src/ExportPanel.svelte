@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { FontFormat } from '@iconotype/core-font'
+  import OutputSettings from './OutputSettings.svelte'
   import QuickExport from './QuickExport.svelte'
   import { useApp } from './app.svelte.js'
 
@@ -61,7 +62,13 @@
     <button class="ghost" onclick={() => app.previewFont()} disabled={app.building || !app.session.glyphCount}>
       Preview font
     </button>
+    <!-- the files are half the answer; this is the other half -->
+    <button class="ghost" onclick={() => app.openSnippets()}>
+      How to use it
+    </button>
   </div>
+
+  <OutputSettings />
 
   <h2>Quick copy</h2>
   <QuickExport />

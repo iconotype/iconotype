@@ -9,7 +9,10 @@
   import IconLibrary from './IconLibrary.svelte'
   import Notices from './Notices.svelte'
   import SetPanel from './SetPanel.svelte'
+  import Mark from './Mark.svelte'
   import ShortcutsOverlay from './ShortcutsOverlay.svelte'
+  /** the snippets overlay is the only screen that needs core-export; it loads with the click */
+  const snippetsOverlay = () => import('./SnippetsOverlay.svelte')
   import Splitter from './Splitter.svelte'
   import Toolbar from './Toolbar.svelte'
   import { loadUiPrefs, saveUiPrefs, type RecentProject } from './recents.js'
@@ -28,6 +31,7 @@
     onOpen,
     onSave,
     onSaveAs,
+    onRevealFile,
     onPickRecent,
     home,
     titleBarInset = 0,
@@ -38,6 +42,14 @@
     onOpen?: () => void
     onSave?: () => void
     onSaveAs?: () => void
+    /**
+     * Open the project file itself, in whatever the system uses for JSON.
+     *
+     * Only a shell with a real file on disk passes this. The `.iconotype.json` is meant
+     * to be readable and diffable, and once it is committed someone will want to edit a
+     * path in it by hand — so the app that owns it should be able to hand it over.
+     */
+    onRevealFile?: () => void
     /** reopen a project from the recents list; without it the menu is not shown */
     onPickRecent?: (entry: RecentProject) => void
     /** home directory, so recent paths can be shortened to `~/…` */
@@ -160,6 +172,7 @@
 
     if (e.key === '?') { e.preventDefault(); app.showShortcuts = !app.showShortcuts; return }
     if (e.key === 'Escape' && app.showShortcuts) { app.showShortcuts = false; return }
+    if (e.key === 'Escape' && app.showSnippets) { app.showSnippets = false; return }
 
     if (app.mode !== 'browse') return
 
@@ -216,7 +229,13 @@
       window is moved by whatever is under the pointer, and a bare <strong> with the
       project's name in it is otherwise a dead spot in the title bar.
     -->
-    {#if !embedded}<span class="brand" data-tauri-drag-region>Iconotype</span>{/if}
+    <!--
+      The wordmark: the mark IS the I. Its `aria-label` says the whole name, because
+      "conotype" is what the eye completes and not what a screen reader would.
+    -->
+    {#if !embedded}
+      <span class="brand" data-tauri-drag-region role="img" aria-label="Iconotype"><Mark size={16} />conotype</span>
+    {/if}
     <strong data-tauri-drag-region>{session.project.name}</strong>
     <span class="muted" data-tauri-drag-region>
       {session.project.sets.length} set(s) · {session.glyphCount} glyph(s)
@@ -266,7 +285,7 @@
     {/if}
   </header>
 
-  {#if !embedded}<Toolbar {onOpen} {onSave} {onSaveAs} {onPickRecent} {home} />{/if}
+  {#if !embedded}<Toolbar {onOpen} {onSave} {onSaveAs} {onRevealFile} {onPickRecent} {home} />{/if}
 
   <main class:embedded style:grid-template-columns={columns}>
     {#if embedded}
@@ -302,6 +321,13 @@
     <IconLibrary onClose={() => (app.showLibrary = false)} />
   {/if}
 
+  {#if app.showSnippets}
+    <!-- loaded on demand: the snippets pull core-export, which pulls the font builder -->
+    {#await snippetsOverlay() then { default: SnippetsOverlay }}
+      <SnippetsOverlay onClose={() => (app.showSnippets = false)} />
+    {/await}
+  {/if}
+
   {#if app.showShortcuts}
     <ShortcutsOverlay mode={app.mode} onClose={() => (app.showShortcuts = false)} />
   {/if}
@@ -332,6 +358,7 @@
     flex: 0 0 auto; overflow: visible;
   }
   .brand {
+    display: flex; align-items: center; gap: 3px;
     font-weight: 650; letter-spacing: -0.02em; padding-right: 10px; margin-right: 2px;
     border-right: 1px solid var(--gs-border); color: var(--gs-accent);
   }

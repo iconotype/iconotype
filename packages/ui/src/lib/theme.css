@@ -35,6 +35,14 @@
   --gs-header: 40px;
   --gs-transition: 120ms ease;
   /* how panes are separated: a hairline in an editor, air between cards in an app */
+  /* code, for the snippet blocks: hues that hold up on a dark surface */
+  --gs-code-comment: var(--gs-muted);
+  --gs-code-string: #7ee2a8;
+  --gs-code-keyword: #c4a2ff;
+  --gs-code-number: #79c0ff;
+  --gs-code-tag: #ff9d76;
+  --gs-code-attr: #79c0ff;
+  --gs-code-property: #ffc978;
   --gs-divider: 1px solid var(--gs-border);
   --gs-gap: 0px;
 }

@@ -20,6 +20,50 @@ describe('font url resolution', () => {
   })
 })
 
+describe('several destinations for one output', () => {
+  const project = () => {
+    const p = base()
+    p.output = {
+      fonts: { dir: ['app/fonts', 'public/fonts'], formats: ['woff2'] },
+      styles: [{ kind: 'css', path: ['app/css/icons.css', 'packages/ui/icons.css'] }],
+      types: { path: ['app/icons.d.ts'] },
+    }
+    return p
+  }
+
+  it('writes the same bytes to every path the config names', async () => {
+    const { files } = await resolveOutputs(project())
+    const fonts = files.filter((f) => f.kind === 'font').map((f) => f.path)
+    const styles = files.filter((f) => f.kind === 'style')
+    expect(fonts).toEqual(['app/fonts/alpimaps.woff2', 'public/fonts/alpimaps.woff2'])
+    expect(styles.map((f) => f.path)).toEqual(['app/css/icons.css', 'packages/ui/icons.css'])
+    expect(styles[0]!.data).toBe(styles[1]!.data)
+  })
+
+  it('points both copies of a stylesheet at the first fonts directory', async () => {
+    const { files } = await resolveOutputs(project())
+    // one file, one url: two copies at different depths cannot each have their own
+    for (const style of files.filter((f) => f.kind === 'style')) {
+      expect(style.data as string).toContain("url('../fonts/alpimaps.woff2')")
+    }
+  })
+
+  it('reports every copy as generated, so nothing is mistaken for hand-written', () => {
+    expect(outputPaths(project())).toEqual([
+      'app/fonts/alpimaps.woff2', 'public/fonts/alpimaps.woff2',
+      'app/css/icons.css', 'packages/ui/icons.css',
+      'app/icons.d.ts',
+    ])
+  })
+
+  it('still accepts a plain string, which is what every project file holds today', async () => {
+    const p = base()
+    p.output = { fonts: { dir: 'fonts', formats: ['woff2'] }, styles: [{ kind: 'css', path: 'style.css' }] }
+    const { files } = await resolveOutputs(p)
+    expect(files.map((f) => f.path)).toEqual(['fonts/alpimaps.woff2', 'style.css'])
+  })
+})
+
 describe('direct output resolution', () => {
   const configured = () => {
     const project = base()

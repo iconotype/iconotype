@@ -1,5 +1,7 @@
 import * as vscode from 'vscode'
-import { apply, allocate, emptyProject, type Op, type Project } from '@iconotype/core-model'
+import {
+  apply, allocate, emptyProject, parsePathList, toPaths, type Op, type Project,
+} from '@iconotype/core-model'
 import { serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io/iconfont-file'
 import { heavy, heavyLoaded } from './lazy.js'
 import { webviewCsp } from '@iconotype/build-config'
@@ -219,18 +221,27 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!value) return
       await mutate(registry, font, {
         t: 'output.patch',
-        patch: { fonts: { ...(output.fonts ?? { formats: ['woff2', 'woff', 'ttf'] }), dir: value.replace(/\/+$/, '') } },
+        // comma-separated: the same font written to more than one place
+        patch: {
+          fonts: {
+            ...(output.fonts ?? { formats: ['woff2', 'woff', 'ttf'] }),
+            dir: toPaths(parsePathList(value).map((dir) => dir.replace(/\/+$/, ''))),
+          },
+        },
       })
       return
     }
     if (key === 'stylePath') {
       if (!value) return
       const existing = output.styles?.[0]
+      const paths = parsePathList(value)
+      if (!paths.length) return
+      // the kind follows the FIRST path's extension; every copy is the same file
       const kind = existing?.kind
-        ?? (value.endsWith('.scss') ? 'scss-variables' : value.endsWith('.less') ? 'less' : 'css')
+        ?? (paths[0]!.endsWith('.scss') ? 'scss-variables' : paths[0]!.endsWith('.less') ? 'less' : 'css')
       await mutate(registry, font, {
         t: 'output.patch',
-        patch: { styles: [{ kind, path: value }, ...(output.styles ?? []).slice(1)] },
+        patch: { styles: [{ kind, path: toPaths(paths) }, ...(output.styles ?? []).slice(1)] },
       })
     }
   }

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { Glyph } from '@iconotype/core-model'
+import { formatPathList, type Glyph } from '@iconotype/core-model'
 import { GlyphIconCache, glyphDataUri } from './render.js'
 import type { IconFont, IconFontRegistry } from './registry.js'
 
@@ -266,9 +266,9 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
       <div class="field"><label for="s-family">Font family</label>
         <input id="s-family" data-setting="family" value="${escapeHtml(font.project.preferences.font.family)}"></div>
       <div class="field"><label for="s-fonts">Fonts dir</label>
-        <input id="s-fonts" data-setting="fontsDir" value="${escapeHtml(output?.fonts?.dir ?? '')}" placeholder="app/fonts"></div>
+        <input id="s-fonts" data-setting="fontsDir" value="${escapeHtml(formatPathList(output?.fonts?.dir))}" placeholder="app/fonts, app/public/fonts"></div>
       <div class="field"><label for="s-styles">Stylesheet</label>
-        <input id="s-styles" data-setting="stylePath" value="${escapeHtml(output?.styles?.[0]?.path ?? '')}" placeholder="app/css/_icons.scss"></div>
+        <input id="s-styles" data-setting="stylePath" value="${escapeHtml(formatPathList(output?.styles?.[0]?.path))}" placeholder="app/css/_icons.scss"></div>
       <p class="hint">Written to ${escapeHtml(vscode.workspace.asRelativePath(font.uri))}. Enter to apply.</p>
     </details>`
 

@@ -123,15 +123,25 @@ export type StyleOutputKind =
   | 'json'             // { "home": "e900" }
   | 'dart'             // a Flutter IconData class
 
+/**
+ * One destination, or several.
+ *
+ * The same stylesheet often has to exist in more than one place — a monorepo with two
+ * apps, or a framework that wants the font under `public/` AND under `src/` for its
+ * own asset pipeline. A single string stays legal so every project file written before
+ * this reads back unchanged, and so the common case looks like the common case.
+ */
+export type Paths = string | string[]
+
 export interface StyleOutput {
   kind: StyleOutputKind
-  /** workspace-relative file path */
-  path: string
+  /** workspace-relative file path, or several to write the same content to */
+  path: Paths
 }
 
 export interface FontsOutput {
-  /** workspace-relative directory the font files are written to */
-  dir: string
+  /** workspace-relative directory the font files are written to, or several */
+  dir: Paths
   formats: Array<'woff2' | 'woff' | 'ttf' | 'svg'>
   /**
    * What the @font-face `src` should point at. Fonts and stylesheets usually live in
@@ -144,9 +154,9 @@ export interface OutputConfig {
   fonts?: FontsOutput
   styles?: StyleOutput[]
   /** a .d.ts union of every icon name */
-  types?: { path: string }
-  sprite?: { path: string }
-  demo?: { path: string }
+  types?: { path: Paths }
+  sprite?: { path: Paths }
+  demo?: { path: Paths }
 }
 
 /**

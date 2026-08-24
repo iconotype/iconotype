@@ -1,7 +1,10 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
-import { allocate, emptySet, hex, serializeLock, type Project, type StyleOutputKind } from '@iconotype/core-model'
+import {
+  allocate, asPaths, emptySet, hex, serializeLock,
+  type Paths, type Project, type StyleOutputKind,
+} from '@iconotype/core-model'
 import {
   exportIcoMoonSelection, fetchIconRefs, parseIconRef, searchIcons, serializeIconFont, setMetadataFor,
   toGlyphs, ICONFONT_EXTENSION, type CollectionInfo,
@@ -164,7 +167,7 @@ export async function init(args: InitArgs, io: Io): Promise<number> {
   writeFileSync(out, serializeIconFont(project))
 
   const icons = project.sets.reduce((n, s) => n + s.glyphs.length, 0)
-  io.log(`wrote ${out} — ${icons} icon(s), fonts to ${project.output.fonts!.dir}/, styles to ${stylesDir}/`)
+  io.log(`wrote ${out} — ${icons} icon(s), fonts to ${asPaths(project.output.fonts!.dir).join(', ')}/, styles to ${stylesDir}/`)
   io.log(`next: open the folder in VSCode and run "Iconotype: Export Font", or: iconotype build --input ${out}`)
   return 0
 }
@@ -531,7 +534,7 @@ export async function scan(args: ScanArgs, io: Io): Promise<number> {
 export function generatedPaths(project: Project, input: string): Set<string> {
   const root = statSync(input).isDirectory() ? input : dirname(input)
   const out = new Set<string>()
-  const add = (rel?: string) => { if (rel) out.add(resolve(root, rel)) }
+  const add = (paths?: Paths) => { for (const rel of asPaths(paths)) out.add(resolve(root, rel)) }
   for (const style of project.output?.styles ?? []) add(style.path)
   add(project.output?.types?.path)
   add(project.output?.sprite?.path)

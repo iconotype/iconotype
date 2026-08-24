@@ -1,9 +1,10 @@
 import type { Host } from '@iconotype/core-host'
-import { allocate, emptySet, type Glyph, type GlyphId, type IconSet, type SetId } from '@iconotype/core-model'
+import { allocate, emptySet, type Glyph, type GlyphId, type IconSet, type OutputConfig, type SetId } from '@iconotype/core-model'
 import type { CollectionInfo, IconRef } from '@iconotype/core-io'
 import type { FontFormat } from '@iconotype/core-font'
 import type { AlignMode, Finding, FlipAxis } from '@iconotype/core-svg'
 import type { FontPrefs } from '@iconotype/core-model'
+import type { SnippetGroup, SnippetTarget } from '@iconotype/core-export'
 
 /**
  * core-io and core-font are loaded ON DEMAND, never at boot.
@@ -99,6 +100,20 @@ export class AppStore {
   quickFormat = $state<'character' | 'escape' | 'class' | 'svg' | 'datauri' | 'use' | 'symbol'>('class')
   quickValue = $state('')
   copied = $state(false)
+
+  // ── integration snippets ──
+  /**
+   * "Now what?" — the panel that answers it.
+   *
+   * A downloaded font is halfway to a working icon; the other half is one paragraph of
+   * build config that differs per tool and is nowhere in the export. The snippets are
+   * generated from THIS project, so a reader pastes rather than translates.
+   */
+  showSnippets = $state(false)
+  snippetTarget = $state<SnippetTarget>('html')
+  snippets = $state.raw<SnippetGroup | null>(null)
+  /** the snippet whose Copy was hit, cleared on a timer — one tick per button */
+  copiedSnippet = $state<string | null>(null)
 
   constructor(session: SessionStore, host: Host, now: () => number) {
     this.session = session
@@ -681,6 +696,35 @@ export class AppStore {
     this.quickValue = lines.join('\n')
   }
 
+  async openSnippets() {
+    this.showSnippets = true
+    await this.#loadSnippets()
+  }
+
+  async setSnippetTarget(target: SnippetTarget) {
+    this.snippetTarget = target
+    await this.#loadSnippets()
+  }
+
+  async #loadSnippets() {
+    try {
+      const kit = await exportkit()
+      this.snippets = kit.buildSnippets(this.session.project, this.snippetTarget)
+    } catch (e) {
+      this.notify('error', `could not build the snippets: ${(e as Error).message}`)
+    }
+  }
+
+  async copySnippet(id: string, text: string) {
+    try {
+      await this.#host.clipboard.writeText(text)
+      this.copiedSnippet = id
+      setTimeout(() => { if (this.copiedSnippet === id) this.copiedSnippet = null }, 1200)
+    } catch (e) {
+      this.notify('error', `copy failed: ${(e as Error).message}`)
+    }
+  }
+
   async copyQuick() {
     if (!this.quickValue) return
     try {
@@ -821,10 +865,21 @@ export class AppStore {
     this.session.do({ t: 'prefs.patch', patch: { font: patch } }, 'Change font settings')
   }
 
+  /**
+   * Where a build writes its files.
+   *
+   * Committed with the project rather than held in the app, because the CLI and the
+   * VSCode extension build the same project and must land in the same places.
+   */
+  setOutput(patch: OutputConfig) {
+    this.session.do({ t: 'output.patch', patch }, 'Change output paths')
+  }
+
   async downloadBundle() {
     this.building = true
     try {
-      const [{ buildBundle }, { exportIcoMoonSelection, writeZip }] = await Promise.all([fontkit(), io()])
+      const [{ buildBundle }, { exportIcoMoonSelection, writeZip }, { snippetsMarkdown }] =
+        await Promise.all([fontkit(), io(), exportkit()])
       const { files, build } = await buildBundle(this.session.project, {
         formats: this.formats,
         embed: this.embedFont,
@@ -833,6 +888,8 @@ export class AppStore {
         selectionJson: JSON.stringify(exportIcoMoonSelection(this.session.project), null, 2),
       })
       build.warnings.forEach((w) => this.notify('warn', `${w.code}: ${w.message}`))
+      // the integration notes ship with the files they are about
+      files.push({ path: 'USAGE.md', data: snippetsMarkdown(this.session.project) })
       const zip = writeZip(files.map((f) => ({ path: f.path, data: f.data })))
       await this.#host.saveAs(`${this.session.project.preferences.font.family}.zip`, zip)
       this.notify('info', `Built ${build.glyphs.length} glyph(s) → ${files.length} file(s), ${(zip.byteLength / 1024).toFixed(1)} kB`)

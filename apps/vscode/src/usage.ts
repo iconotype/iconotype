@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import { outputPaths } from '@iconotype/core-export/layout'
+import { asPaths, type Paths } from '@iconotype/core-model'
 import { resolveOutputConfig } from './export.js'
 import { referencePattern } from './language.js'
 import type { IconFont, IconFontRegistry, IconRef } from './registry.js'
@@ -281,11 +282,13 @@ export class UsageIndex {
       const root = vscode.workspace.getWorkspaceFolder(font.uri)?.uri
       if (!root) continue
       const config = resolveOutputConfig(font)
-      const add = (rel: string) => out.add(vscode.Uri.joinPath(root, rel).path)
+      const add = (paths?: Paths) => {
+        for (const rel of asPaths(paths)) out.add(vscode.Uri.joinPath(root, rel).path)
+      }
       for (const style of config.styles ?? []) add(style.path)
-      if (config.types) add(config.types.path)
-      if (config.sprite) add(config.sprite.path)
-      if (config.demo) add(config.demo.path)
+      add(config.types?.path)
+      add(config.sprite?.path)
+      add(config.demo?.path)
     }
     return out
   }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-08-24
+
+### Features
+
+- **export:** tell people how to use the font, and where to put it (831dab8)
+
 ## 0.2.0 — 2026-08-24
 
 ### Features

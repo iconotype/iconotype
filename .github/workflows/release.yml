@@ -187,6 +187,24 @@ jobs:
             ditto -c -k --keepParent --sequesterRsrc "$app" "${app}.zip"
             rm -rf "$app"
           done
+
+          # Tauri names the macOS updater artifact `Iconotype.app.tar.gz` — no
+          # architecture in it, and both macOS legs of the matrix produce one. Attached to
+          # the same release they collide, one silently wins, and the update manifest ends
+          # up pointing both Apple platforms at a single file whose signature can only
+          # match one of them. The bundles are renamed here, per leg. A detached minisign
+          # signature covers the bytes and not the name, so this is safe after signing.
+          case "${{ matrix.name }}" in
+            macos-*)
+              arch="${{ matrix.name }}"
+              arch="${arch#macos-}"
+              for f in out/Iconotype.app.tar.gz out/Iconotype.app.tar.gz.sig out/Iconotype.app.zip; do
+                [ -e "$f" ] || continue
+                base=$(basename "$f")
+                mv "$f" "out/${base/Iconotype./Iconotype_${arch}.}"
+              done
+              ;;
+          esac
           ls -la out
 
       - uses: actions/upload-artifact@v4
@@ -284,16 +302,27 @@ jobs:
           }
           base = f"https://github.com/${{ github.repository }}/releases/download/{TAG}"
 
+          # One updater artifact per platform, named rather than whichever the glob
+          # happened to return: Windows signs both the .msi and the NSIS .exe, Linux both
+          # the AppImage and the .deb, and only one of each pair is what the updater
+          # installs.
+          WANTED = (".app.tar.gz", ".AppImage", "-setup.exe")
+
           platforms = {}
           for folder, key in PLATFORMS.items():
-              for sig in pathlib.Path("artifacts", folder).glob("*.sig"):
+              for sig in sorted(pathlib.Path("artifacts", folder).glob("*.sig")):
                   bundle = sig.with_suffix("")
-                  if not bundle.exists():
+                  if not bundle.exists() or not bundle.name.endswith(WANTED):
                       continue
+                  if key in platforms:
+                      raise SystemExit(f"two updater artifacts for {key}: {platforms[key]['url']} and {bundle.name}")
                   platforms[key] = {
                       "signature": sig.read_text().strip(),
                       "url": f"{base}/{urllib.parse.quote(bundle.name)}",
                   }
+
+          if len(platforms) != len({p["url"] for p in platforms.values()}):
+              raise SystemExit(f"two platforms share one download: {json.dumps(platforms, indent=2)}")
 
           if not platforms:
               print("no signed bundles — this release ships without an update manifest")

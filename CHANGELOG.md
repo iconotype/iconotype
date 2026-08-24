@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-08-24
+
+### Features
+
+- **ui:** a real title bar, resizable panels and keyboard navigation (dec4d11)
+
+### Other
+
+- remove glyphsmith compatibility as was never released (dd9528c)
+
 ## 0.1.0 — 2026-08-23
 
 ### Features

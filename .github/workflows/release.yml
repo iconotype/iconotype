@@ -61,6 +61,15 @@ jobs:
 
   desktop:
     needs: version
+    # Whether to sign, as a plain boolean at JOB level.
+    #
+    # A step's `if` cannot see env defined in that same step — the condition is
+    # evaluated before the step environment exists — so gating on `env.APPLE_CERTIFICATE`
+    # there silently disabled signing for every release. And the gate is a boolean rather
+    # than the certificate itself: an APPLE_CERTIFICATE that exists but is empty is worse
+    # than none at all, per the note on the step below.
+    env:
+      HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -103,9 +112,7 @@ jobs:
       # "security import: failed to import keychain certificate". So the variables are
       # written to the environment only when there is a certificate to write.
       - name: Enable code signing
-        if: startsWith(matrix.platform, 'macos') && env.APPLE_CERTIFICATE != ''
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        if: startsWith(matrix.platform, 'macos') && env.HAS_APPLE_CERT == 'true'
         run: |
           {
             echo "ENABLE_CODE_SIGNING=1"
@@ -133,6 +140,26 @@ jobs:
         with:
           projectPath: apps/desktop
           args: ${{ matrix.args }}${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && ' --config src-tauri/tauri.updater.conf.json' || '' }}
+
+      # An unsigned build does not fail — it produces an app macOS refuses to open on
+      # anyone else's machine, which is only discovered by a stranger downloading it. So
+      # the claim is checked here: adhoc means the identity never reached the bundler.
+      - name: Verify the signature
+        if: startsWith(matrix.platform, 'macos') && env.HAS_APPLE_CERT == 'true'
+        run: |
+          set -euo pipefail
+          app=$(find apps/desktop/src-tauri/target -path '*/release/bundle/macos/*.app' -maxdepth 6 -print -quit)
+          [ -n "$app" ] || { echo "no .app was bundled"; exit 1; }
+          codesign -dvv "$app" 2>&1 | tee /dev/stderr | grep -q 'Authority=Developer ID Application' || {
+            echo "::error::bundle is not signed with a Developer ID — check APPLE_SIGNING_IDENTITY"
+            exit 1
+          }
+          if [ -n "${APPLE_ID:-}" ]; then
+            xcrun stapler validate "$app" || {
+              echo "::error::notarization ticket missing — the app will be blocked on first launch elsewhere"
+              exit 1
+            }
+          fi
 
       # to the release only after everything else has built, so they travel as artifacts
       - name: Collect the bundles

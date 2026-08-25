@@ -5,6 +5,10 @@ import { defineConfig, type Plugin } from 'vite'
 /**
  * The demo loop, served from where it is recorded.
  *
+ * The GIF is here for somewhere to point at rather than for the page, which uses the
+ * mp4: a forum that takes a URL and not an upload needs one that will not move, and a
+ * link to a file in a git host is a link that breaks the day the branch is renamed.
+ *
  * `docs/media` is the one copy of these files — the README points at them and so does
  * this page. Copying them into `public/` would put a second megabyte of binary in the
  * repository that silently goes stale the next time the video is re-cut, so they are
@@ -49,7 +53,7 @@ const media = (files: string[]): Plugin => {
 const page = (name: string) => fileURLToPath(new URL(`./${name}/index.html`, import.meta.url))
 
 export default defineConfig({
-  plugins: [media(['demo.mp4', 'demo-poster.jpg', 'social-preview.png'])],
+  plugins: [media(['demo.mp4', 'demo.gif', 'demo-poster.jpg', 'social-preview.png'])],
   base: process.env.BASE_PATH ?? '/',
   build: {
     target: 'es2022',

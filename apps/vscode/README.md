@@ -118,6 +118,34 @@ for fonts whose project file does not configure its own `output`.
 | `iconotype.usage.useWorkspaceExcludes` | also skip what `search.exclude`/`files.exclude` hide |
 | `iconotype.usage.maxFiles` | cap on one scan; hitting it is reported, never silent |
 | `iconotype.usage.exclude` | a raw glob that overrides the directory list entirely |
+| `iconotype.missing.include` | glob of files that count when reporting missing icons |
+| `iconotype.missing.exclude` | files to leave out of missing reporting, usage still counted |
+
+### Missing icons, and why its scope is its own
+
+The Usage view leads with **Missing**: names the code writes with the font's prefix
+that the font has no icon for. They render nothing at all, silently. Each row offers
+to find that name in the open libraries, or to add an SVG under it, so the markup you
+already wrote starts resolving without being edited.
+
+The two scopes are deliberately separate. **Usage has to stay broad** — an icon
+referenced in one file you did not scan reads as unused, and the next thing anyone
+does with an unused icon is delete it. **Missing wants the opposite**, because
+`app-toto` in a changelog, a fixture or a design note is not a bug, and one noisy
+source buries the entries that are. So narrow it to where a broken reference is real
+code:
+
+```jsonc
+"iconotype.missing.include": "**/*.{ts,svelte}"
+```
+
+A file left out this way is still scanned for usage; it simply cannot report a
+missing icon. Both settings are empty by default, which follows `usage.include`.
+
+This also matters when the prefix is broad: with `app-`, an ordinary class like
+`app-container` will be reported, because nothing distinguishes it from an icon
+reference. Scoping to source files, or excluding the file that holds them, is the
+answer.
 
 ### When the code writes a different prefix
 

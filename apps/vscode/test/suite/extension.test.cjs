@@ -882,6 +882,67 @@ suite('iconotype extension', function () {
     await api.usage.scan()
   })
 
+  test('missing icons can be scoped to real source files', async () => {
+    const config = vscode.workspace.getConfiguration('iconotype')
+    const font = appFont()
+    // whatever the font still holds by this point in the suite
+    const real = font.project.sets.flatMap((set) => set.glyphs)[0].name
+    const code = path.join(workspace, 'src', 'real.ts')
+    const prose = path.join(workspace, 'src', 'notes.md')
+
+    // the same absent icon, in a file that is code and a file that is not
+    fs.writeFileSync(code, `const cls = "app-nope"\n`)
+    fs.writeFileSync(prose, `we could use \`app-nope\` here, or \`app-${real}\`\n`)
+    try {
+      await api.usage.scan()
+      assert.strictEqual(api.usage.missing().find((m) => m.name === 'nope').sites.length, 2,
+        'unscoped, both files count')
+
+      await config.update('missing.include', '**/*.{ts,svelte}', vscode.ConfigurationTarget.Workspace)
+      await api.usage.scan()
+
+      const scoped = api.usage.missing().find((m) => m.name === 'nope')
+      assert.ok(scoped, 'the reference in real.ts is still a missing icon')
+      assert.strictEqual(scoped.sites.length, 1, 'prose is not a broken reference')
+      assert.match(scoped.sites[0].uri.fsPath, /real\.ts$/)
+
+      /*
+       * Usage stays broad on purpose. Narrowing it too would make an icon referenced
+       * only from a file outside the scope read as unused — and the next thing anyone
+       * does with an unused icon is delete it.
+       */
+      const usage = api.usage.all().find((u) => u.icon.glyph.name === real)
+      assert.ok(usage.sites.some((site) => /notes\.md$/.test(site.uri.fsPath)),
+        'markdown is outside the missing scope but must still count as usage')
+    } finally {
+      await config.update('missing.include', undefined, vscode.ConfigurationTarget.Workspace)
+      fs.rmSync(code)
+      fs.rmSync(prose)
+      await api.usage.scan()
+    }
+  })
+
+  test('the missing-scope excludes drop a file without dropping its usage', async () => {
+    const config = vscode.workspace.getConfiguration('iconotype')
+    const font = appFont()
+    const real = font.project.sets.flatMap((set) => set.glyphs)[0].name
+    const fixture = path.join(workspace, 'src', 'fixture.ts')
+    fs.writeFileSync(fixture, `const a = "app-ghost"\nconst b = "app-${real}"\n`)
+    try {
+      await config.update('missing.exclude', '**/fixture.ts', vscode.ConfigurationTarget.Workspace)
+      await api.usage.scan()
+
+      assert.ok(!api.usage.missing().some((m) => m.name === 'ghost'), 'excluded from missing')
+      const usage = api.usage.all().find((u) => u.icon.glyph.name === real)
+      assert.ok(usage.sites.some((site) => /fixture\.ts$/.test(site.uri.fsPath)),
+        'but still counted as usage')
+    } finally {
+      await config.update('missing.exclude', undefined, vscode.ConfigurationTarget.Workspace)
+      fs.rmSync(fixture)
+      await api.usage.scan()
+    }
+  })
+
   test('excludes are configurable', async () => {
     const { DEFAULT_EXCLUDE_DIRS, excludeGlobFor } = api.usageInternals
     assert.ok(DEFAULT_EXCLUDE_DIRS.includes('platforms'), 'the generated-source dirs must be excluded by default')

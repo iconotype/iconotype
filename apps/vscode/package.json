@@ -441,6 +441,18 @@
           "markdownDescription": "Most files one usage scan will read. Hitting it makes the result partial, which is reported rather than passed off as \"unused\".",
           "scope": "resource"
         },
+        "iconotype.missing.include": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Glob of files that count when reporting icons the font does not have. Empty follows `#iconotype.usage.include#`. Narrow it to the files where a broken reference is real code — `**/*.{ts,svelte}`, say — so markup in a changelog or a fixture does not read as a missing icon.",
+          "scope": "resource"
+        },
+        "iconotype.missing.exclude": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Glob of files to leave out of missing-icon reporting, on top of `#iconotype.missing.include#`. Usage is still counted there: an icon referenced in a file you exclude here is used, it simply cannot be reported as missing from it.",
+          "scope": "resource"
+        },
         "iconotype.diagnostics.enabled": {
           "type": "boolean",
           "default": true,

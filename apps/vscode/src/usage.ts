@@ -108,6 +108,21 @@ export class UsageIndex {
   /** font name → prefix seen in the code → how often, for prefixes we do NOT expect */
   #otherPrefixes = new Map<string, Map<string, number>>()
   #missing = new Map<string, MissingIcon>()
+  /**
+   * Paths that count when reporting a missing icon, or null for "everywhere usage is
+   * scanned".
+   *
+   * The two scopes are deliberately different. Usage has to be broad or the answer is
+   * wrong in the dangerous direction: an icon referenced in one file you did not scan
+   * reads as unused, and you delete it. Missing wants the opposite — it is only worth
+   * reporting where a broken reference is real code, because `app-toto` in a changelog,
+   * a fixture or a design note is not a bug, and one noisy source can bury the handful
+   * of entries that are.
+   *
+   * Built with `findFiles` rather than a glob matcher of our own so the patterns mean
+   * exactly what they mean everywhere else in VS Code, and with no dependency for it.
+   */
+  #missingScope: Set<string> | null = null
   #scanning = false
   #emitter = new vscode.EventEmitter<void>()
   readonly onDidChange = this.#emitter.event
@@ -175,6 +190,7 @@ export class UsageIndex {
   #record(
     reference: string, site: UsageSite,
     usage: Map<string, IconUsage>, missing: Map<string, MissingIcon>,
+    scope: Set<string> | null,
   ): void {
     const hit = this.registry.match(reference)
     if (!hit) return
@@ -183,10 +199,34 @@ export class UsageIndex {
       usage.get(`${icon.font.name}/${icon.glyph.name}`)?.sites.push(site)
       return
     }
+    // still usage-scanned, just not somewhere a missing icon is worth reporting
+    if (scope && !scope.has(site.uri.path)) return
     const key = `${hit.font.name}/${hit.name}`
     const entry = missing.get(key) ?? { font: hit.font, name: hit.name, prefix: hit.prefix, sites: [] }
     entry.sites.push(site)
     missing.set(key, entry)
+  }
+
+  /**
+   * The paths missing icons may be reported from, or null when nothing narrows it.
+   *
+   * Resolving to null rather than to "every scanned file" matters on save: a file
+   * created since the last scan has no entry in the set, and under a narrowing it has
+   * to wait for the next scan rather than be silently treated as out of scope.
+   */
+  async #missingScopeFor(
+    usageInclude: string, usageExclude: string, limit: number,
+  ): Promise<Set<string> | null> {
+    const config = vscode.workspace.getConfiguration('iconotype')
+    const include = config.get<string>('missing.include')?.trim() || ''
+    const exclude = config.get<string>('missing.exclude')?.trim() || ''
+    if (!include && !exclude) return null
+    const files = await vscode.workspace.findFiles(
+      include || usageInclude,
+      exclude || usageExclude || undefined,
+      limit,
+    )
+    return new Set(files.map((uri) => uri.path))
   }
 
   async scan(): Promise<void> {
@@ -205,6 +245,7 @@ export class UsageIndex {
 
       this.#generated = new Set<string>()
       const absent = new Map<string, MissingIcon>()
+      const scope = await this.#missingScopeFor(include, exclude, limit)
       const pattern = referencePattern(this.registry.prefixes)
       /**
        * `something-home` where `home` is one of the font's icons but `something-` is
@@ -248,7 +289,7 @@ export class UsageIndex {
               this.#record(match[0], {
                 uri, line, column: match.index!, text: lines[line]!.trim().slice(0, 120),
                 prefix: this.registry.match(match[0])?.prefix ?? '',
-              }, next, absent)
+              }, next, absent, scope)
             }
           }
           for (const candidate of nearMiss) {
@@ -262,6 +303,7 @@ export class UsageIndex {
       }
       this.#usage = next
       this.#missing = absent
+      this.#missingScope = scope
       this.#otherPrefixes = new Map(nearMiss.map((c) => [c.font.name, c.seen]))
     } finally {
       this.#scanning = false
@@ -295,7 +337,7 @@ export class UsageIndex {
         this.#record(match[0], {
           uri, line, column: match.index!, text: lines[line]!.trim().slice(0, 120),
           prefix: this.registry.match(match[0])?.prefix ?? '',
-        }, this.#usage, this.#missing)
+        }, this.#usage, this.#missing, this.#missingScope)
       }
     }
     this.#emitter.fire()

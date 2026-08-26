@@ -954,6 +954,13 @@ suite('iconotype extension', function () {
     )
     const emptyHtml = empty.renderHtml({ cspSource: 'vscode-resource:' })
     assert.ok(emptyHtml.includes('data-command="importProject"'), 'an empty workspace must offer importing')
+
+    /*
+     * The empty state renders inside the same container as the icon cells, whose
+     * columns are 62px wide. Without opting out of them it renders one column wide
+     * and every word wraps a letter at a time — which is exactly how it shipped.
+     */
+    assert.match(emptyHtml, /\.empty \{[^}]*grid-column: 1 \/ -1/, 'the empty state must span the grid')
   })
 
   test('offers the icon library, and the CSP lets it reach the API', async () => {

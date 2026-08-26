@@ -91,12 +91,39 @@ Notes learned from the real file:
 
 **Import rule: keep unknown keys.** Store the raw source object per set/glyph in `_icomoon` so re-export is lossless.
 
+### D. Older icon-font projects — a parsed SVG tree per glyph
+
+Projects from an earlier generation of icon-font apps carry no format marker at all:
+just `{ palettes, formats, glyphs }`. Each glyph is `{ extras: { name, codePoint },
+node }`, and `node` is the SVG *already parsed* into a tagged union — every node is
+`{ tag, args }` and every attribute value is a typed variant rather than a string:
+
+```json
+{ "tag": "Element", "args": [{ "tagName": "path", "attributes": {
+  "fill": { "tag": "Value", "args": [{ "tag": "Paint", "args": [{ "tag": "CurrentColor", "args": [] }] }] },
+  "d":    { "tag": "Value", "args": [{ "tag": "Paths", "args": [[
+            { "start": [4, 40], "endings": { "tag": "Connected", "args": [] },
+              "cmds": [{ "tag": "LineTo", "args": [{ "point": [20, 12] }] }] }]] }] }
+}, "children": [] }] }
+```
+
+`svgnode.ts` renders that back to plain markup so [04](04-svg-normalization.md) does the
+real work, and `svgnode-import.ts` builds the project around it: one set, the glyph's
+own `codePoint` kept (renumbering would break every `&#xe900;` already written in an
+app), and the font family read from `formats[].item` when it is an `ItemFont`.
+
+The variant vocabulary is open-ended and only partly attested by any one project, so
+the renderer is forgiving by design: an unrecognised variant wrapping a single scalar
+renders as that scalar, and anything else is dropped with a warning. Losing one
+attribute is a much better failure than losing the glyph.
+
 ## Other importers
 
 | Source | Pri | Notes |
 |---|---|---|
 | SVG files / folder / drag-drop / clipboard | P0 | runs the [04](04-svg-normalization.md) pipeline |
 | IcoMoon zip (selection.json + fonts) | P0 | |
+| Older icon-font project JSON (tagged SVG tree) | P0 | §D above; `svgnode-import.ts` |
 | Fontello `config.json` | P1 | close cousin: `glyphs[].{uid,css,code,src,svg{path,width}}` |
 | Font file (TTF/OTF/WOFF/WOFF2) → glyphs | P1 | `opentype.js` / `fontkit`; recovers a font whose source was lost. Big selling point. |
 | Iconify (`@iconify/json`, or API) | P2 | carries license + author per icon |

@@ -10,11 +10,13 @@ import { GlyphIconCache } from './render.js'
 import { describeResult, exportFont, resolveOutputConfig } from './export.js'
 import { IconDiagnostics, IconQuickFixes } from './diagnostics.js'
 import { autoExportMode, ExportState } from './stale.js'
-import { IconCompletionProvider, IconDecorator, IconHoverProvider, SUPPORTED_LANGUAGES } from './language.js'
+import {
+  IconCompletionProvider, IconDecorator, IconHoverProvider, referencePattern, SUPPORTED_LANGUAGES,
+} from './language.js'
 import { IconDefinitionProvider, IconReferenceProvider, IconRenameProvider } from './rename.js'
 import {
   DEFAULT_EXCLUDE_DIRS, excludeGlobFor, pickUsageSite, usagePickItems, UsageIndex, UsageTreeProvider,
-  type UsageSite,
+  type MissingIcon, type UsageSite,
 } from './usage.js'
 import { FontTreeProvider, IconDecorationProvider, IconGridViewProvider, type GridMessage } from './views.js'
 import { describeMerge, mergeIntoFont, prepareImported, readImportable, runImportWizard } from './import.js'
@@ -196,7 +198,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  const addSvgFiles = async (font: IconFont, uris: vscode.Uri[]) => {
+  const addSvgFiles = async (font: IconFont, uris: vscode.Uri[], as?: string) => {
     const set = font.project.sets[0]
     if (!set) return
     const { importSvg } = await heavy()
@@ -207,6 +209,9 @@ export async function activate(context: vscode.ExtensionContext) {
       try {
         const text = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri))
         const result = importSvg(text, name, { targetHeight: set.height })
+        // filling a named gap: the glyph has to answer to the name the code already
+        // writes, whatever the file on disk happens to be called
+        if (as) result.glyph.name = as
         glyphs.push({ ...result.glyph, id: `${font.uri.toString()}:${result.glyph.name}` })
         warnings.push(...result.warnings.map((w) => `${name}: ${w}`))
       } catch (e) {
@@ -679,9 +684,12 @@ export async function activate(context: vscode.ExtensionContext) {
    * were last working in was never the one that came forward. Opening a font that is
    * already open now reveals that panel and re-points it at the icon you asked for.
    */
-  const editors = new Map<string, { panel: vscode.WebviewPanel; focus: (glyph?: string, library?: boolean) => void }>()
+  const editors = new Map<string, {
+    panel: vscode.WebviewPanel
+    focus: (glyph?: string, library?: boolean, query?: string) => void
+  }>()
 
-  command('iconotype.open', async (uri?: vscode.Uri, focus?: string, library?: boolean) => {
+  command('iconotype.open', async (uri?: vscode.Uri, focus?: string, library?: boolean, query?: string) => {
     const font = await pickFont(uri)
     if (!font) return undefined
 
@@ -689,7 +697,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const open = editors.get(key)
     if (open) {
       open.panel.reveal(open.panel.viewColumn ?? vscode.ViewColumn.Active)
-      open.focus(focus, library)
+      open.focus(focus, library, query)
       return open.panel
     }
 
@@ -715,20 +723,20 @@ export async function activate(context: vscode.ExtensionContext) {
     const token = [...Array(16)].map(() => Math.random().toString(36)[2]).join('')
     let sentOnce = false
 
-    const send = (focusGlyph?: string, openLibrary?: boolean) => {
+    const send = (focusGlyph?: string, openLibrary?: boolean, libraryQuery?: string) => {
       const current = registry.get(font.uri)
       if (current && !current.error) {
         sentOnce = true
         void panel.webview.postMessage({
           type: 'project', project: current.project, name: current.name, token,
-          focus: focusGlyph, library: openLibrary,
+          focus: focusGlyph, library: openLibrary, libraryQuery,
         })
       }
     }
 
     panel.webview.onDidReceiveMessage(async (message: { type?: string; project?: Project; token?: string }) => {
       // the editor asks for its project once it has booted
-      if (message?.type === 'ready') { send(focus, library); return }
+      if (message?.type === 'ready') { send(focus, library, query); return }
       // and writes every edit straight back to the .iconotype.json
       if (message?.type === 'save' && message.project) {
         if (!sentOnce || message.token !== token) {
@@ -762,8 +770,38 @@ export async function activate(context: vscode.ExtensionContext) {
    * The flag travels with the `project` message instead of as a second postMessage,
    * because the webview is not listening yet when the panel is created.
    */
-  command('iconotype.findIcons', async (uri?: vscode.Uri) => {
-    await vscode.commands.executeCommand('iconotype.open', uri, undefined, true)
+  command('iconotype.findIcons', async (uri?: vscode.Uri, query?: string) => {
+    await vscode.commands.executeCommand('iconotype.open', uri, undefined, true, query)
+  })
+
+  /**
+   * The two ways out of a missing icon: find one, or bring your own.
+   *
+   * Both name the new glyph after the reference that is already written, so the code
+   * that was broken resolves without being touched — which is the whole point. Renaming
+   * every call site instead is the other valid fix, and rename already does that.
+   */
+  command('iconotype.addMissingFromLibrary', async (node?: { item?: MissingIcon }) => {
+    const missing = node?.item
+    if (!missing) return
+    const font = registry.get(missing.font.uri) ?? missing.font
+    await vscode.commands.executeCommand('iconotype.findIcons', font.uri, missing.name)
+  })
+
+  command('iconotype.addMissingFromSvg', async (node?: { item?: MissingIcon }) => {
+    const missing = node?.item
+    if (!missing) return
+    const font = registry.get(missing.font.uri)
+    if (!font) return
+    const files = await vscode.window.showOpenDialog({
+      canSelectMany: false,
+      filters: { SVG: ['svg'] },
+      openLabel: `Add as "${missing.name}"`,
+      title: `Artwork for ${missing.prefix}${missing.name}`,
+    })
+    if (!files?.length) return
+    await addSvgFiles(font, files, missing.name)
+    await usage.scan()
   })
 
   // ── editor integration ─────────────────────────────────────────────────────────
@@ -851,7 +889,7 @@ export async function activate(context: vscode.ExtensionContext) {
     registry, usage, decorator, diagnostics, exportFont: runExport, addSvgFiles, grid,
     // the import wizard's own steps are dialogs, so the tests drive these directly
     readImportable, mergeIntoFont, prepareImported, usageTree,
-    usageInternals: { DEFAULT_EXCLUDE_DIRS, excludeGlobFor, usagePickItems },
+    usageInternals: { DEFAULT_EXCLUDE_DIRS, excludeGlobFor, usagePickItems, referencePattern },
     exports, fontTree, heavyLoaded,
   }
 }

@@ -479,6 +479,8 @@ export class AppStore {
    * at a self-hosted `iconify/api`; nothing but the query and the icon names is sent.
    */
   showLibrary = $state(false)
+  /** what the library should search for the moment it opens, if anything */
+  libraryQuery = $state('')
   libraryHost = $state<string | undefined>(undefined)
   adding = $state(false)
 

@@ -25,6 +25,17 @@ export interface IconFont {
   classPrefix: string
   /** every prefix a reference in source may be written with, longest first */
   prefixes: string[]
+  /**
+   * The prefixes the code is expected to WRITE, longest first: `usagePrefixes` when the
+   * project declares them, otherwise the class prefix.
+   *
+   * Narrower than `prefixes` on purpose. A project whose build rewrites references
+   * still has its class prefix appear in source — in a hand-written stylesheet, say —
+   * and that is a real use worth counting. It is not somewhere a name the font lacks
+   * means anything: declare `usagePrefixes: ["app-"]` against a class prefix of
+   * `icon-`, and every unrelated `icon-…` in the workspace reads as a missing icon.
+   */
+  usagePrefixes: string[]
   project: Project
   /** parse failure, if the file is currently broken */
   error?: string
@@ -95,6 +106,25 @@ export class IconFontRegistry implements vscode.Disposable {
     return undefined
   }
 
+  /**
+   * `match`, restricted to the prefixes the code is expected to write.
+   *
+   * Used where a reference the font cannot answer is a finding rather than a fact:
+   * matching on the class prefix there turns any unrelated `icon-…` into an invented
+   * missing icon.
+   */
+  matchWritten(reference: string): { font: IconFont; prefix: string; name: string } | undefined {
+    for (const font of this.fonts) {
+      // longest first: `icon-` must not shadow `icon-outline-`
+      for (const prefix of font.usagePrefixes) {
+        if (prefix && reference.startsWith(prefix)) {
+          return { font, prefix, name: reference.slice(prefix.length) }
+        }
+      }
+    }
+    return undefined
+  }
+
   /** Resolves a written reference like `app-home` back to its icon. */
   resolve(reference: string): IconRef | undefined {
     const hit = this.match(reference)
@@ -140,6 +170,8 @@ export class IconFontRegistry implements vscode.Disposable {
         prefix: usage[0] ?? classPrefix,
         classPrefix,
         prefixes: [...new Set([...usage, classPrefix])].sort((a, b) => b.length - a.length),
+        usagePrefixes: (usage.length ? [...new Set(usage)] : [classPrefix])
+          .sort((a, b) => b.length - a.length),
         project,
       }
     } catch (e) {
@@ -152,6 +184,7 @@ export class IconFontRegistry implements vscode.Disposable {
         prefix: previous?.prefix ?? '',
         classPrefix: previous?.classPrefix ?? '',
         prefixes: previous?.prefixes ?? [],
+        usagePrefixes: previous?.usagePrefixes ?? [],
         // a real, complete project even when the file is broken: half of the extension
         // reads `preferences.font.family`, and a `{}` here crashed the usage scan
         project: previous?.project ?? emptyProject(uri.toString(), name),

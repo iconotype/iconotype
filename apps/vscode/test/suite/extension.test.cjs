@@ -669,6 +669,54 @@ suite('iconotype extension', function () {
     assert.ok(rows[0].site.line < rows[1].site.line)
   })
 
+  test('reports references to icons the font does not have', async () => {
+    fs.writeFileSync(
+      path.join(workspace, 'src', 'gaps.html'),
+      ['<i class="app-toto"></i>', '<i class="app-toto"></i>', '<i class="app-home"></i>'].join('\n'),
+    )
+    await api.usage.scan()
+
+    const missing = api.usage.missing()
+    const toto = missing.find((m) => m.name === 'toto')
+    assert.ok(toto, `app-toto renders nothing at all, so it has to be reported: ${missing.map((m) => m.name)}`)
+    assert.strictEqual(toto.sites.length, 2)
+    assert.strictEqual(toto.prefix, 'app-')
+    // an icon that does exist is usage, not a gap
+    assert.ok(!missing.some((m) => m.name === 'home'))
+
+    // and it leads the view, because a name the font cannot answer is broken output
+    const groups = api.usageTree.getChildren()
+    assert.strictEqual(groups[0].kind, 'missingGroup')
+    const item = api.usageTree.getTreeItem(groups[0])
+    assert.match(item.label, /^Missing \(/)
+
+    const rows = api.usageTree.getChildren(groups[0])
+    const row = api.usageTree.getTreeItem(rows.find((r) => r.item.name === 'toto'))
+    assert.strictEqual(row.label, 'app-toto')
+    assert.strictEqual(row.contextValue, 'iconotype.missingIcon')
+    // its children are the sites, so you can walk to each one
+    assert.strictEqual(api.usageTree.getChildren(rows.find((r) => r.item.name === 'toto')).length, 2)
+
+    fs.rmSync(path.join(workspace, 'src', 'gaps.html'))
+    await api.usage.scan()
+    assert.ok(!api.usage.missing().some((m) => m.name === 'toto'), 'removing the last reference must clear it')
+  })
+
+  test('a saved edit keeps the missing list current', async () => {
+    const file = path.join(workspace, 'src', 'gaps2.html')
+    fs.writeFileSync(file, '<i class="app-zzz"></i>\n')
+    await api.usage.scan()
+    assert.ok(api.usage.missing().some((m) => m.name === 'zzz'))
+
+    // updateFile is the on-save path; it used to refresh usage but not the gaps, so
+    // the panel went on claiming an icon was missing after the reference had gone
+    api.usage.updateFile(vscode.Uri.file(file), '<i class="app-home"></i>\n')
+    assert.ok(!api.usage.missing().some((m) => m.name === 'zzz'))
+
+    fs.rmSync(file)
+    await api.usage.scan()
+  })
+
   test('spots a prefix the code uses that the font does not', async () => {
     fs.writeFileSync(
       path.join(workspace, 'src', 'legacy.html'),
@@ -893,6 +941,163 @@ suite('iconotype extension', function () {
     fs.unlinkSync(path.join(workspace, 'src', 'aliased.scss'))
     fs.unlinkSync(file)
     await api.usage.scan()
+  })
+
+  test('only the prefixes the code writes can produce a missing icon', async () => {
+    const file = path.join(workspace, 'aliased2.iconotype.json')
+    /*
+     * The reported shape: the stylesheet declares `.ico2-…`, but the build means the
+     * code writes `zz-…`. Deliberately not `app-`, which the workspace's own font
+     * already claims — two fonts sharing a written prefix is a different problem.
+     */
+    fs.writeFileSync(file, JSON.stringify({
+      schemaVersion: 1,
+      name: 'aliased2',
+      font: {
+        family: 'aliased2', prefix: 'ico2-', usagePrefixes: ['zz-'],
+        emSize: 1024, baseline: 6.25, whitespace: 50, version: '1.0',
+      },
+      height: 1024,
+      icons: [{ name: 'summit', code: 'e931', paths: ['M0 0H10V10H0Z'] }],
+    }, null, 2))
+    await api.registry.load(vscode.Uri.file(file))
+
+    const font = api.registry.fonts.find((f) => f.name === 'aliased2')
+    // usagePrefixes wins outright; the class prefix still matches, just not for findings
+    assert.deepStrictEqual(font.usagePrefixes, ['zz-'])
+    assert.deepStrictEqual([...font.prefixes].sort(), ['ico2-', 'zz-'])
+    assert.ok(api.registry.matchWritten('zz-whatever'))
+    assert.strictEqual(api.registry.matchWritten('ico2-whatever'), undefined)
+
+    const source = path.join(workspace, 'src', 'aliased2.ts')
+    fs.writeFileSync(source, [
+      `const styled = 'ico2-carousel'`,   // not an icon, and never meant to be one
+      `const real = 'zz-nosuch'`,         // written the way the code writes them
+    ].join('\n'))
+    try {
+      await api.usage.scan()
+      const missing = api.usage.missing().map((m) => `${m.prefix}${m.name}`)
+      assert.ok(!missing.includes('ico2-carousel'),
+        `the class prefix invented a missing icon: ${missing}`)
+      assert.ok(missing.includes('zz-nosuch'), `the written prefix must still report: ${missing}`)
+    } finally {
+      fs.rmSync(source)
+      fs.rmSync(file)
+      // the registry drops a font from its file watcher, which is not synchronous
+      await wait(400)
+      await api.usage.scan()
+    }
+  })
+
+  test('with no usagePrefixes, the class prefix is what the code writes', async () => {
+    const font = appFont()
+    assert.deepStrictEqual(font.usagePrefixes, [font.classPrefix])
+    assert.ok(api.registry.matchWritten(`${font.classPrefix}anything`))
+  })
+
+  test('a module path is not an icon reference', () => {
+    const match = (line) => [...line.matchAll(api.usageInternals.referencePattern(['app-']))].map((m) => m[0])
+
+    /*
+     * The reported case. An import list is long enough that a few of these bury every
+     * real finding: the scan calls them used, and the missing-icon report invents
+     * icons nobody ever wrote.
+     */
+    assert.deepStrictEqual(match(`import { e } from '@akylas/nativescript-app-utils/error'`), [])
+    assert.deepStrictEqual(match(`import { e } from '@akylas/app-utils/error'`), [])
+    assert.deepStrictEqual(match(`import { e } from 'app-utils/error'`), [])
+    // the prefix may not continue a longer word
+    assert.deepStrictEqual(match('myapp-utils'), [])
+    // a template literal names nothing resolvable
+    assert.deepStrictEqual(match('`app-${name}`'), [])
+
+    // and everything a reference is genuinely written against still counts
+    assert.deepStrictEqual(match(`const c = 'app-utils'`), ['app-utils'])
+    assert.deepStrictEqual(match(`const c = "app-utils"`), ['app-utils'])
+    assert.deepStrictEqual(match('<i class="app-home"></i>'), ['app-home'])
+    assert.deepStrictEqual(match('<i class="app-home"/>'), ['app-home'])
+    assert.deepStrictEqual(match('.app-home.active {}'), ['app-home'])
+    assert.deepStrictEqual(match('<div class:app-active />'), ['app-active'])
+    assert.deepStrictEqual(match('class="icon app-home other"'), ['app-home'])
+  })
+
+  test('an import of a package that looks like the prefix is neither usage nor missing', async () => {
+    const file = path.join(workspace, 'src', 'imports.ts')
+    fs.writeFileSync(file, [
+      `import { showError } from '@akylas/nativescript-app-utils/error'`,
+      `const icon = 'app-nowhere'`,
+    ].join('\n'))
+    try {
+      await api.usage.scan()
+      const missing = api.usage.missing().map((m) => m.name)
+      assert.ok(!missing.includes('utils'), `the import path was read as an icon: ${missing}`)
+      assert.ok(missing.includes('nowhere'), 'the real reference on the next line still counts')
+    } finally {
+      fs.rmSync(file)
+      await api.usage.scan()
+    }
+  })
+
+  test('missing icons can be scoped to real source files', async () => {
+    const config = vscode.workspace.getConfiguration('iconotype')
+    const font = appFont()
+    // whatever the font still holds by this point in the suite
+    const real = font.project.sets.flatMap((set) => set.glyphs)[0].name
+    const code = path.join(workspace, 'src', 'real.ts')
+    const prose = path.join(workspace, 'src', 'notes.md')
+
+    // the same absent icon, in a file that is code and a file that is not
+    fs.writeFileSync(code, `const cls = "app-nope"\n`)
+    fs.writeFileSync(prose, `we could use \`app-nope\` here, or \`app-${real}\`\n`)
+    try {
+      await api.usage.scan()
+      assert.strictEqual(api.usage.missing().find((m) => m.name === 'nope').sites.length, 2,
+        'unscoped, both files count')
+
+      await config.update('missing.include', '**/*.{ts,svelte}', vscode.ConfigurationTarget.Workspace)
+      await api.usage.scan()
+
+      const scoped = api.usage.missing().find((m) => m.name === 'nope')
+      assert.ok(scoped, 'the reference in real.ts is still a missing icon')
+      assert.strictEqual(scoped.sites.length, 1, 'prose is not a broken reference')
+      assert.match(scoped.sites[0].uri.fsPath, /real\.ts$/)
+
+      /*
+       * Usage stays broad on purpose. Narrowing it too would make an icon referenced
+       * only from a file outside the scope read as unused — and the next thing anyone
+       * does with an unused icon is delete it.
+       */
+      // by font as well as name: several fonts in this workspace have a `home`
+      const usage = api.usage.all().find((u) => u.icon.font.name === 'app' && u.icon.glyph.name === real)
+      assert.ok(usage.sites.some((site) => /notes\.md$/.test(site.uri.fsPath)),
+        'markdown is outside the missing scope but must still count as usage')
+    } finally {
+      await config.update('missing.include', undefined, vscode.ConfigurationTarget.Workspace)
+      fs.rmSync(code)
+      fs.rmSync(prose)
+      await api.usage.scan()
+    }
+  })
+
+  test('the missing-scope excludes drop a file without dropping its usage', async () => {
+    const config = vscode.workspace.getConfiguration('iconotype')
+    const font = appFont()
+    const real = font.project.sets.flatMap((set) => set.glyphs)[0].name
+    const fixture = path.join(workspace, 'src', 'fixture.ts')
+    fs.writeFileSync(fixture, `const a = "app-ghost"\nconst b = "app-${real}"\n`)
+    try {
+      await config.update('missing.exclude', '**/fixture.ts', vscode.ConfigurationTarget.Workspace)
+      await api.usage.scan()
+
+      assert.ok(!api.usage.missing().some((m) => m.name === 'ghost'), 'excluded from missing')
+      const usage = api.usage.all().find((u) => u.icon.font.name === 'app' && u.icon.glyph.name === real)
+      assert.ok(usage.sites.some((site) => /fixture\.ts$/.test(site.uri.fsPath)),
+        'but still counted as usage')
+    } finally {
+      await config.update('missing.exclude', undefined, vscode.ConfigurationTarget.Workspace)
+      fs.rmSync(fixture)
+      await api.usage.scan()
+    }
   })
 
   test('excludes are configurable', async () => {

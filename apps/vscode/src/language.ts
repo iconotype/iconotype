@@ -12,11 +12,28 @@ export const SUPPORTED_LANGUAGES = [
   'typescriptreact', 'vue', 'svelte', 'astro', 'markdown', 'php', 'handlebars', 'xml', 'json',
 ]
 
-/** `app-home`, `icon-user`, … — a reference to an icon in one of the workspace's fonts. */
+/**
+ * `app-home`, `icon-user`, … — a reference to an icon in one of the workspace's fonts.
+ *
+ * The boundaries are the whole difficulty. A bare `prefix + name` match reads
+ * `@akylas/nativescript-app-utils/error` as a reference to `app-utils`, and an import
+ * list is long enough that a handful of those bury every real finding — the scan calls
+ * them used, and the missing-icon report invents icons nobody ever wrote.
+ *
+ * So the prefix may not continue a longer word (`nativescript-app-utils`, `myapp-`),
+ * and neither end may sit against a `/`, because a module path segment is the one
+ * thing that looks exactly like a reference and never is. Everything a reference is
+ * genuinely written against still counts: quotes, whitespace, `.` in a selector, `:`
+ * in a Svelte class directive, `"` before a self-closing `/>`.
+ *
+ * The trailing lookahead spans name characters rather than testing one, or the engine
+ * would backtrack to a shorter match and hand back `app-util` out of `app-utils/`.
+ */
 export function referencePattern(prefixes: string[]): RegExp | null {
   const usable = prefixes.filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   if (!usable.length) return null
-  return new RegExp(`(?:${usable.join('|')})[a-zA-Z0-9_-]+`, 'g')
+  return new RegExp(
+    `(?<![A-Za-z0-9_/-])(?:${usable.join('|')})[a-zA-Z0-9_-]+(?![a-zA-Z0-9_-]*\\/)`, 'g')
 }
 
 /** `\e900` in a stylesheet, or `` in JS — the codepoint written directly. */

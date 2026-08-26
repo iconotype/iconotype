@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import {
-  apply, allocate, emptyProject, parsePathList, toPaths, type Op, type Project,
+  apply, allocate, emptyProject, parsePathList, toPaths, type Glyph, type Op, type Project,
 } from '@iconotype/core-model'
 import { serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io/iconfont-file'
 import { heavy, heavyLoaded } from './lazy.js'
@@ -149,6 +149,38 @@ export async function activate(context: vscode.ExtensionContext) {
       { placeHolder: 'Which icon font?' },
     )
     return choice?.font
+  }
+
+  /**
+   * The live font and glyph behind a tree node.
+   *
+   * A node carries the IconFont object it was BUILT with, and the registry replaces
+   * that object wholesale on every reload — a save, a branch switch, an external
+   * edit. The captured copy then fails the identity checks the rest of the extension
+   * makes (`icons().find((i) => i.font === font)`) and, far worse, still carries the
+   * project as it was: handing it to `mutate` writes an out-of-date document over
+   * whatever is on disk now. So the node is treated as nothing but a uri and a glyph
+   * id, and both are looked up again.
+   *
+   * Deliberately no `?? node.font` fallback: a font the registry no longer holds is a
+   * font whose file is gone, and writing the stale copy back would resurrect it.
+   */
+  const resolveNode = (
+    node?: { font?: IconFont; glyph?: { id: string; name?: string } },
+  ): { font: IconFont; glyph: Glyph } | undefined => {
+    if (!node?.font || !node.glyph) return undefined
+    const font = registry.get(node.font.uri)
+    if (!font) {
+      vscode.window.showWarningMessage(`Iconotype: ${node.font.name} is no longer open in this workspace.`)
+      return undefined
+    }
+    const glyph = font.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === node.glyph!.id)
+    if (!glyph) {
+      vscode.window.showWarningMessage(
+        `Iconotype: "${node.glyph.name ?? node.glyph.id}" is no longer in ${font.name}.`)
+      return undefined
+    }
+    return { font, glyph }
   }
 
   const runExport = async (font: IconFont) => {
@@ -340,20 +372,30 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   command('iconotype.removeIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
-    if (!node?.font || !node.glyph) return
+    const target = resolveNode(node)
+    if (!target) return
     const confirm = await vscode.window.showWarningMessage(
-      `Remove "${node.glyph.name}" from ${node.font.name}?`,
+      `Remove "${target.glyph.name}" from ${target.font.name}?`,
       { modal: true, detail: 'Its codepoint stays reserved, so existing builds keep working.' },
       'Remove',
     )
     if (confirm !== 'Remove') return
-    await mutate(registry, node.font, { t: 'glyph.remove', ids: [node.glyph.id] })
+    // the dialog is modal, the file is not: a reload may have landed while it was up
+    const current = resolveNode(node)
+    if (!current) return
+    await mutate(registry, current.font, { t: 'glyph.remove', ids: [current.glyph.id] })
   })
 
-  command('iconotype.toggleIcon', async (node?: { font?: IconFont; glyph?: { id: string; selected?: boolean } }) => {
-    if (!node?.font || !node.glyph) return
-    await mutate(registry, node.font, {
-      t: 'glyph.select', ids: [node.glyph.id], selected: node.glyph.selected === false,
+  /**
+   * Note the argument type: no `selected`. A node's copy of it is exactly as stale as
+   * its font, so the flip is decided by what the file says NOW — otherwise a toggle
+   * clicked after a reload flips from the wrong reading and appears to do nothing.
+   */
+  command('iconotype.toggleIcon', async (node?: { font?: IconFont; glyph?: { id: string } }) => {
+    const target = resolveNode(node)
+    if (!target) return
+    await mutate(registry, target.font, {
+      t: 'glyph.select', ids: [target.glyph.id], selected: target.glyph.selected === false,
     })
   })
 
@@ -411,13 +453,17 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   command('iconotype.replaceIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
-    if (!node?.font || !node.glyph) return
-    const font = registry.get(node.font.uri) ?? node.font
+    const opening = resolveNode(node)
+    if (!opening) return
     const picked = await vscode.window.showOpenDialog({
-      canSelectMany: false, filters: { SVG: ['svg'] }, openLabel: `Replace "${node.glyph.name}"`,
+      canSelectMany: false, filters: { SVG: ['svg'] }, openLabel: `Replace "${opening.glyph.name}"`,
     })
     if (!picked?.length) return
-    const set = font.project.sets.find((s) => s.glyphs.some((g) => g.id === node.glyph!.id))
+    // resolved again after the dialog: picking a file is slow enough for a reload to land
+    const target = resolveNode(node)
+    if (!target) return
+    const { font } = target
+    const set = font.project.sets.find((s) => s.glyphs.some((g) => g.id === target.glyph.id))
     if (!set) return
     try {
       const { importSvg } = await heavy()
@@ -429,7 +475,7 @@ export async function activate(context: vscode.ExtensionContext) {
        */
       await mutate(registry, font, {
         t: 'glyph.patch',
-        id: node.glyph.id,
+        id: target.glyph.id,
         patch: {
           paths: result.glyph.paths,
           attrs: result.glyph.attrs,
@@ -437,19 +483,18 @@ export async function activate(context: vscode.ExtensionContext) {
           grid: result.glyph.grid,
         },
       })
-      for (const warning of result.warnings) output.appendLine(`${node.glyph.name}: ${warning}`)
-      vscode.window.showInformationMessage(`Iconotype: replaced the artwork for "${node.glyph.name}"`)
+      for (const warning of result.warnings) output.appendLine(`${target.glyph.name}: ${warning}`)
+      vscode.window.showInformationMessage(`Iconotype: replaced the artwork for "${target.glyph.name}"`)
     } catch (e) {
       vscode.window.showErrorMessage(`Iconotype: replace failed — ${(e as Error).message}`)
     }
   })
 
   command('iconotype.flattenIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
-    if (!node?.font || !node.glyph) return
-    const font = registry.get(node.font.uri) ?? node.font
-    const glyph = font.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === node.glyph!.id)
-    if (!glyph) return
-    const code = font.project.codepoints[glyph.name]
+    const found = resolveNode(node)
+    if (!found) return
+    const { glyph } = found
+    const code = found.font.project.codepoints[glyph.name]
     const codes = code === undefined ? [] : Array.isArray(code) ? code : [code]
     const confirm = await vscode.window.showWarningMessage(
       `Flatten "${glyph.name}" to a single colour?`,
@@ -462,13 +507,20 @@ export async function activate(context: vscode.ExtensionContext) {
       'Flatten',
     )
     if (confirm !== 'Flatten') return
-    let project = apply(font.project, {
-      t: 'glyph.patch', id: glyph.id, patch: { isMulticolor: false, attrs: glyph.paths.map(() => ({})) },
+    // the confirmation was modal, not the file: resolve once more before writing
+    const current = resolveNode(node)
+    if (!current) return
+    const now = current.font.project.codepoints[current.glyph.name]
+    const live = now === undefined ? [] : Array.isArray(now) ? now : [now]
+    let project = apply(current.font.project, {
+      t: 'glyph.patch',
+      id: current.glyph.id,
+      patch: { isMulticolor: false, attrs: current.glyph.paths.map(() => ({})) },
     }).next
-    if (codes.length > 1) {
-      project = apply(project, { t: 'codepoint.assign', assignments: { [glyph.name]: codes[0]! } }).next
+    if (live.length > 1) {
+      project = apply(project, { t: 'codepoint.assign', assignments: { [current.glyph.name]: live[0]! } }).next
     }
-    await registry.save(font, project)
+    await registry.save(current.font, project)
   })
 
   command('iconotype.insertIcon', async () => {

@@ -602,6 +602,65 @@ suite('iconotype extension', function () {
     assert.strictEqual(site.command.command, 'vscode.open')
   })
 
+  test('opening the same font twice reuses one editor panel', async () => {
+    const font = api.registry.fonts.find((f) => f.name === 'app')
+    const first = await vscode.commands.executeCommand('iconotype.open', font.uri)
+    const second = await vscode.commands.executeCommand('iconotype.open', font.uri, 'app:home')
+
+    /*
+     * Each panel keeps a whole copy of the app alive with retainContextWhenHidden, so
+     * stacking one per click cost megabytes a time and buried the tab being worked in.
+     */
+    assert.strictEqual(second, first, 'a second open must reveal the panel already showing that font')
+
+    first.dispose()
+    await wait(50)
+    const third = await vscode.commands.executeCommand('iconotype.open', font.uri)
+    assert.notStrictEqual(third, first, 'once closed, opening must build a fresh panel')
+    third.dispose()
+  })
+
+  test('an icon row in the tree can jump to its one reference', async () => {
+    await api.usage.scan()
+    // exactly one hit skips the picker and goes straight there, which is the path a
+    // headless run can actually observe
+    const single = api.usage.all().find((u) => u.sites.length === 1)
+    assert.ok(single, 'no singly-referenced icon to jump to')
+    const { font, glyph } = single.icon
+    const site = single.sites[0]
+
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors')
+    await wait(100)
+
+    // the tree hands the command its node, not a uri and a name — and that node holds
+    // whichever font object was current when the row was built
+    await vscode.commands.executeCommand('iconotype.showUsage', { kind: 'icon', font, glyph })
+    await wait(300)
+
+    const editor = vscode.window.visibleTextEditors.find((e) => e.document.uri.fsPath === site.uri.fsPath)
+    assert.ok(editor, `nothing opened for ${site.uri.fsPath}`)
+    // and landed on the reference itself, not merely in the right file
+    assert.strictEqual(editor.document.getText(editor.selection), `${site.prefix || font.prefix}${glyph.name}`)
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors')
+  })
+
+  test('reference rows are grouped under their file, code first', async () => {
+    await api.usage.scan()
+    const home = api.usage.all().find((u) => u.icon.glyph.name === 'home')
+    const items = api.usageInternals.usagePickItems(home.sites)
+
+    // one separator naming the file, then its hits — the shape Quick Open uses
+    assert.strictEqual(items.filter((i) => i.kind === vscode.QuickPickItemKind.Separator).length, 1)
+    assert.match(items[0].label, /page\.html$/)
+
+    const rows = items.filter((i) => i.site)
+    assert.strictEqual(rows.length, 2)
+    assert.match(rows[0].label, /app-home/, 'the row must lead with the code, not the path')
+    assert.match(rows[0].description, /^\d+:\d+$/)
+    // and in the order you would read the file
+    assert.ok(rows[0].site.line < rows[1].site.line)
+  })
+
   test('spots a prefix the code uses that the font does not', async () => {
     fs.writeFileSync(
       path.join(workspace, 'src', 'legacy.html'),

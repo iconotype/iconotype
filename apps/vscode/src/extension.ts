@@ -12,7 +12,10 @@ import { IconDiagnostics, IconQuickFixes } from './diagnostics.js'
 import { autoExportMode, ExportState } from './stale.js'
 import { IconCompletionProvider, IconDecorator, IconHoverProvider, SUPPORTED_LANGUAGES } from './language.js'
 import { IconDefinitionProvider, IconReferenceProvider, IconRenameProvider } from './rename.js'
-import { DEFAULT_EXCLUDE_DIRS, excludeGlobFor, UsageIndex, UsageTreeProvider } from './usage.js'
+import {
+  DEFAULT_EXCLUDE_DIRS, excludeGlobFor, pickUsageSite, usagePickItems, UsageIndex, UsageTreeProvider,
+  type UsageSite,
+} from './usage.js'
 import { FontTreeProvider, IconDecorationProvider, IconGridViewProvider, type GridMessage } from './views.js'
 import { describeMerge, mergeIntoFont, prepareImported, readImportable, runImportWizard } from './import.js'
 
@@ -359,8 +362,27 @@ export async function activate(context: vscode.ExtensionContext) {
     if (font) grid.show(font, glyphId)
   })
 
-  command('iconotype.showUsage', async (uri?: vscode.Uri, name?: string) => {
-    const font = await pickFont(uri)
+  /**
+   * Reached two ways with two different first arguments: the grid passes `(uri, name)`,
+   * while a tree row's menu passes the node itself and nothing else. Before this told
+   * them apart, the tree entry looked live and did nothing at all — `name` arrived
+   * undefined and the command returned without a word.
+   */
+  command('iconotype.showUsage', async (
+    target?: vscode.Uri | { font?: IconFont; glyph?: { name: string } }, glyphName?: string,
+  ) => {
+    const node = target && !(target instanceof vscode.Uri) ? target : undefined
+    /*
+     * Re-resolve through the registry rather than trusting the object on the node. A
+     * tree row, and the usage index behind it, both hold whichever IconFont was current
+     * when they were built, and a reload — a save, a branch switch — replaces it. The
+     * stale copy then fails every identity check downstream and the command gives up
+     * without a word, which is precisely how this looked from the outside.
+     */
+    const font = node?.font
+      ? registry.get(node.font.uri)
+      : await pickFont(target as vscode.Uri | undefined)
+    const name = glyphName ?? node?.glyph?.name
     if (!font || !name) return
     const icon = registry.icons().find((i) => i.font === font && i.glyph.name === name)
     if (!icon) return
@@ -375,20 +397,17 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage(`Iconotype: "${font.prefix}${name}" is not referenced anywhere.`)
       return
     }
-    // one hit goes straight there; several are worth choosing between
-    const site = sites.length === 1 ? sites[0]! : (await vscode.window.showQuickPick(
-      sites.map((s) => ({
-        label: `${vscode.workspace.asRelativePath(s.uri)}:${s.line + 1}`,
-        detail: s.text,
-        site: s,
-      })),
-      { placeHolder: `${sites.length} reference(s) to ${font.prefix}${name}` },
-    ))?.site
-    if (!site) return
-    await vscode.window.showTextDocument(site.uri, {
-      selection: new vscode.Range(
-        site.line, site.column, site.line, site.column + (site.prefix || font.prefix).length + name.length),
+    // a site is written with whichever prefix that file uses, so the span is per-site
+    const rangeOf = (s: UsageSite) => new vscode.Range(
+      s.line, s.column, s.line, s.column + (s.prefix || font.prefix).length + name.length)
+
+    // one hit goes straight there; several are worth walking through
+    const site = sites.length === 1 ? sites[0]! : await pickUsageSite(sites, {
+      title: `${sites.length} references to ${font.prefix}${name}`,
+      rangeOf,
     })
+    if (!site) return
+    await vscode.window.showTextDocument(site.uri, { selection: rangeOf(site), preview: false })
   })
 
   command('iconotype.replaceIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
@@ -599,9 +618,29 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage(`Iconotype: created ${name}${ICONFONT_EXTENSION}. Add SVGs with "Iconotype: Add Icons".`)
   })
 
+  /**
+   * One editor per font, not one per click.
+   *
+   * Every panel holds a full copy of the app with `retainContextWhenHidden`, so the
+   * old behaviour turned a morning of clicking icons into a row of identical tabs, each
+   * costing a few megabytes and each with its own unsaved-edit state — and the one you
+   * were last working in was never the one that came forward. Opening a font that is
+   * already open now reveals that panel and re-points it at the icon you asked for.
+   */
+  const editors = new Map<string, { panel: vscode.WebviewPanel; focus: (glyph?: string, library?: boolean) => void }>()
+
   command('iconotype.open', async (uri?: vscode.Uri, focus?: string, library?: boolean) => {
     const font = await pickFont(uri)
     if (!font) return undefined
+
+    const key = font.uri.toString()
+    const open = editors.get(key)
+    if (open) {
+      open.panel.reveal(open.panel.viewColumn ?? vscode.ViewColumn.Active)
+      open.focus(focus, library)
+      return open.panel
+    }
+
     const panel = vscode.window.createWebviewPanel(
       'iconotype.editor', `${font.name} — Iconotype`, vscode.ViewColumn.Active,
       {
@@ -655,7 +694,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // keep the panel in step with edits made elsewhere (the grid, the tree, git)
     const subscription = registry.onDidChange(() => send())
-    panel.onDidDispose(() => subscription.dispose())
+    editors.set(key, { panel, focus: send })
+    panel.onDidDispose(() => {
+      subscription.dispose()
+      editors.delete(key)
+    })
     return panel
   })
 
@@ -756,7 +799,7 @@ export async function activate(context: vscode.ExtensionContext) {
     registry, usage, decorator, diagnostics, exportFont: runExport, addSvgFiles, grid,
     // the import wizard's own steps are dialogs, so the tests drive these directly
     readImportable, mergeIntoFont, prepareImported, usageTree,
-    usageInternals: { DEFAULT_EXCLUDE_DIRS, excludeGlobFor },
+    usageInternals: { DEFAULT_EXCLUDE_DIRS, excludeGlobFor, usagePickItems },
     exports, fontTree, heavyLoaded,
   }
 }

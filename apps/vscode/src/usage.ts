@@ -304,6 +304,88 @@ type UsageNode =
   | { kind: 'generated'; font: IconFont; uri: vscode.Uri }
 
 /** The "Icon Usage" view. */
+/**
+ * Pick one of an icon's reference sites, the way Quick Open picks a file.
+ *
+ * The flat list this replaced made you commit before you could look: every row read
+ * `some/long/path.svelte:41`, the paths crowded out the code, and choosing wrong meant
+ * an editor you did not want and a trip back. So it borrows what Quick Open already
+ * teaches — the file name is a separator over its own hits, each row leads with the
+ * line of code, and arrowing through previews the site in the editor behind.
+ *
+ * Cancelling restores the editor that was open before, because browsing references
+ * should cost nothing if you decide against all of them.
+ */
+export type UsagePickItem = vscode.QuickPickItem & { site?: UsageSite }
+
+/** The rows, split out from the dialog so the grouping is testable on its own. */
+export function usagePickItems(sites: UsageSite[]): UsagePickItem[] {
+  const ordered = [...sites].sort((a, b) =>
+    a.uri.path.localeCompare(b.uri.path) || a.line - b.line || a.column - b.column)
+
+  const items: UsagePickItem[] = []
+  let file: string | undefined
+  for (const site of ordered) {
+    if (site.uri.path !== file) {
+      file = site.uri.path
+      items.push({
+        label: vscode.workspace.asRelativePath(site.uri),
+        kind: vscode.QuickPickItemKind.Separator,
+      })
+    }
+    items.push({
+      // the code first: it is what tells you whether this is the site you meant
+      label: site.text.trim() || vscode.workspace.asRelativePath(site.uri),
+      description: `${site.line + 1}:${site.column + 1}`,
+      site,
+    })
+  }
+  return items
+}
+
+export async function pickUsageSite(
+  sites: UsageSite[],
+  opts: { title: string; rangeOf: (site: UsageSite) => vscode.Range },
+): Promise<UsageSite | undefined> {
+  const items = usagePickItems(sites)
+
+  // where to put things back if nothing is chosen — previewing walks over the editor
+  const before = vscode.window.activeTextEditor
+  const restore = before && !before.document.isClosed
+    ? { document: before.document, selection: before.selection, viewColumn: before.viewColumn }
+    : undefined
+
+  const quickPick = vscode.window.createQuickPick<UsagePickItem>()
+  quickPick.title = opts.title
+  quickPick.placeholder = 'Go to reference'
+  quickPick.matchOnDescription = true
+  quickPick.items = items
+
+  let chosen: UsageSite | undefined
+  try {
+    await new Promise<void>((resolve) => {
+      quickPick.onDidChangeActive(([item]) => {
+        if (!item?.site) return
+        void vscode.window.showTextDocument(item.site.uri, {
+          preview: true, preserveFocus: true, selection: opts.rangeOf(item.site),
+        })
+      })
+      quickPick.onDidAccept(() => { chosen = quickPick.activeItems[0]?.site; quickPick.hide() })
+      quickPick.onDidHide(() => resolve())
+      quickPick.show()
+    })
+  } finally {
+    quickPick.dispose()
+  }
+
+  if (!chosen && restore) {
+    await vscode.window.showTextDocument(restore.document, {
+      viewColumn: restore.viewColumn, selection: restore.selection, preview: false,
+    })
+  }
+  return chosen
+}
+
 export class UsageTreeProvider implements vscode.TreeDataProvider<UsageNode> {
   #emitter = new vscode.EventEmitter<UsageNode | undefined>()
   readonly onDidChangeTreeData = this.#emitter.event

@@ -16,7 +16,8 @@
 
   const app = useApp()
 
-  let query = $state('')
+  // opened with a name to fill in — the missing-icon fix arrives already asking for one
+  let query = $state(app.libraryQuery)
   /** empty = every collection; otherwise only these prefixes are searched */
   let chosenPrefixes = $state.raw<Set<string>>(new Set())
   let collectionFilter = $state('')
@@ -92,6 +93,10 @@
   onMount(() => {
     readInk()
     ;(document.querySelector('.library input[type=search]') as HTMLInputElement | null)?.focus()
+    // a seeded query is a question already asked; answer it without a keystroke, and
+    // consume it, or the next manual open would repeat someone else's search
+    if (query.trim()) void run()
+    app.libraryQuery = ''
     // the full collection list is one 95 kB request; only worth it once the picker opens
     void (async () => {
       try {

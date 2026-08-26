@@ -27,6 +27,29 @@ export interface IconUsage {
   sites: UsageSite[]
 }
 
+/**
+ * A reference the code writes that the font cannot answer.
+ *
+ * `app-toto` where `toto` was never drawn: it renders nothing at all, silently, and
+ * no test in the app notices. Per file this is already a warning with a "did you
+ * mean" (diagnostics.ts); what that cannot tell you is the shape of the problem
+ * across a codebase — which names are missing, how often each is reached for, and
+ * therefore which one is worth drawing first.
+ *
+ * An icon that exists but is excluded from the export is deliberately NOT one of
+ * these. It is a different mistake with a different fix — one click to re-include,
+ * rather than artwork that has to be found or drawn — and diagnostics.ts already
+ * reports it under its own code.
+ */
+export interface MissingIcon {
+  font: IconFont
+  /** the name as written, with the prefix taken off */
+  name: string
+  /** the prefix it was written with, which need not be the font's own */
+  prefix: string
+  sites: UsageSite[]
+}
+
 const DEFAULT_INCLUDE = '**/*.{html,htm,css,scss,less,js,jsx,mjs,cjs,ts,tsx,vue,svelte,astro,md,mdx,php,erb,hbs,xml,json,dart,kt,swift,java}'
 
 /**
@@ -84,6 +107,7 @@ export class UsageIndex {
   #report: ScanReport = { files: 0, truncated: false }
   /** font name → prefix seen in the code → how often, for prefixes we do NOT expect */
   #otherPrefixes = new Map<string, Map<string, number>>()
+  #missing = new Map<string, MissingIcon>()
   #scanning = false
   #emitter = new vscode.EventEmitter<void>()
   readonly onDidChange = this.#emitter.event
@@ -104,6 +128,13 @@ export class UsageIndex {
   }
 
   get unused(): IconUsage[] { return this.all().filter((u) => u.sites.length === 0) }
+
+  /** Referenced but absent, most-reached-for first — the order you would draw them in. */
+  missing(): MissingIcon[] {
+    return [...this.#missing.values()]
+      .filter((m) => m.sites.length)
+      .sort((a, b) => b.sites.length - a.sites.length || a.name.localeCompare(b.name))
+  }
 
   /**
    * The generated stylesheets, per font: not usage, but worth one click.
@@ -134,6 +165,30 @@ export class UsageIndex {
     return best && best[1] >= 2 ? { prefix: best[0], count: best[1] } : undefined
   }
 
+  /**
+   * One reference, sorted into "used" or "missing".
+   *
+   * Shared by the full scan and the per-file refresh so the two cannot drift: a save
+   * that re-indexed usage but not missing icons would leave the panel claiming an icon
+   * is still absent after it had just been added.
+   */
+  #record(
+    reference: string, site: UsageSite,
+    usage: Map<string, IconUsage>, missing: Map<string, MissingIcon>,
+  ): void {
+    const hit = this.registry.match(reference)
+    if (!hit) return
+    const icon = this.registry.resolve(reference)
+    if (icon) {
+      usage.get(`${icon.font.name}/${icon.glyph.name}`)?.sites.push(site)
+      return
+    }
+    const key = `${hit.font.name}/${hit.name}`
+    const entry = missing.get(key) ?? { font: hit.font, name: hit.name, prefix: hit.prefix, sites: [] }
+    entry.sites.push(site)
+    missing.set(key, entry)
+  }
+
   async scan(): Promise<void> {
     if (this.#scanning) return
     this.#scanning = true
@@ -149,6 +204,7 @@ export class UsageIndex {
         icons.map((icon) => [`${icon.font.name}/${icon.glyph.name}`, { icon, sites: [] }]))
 
       this.#generated = new Set<string>()
+      const absent = new Map<string, MissingIcon>()
       const pattern = referencePattern(this.registry.prefixes)
       /**
        * `something-home` where `home` is one of the font's icons but `something-` is
@@ -189,13 +245,10 @@ export class UsageIndex {
           const lines = text.split('\n')
           for (let line = 0; line < lines.length; line++) {
             for (const match of lines[line]!.matchAll(pattern)) {
-              const hit = this.registry.match(match[0])
-              const icon = this.registry.resolve(match[0])
-              if (!icon || !hit) continue
-              const entry = next.get(`${icon.font.name}/${icon.glyph.name}`)
-              entry?.sites.push({
-                uri, line, column: match.index!, text: lines[line]!.trim().slice(0, 120), prefix: hit.prefix,
-              })
+              this.#record(match[0], {
+                uri, line, column: match.index!, text: lines[line]!.trim().slice(0, 120),
+                prefix: this.registry.match(match[0])?.prefix ?? '',
+              }, next, absent)
             }
           }
           for (const candidate of nearMiss) {
@@ -208,6 +261,7 @@ export class UsageIndex {
         }
       }
       this.#usage = next
+      this.#missing = absent
       this.#otherPrefixes = new Map(nearMiss.map((c) => [c.font.name, c.seen]))
     } finally {
       this.#scanning = false
@@ -232,15 +286,16 @@ export class UsageIndex {
     for (const entry of this.#usage.values()) {
       entry.sites = entry.sites.filter((site) => site.uri.toString() !== uri.toString())
     }
+    for (const entry of this.#missing.values()) {
+      entry.sites = entry.sites.filter((site) => site.uri.toString() !== uri.toString())
+    }
     const lines = text.split('\n')
     for (let line = 0; line < lines.length; line++) {
       for (const match of lines[line]!.matchAll(pattern)) {
-        const icon = this.registry.resolve(match[0])
-        if (!icon) continue
-        this.#usage.get(`${icon.font.name}/${icon.glyph.name}`)?.sites.push({
+        this.#record(match[0], {
           uri, line, column: match.index!, text: lines[line]!.trim().slice(0, 120),
-          prefix: this.registry.match(match[0])?.prefix ?? icon.font.prefix,
-        })
+          prefix: this.registry.match(match[0])?.prefix ?? '',
+        }, this.#usage, this.#missing)
       }
     }
     this.#emitter.fire()
@@ -299,11 +354,12 @@ export class UsageIndex {
 type UsageNode =
   | { kind: 'group'; used: boolean; items: IconUsage[] }
   | { kind: 'icon'; usage: IconUsage }
-  | { kind: 'site'; usage: IconUsage; site: UsageSite }
+  | { kind: 'site'; site: UsageSite }
+  | { kind: 'missingGroup'; items: MissingIcon[] }
+  | { kind: 'missing'; item: MissingIcon }
   | { kind: 'generatedGroup'; files: Array<{ font: IconFont; uri: vscode.Uri }> }
   | { kind: 'generated'; font: IconFont; uri: vscode.Uri }
 
-/** The "Icon Usage" view. */
 /**
  * Pick one of an icon's reference sites, the way Quick Open picks a file.
  *
@@ -386,6 +442,7 @@ export async function pickUsageSite(
   return chosen
 }
 
+/** The "Icon Usage" view. */
 export class UsageTreeProvider implements vscode.TreeDataProvider<UsageNode> {
   #emitter = new vscode.EventEmitter<UsageNode | undefined>()
   readonly onDidChangeTreeData = this.#emitter.event
@@ -429,6 +486,27 @@ export class UsageTreeProvider implements vscode.TreeDataProvider<UsageNode> {
       return item
     }
 
+    if (node.kind === 'missingGroup') {
+      const total = node.items.reduce((n, m) => n + m.sites.length, 0)
+      const item = new vscode.TreeItem(`Missing (${node.items.length})`, vscode.TreeItemCollapsibleState.Expanded)
+      item.description = `${total} reference(s) to icons that do not exist`
+      item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('problemsWarningIcon.foreground'))
+      item.tooltip = 'Written in the code with this font\'s prefix, but no such icon. They render nothing.'
+      item.contextValue = 'iconotype.missingGroup'
+      return item
+    }
+
+    if (node.kind === 'missing') {
+      const missing = node.item
+      const treeItem = new vscode.TreeItem(
+        `${missing.prefix}${missing.name}`, vscode.TreeItemCollapsibleState.Collapsed)
+      treeItem.description = `${missing.sites.length} reference(s)`
+      treeItem.iconPath = new vscode.ThemeIcon('question', new vscode.ThemeColor('problemsWarningIcon.foreground'))
+      treeItem.tooltip = `Not an icon in ${missing.font.name}. Add it, or fix the references.`
+      treeItem.contextValue = 'iconotype.missingIcon'
+      return treeItem
+    }
+
     if (node.kind === 'site') {
       const item = new vscode.TreeItem(node.site.text || '(line)', vscode.TreeItemCollapsibleState.None)
       item.description = `${vscode.workspace.asRelativePath(node.site.uri)}:${node.site.line + 1}`
@@ -463,6 +541,10 @@ export class UsageTreeProvider implements vscode.TreeDataProvider<UsageNode> {
         b.sites.length - a.sites.length || a.icon.glyph.name.localeCompare(b.icon.glyph.name))
       const unused = all.filter((u) => !u.sites.length)
       const groups: UsageNode[] = []
+      // first: an icon the code asks for and the font does not have is broken output,
+      // where an unused icon is merely untidy
+      const missing = this.index.missing()
+      if (missing.length) groups.push({ kind: 'missingGroup', items: missing })
       if (used.length) groups.push({ kind: 'group', used: true, items: used })
       if (unused.length) groups.push({ kind: 'group', used: false, items: unused })
 
@@ -475,7 +557,9 @@ export class UsageTreeProvider implements vscode.TreeDataProvider<UsageNode> {
       return node.files.map(({ font, uri }) => ({ kind: 'generated' as const, font, uri }))
     }
     if (node.kind === 'group') return node.items.map((usage) => ({ kind: 'icon', usage }))
-    if (node.kind === 'icon') return node.usage.sites.map((site) => ({ kind: 'site', usage: node.usage, site }))
+    if (node.kind === 'missingGroup') return node.items.map((item) => ({ kind: 'missing' as const, item }))
+    if (node.kind === 'missing') return node.item.sites.map((site) => ({ kind: 'site' as const, site }))
+    if (node.kind === 'icon') return node.usage.sites.map((site) => ({ kind: 'site' as const, site }))
     return []
   }
 }

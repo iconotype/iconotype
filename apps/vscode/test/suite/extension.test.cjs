@@ -661,6 +661,54 @@ suite('iconotype extension', function () {
     assert.ok(rows[0].site.line < rows[1].site.line)
   })
 
+  test('reports references to icons the font does not have', async () => {
+    fs.writeFileSync(
+      path.join(workspace, 'src', 'gaps.html'),
+      ['<i class="app-toto"></i>', '<i class="app-toto"></i>', '<i class="app-home"></i>'].join('\n'),
+    )
+    await api.usage.scan()
+
+    const missing = api.usage.missing()
+    const toto = missing.find((m) => m.name === 'toto')
+    assert.ok(toto, `app-toto renders nothing at all, so it has to be reported: ${missing.map((m) => m.name)}`)
+    assert.strictEqual(toto.sites.length, 2)
+    assert.strictEqual(toto.prefix, 'app-')
+    // an icon that does exist is usage, not a gap
+    assert.ok(!missing.some((m) => m.name === 'home'))
+
+    // and it leads the view, because a name the font cannot answer is broken output
+    const groups = api.usageTree.getChildren()
+    assert.strictEqual(groups[0].kind, 'missingGroup')
+    const item = api.usageTree.getTreeItem(groups[0])
+    assert.match(item.label, /^Missing \(/)
+
+    const rows = api.usageTree.getChildren(groups[0])
+    const row = api.usageTree.getTreeItem(rows.find((r) => r.item.name === 'toto'))
+    assert.strictEqual(row.label, 'app-toto')
+    assert.strictEqual(row.contextValue, 'iconotype.missingIcon')
+    // its children are the sites, so you can walk to each one
+    assert.strictEqual(api.usageTree.getChildren(rows.find((r) => r.item.name === 'toto')).length, 2)
+
+    fs.rmSync(path.join(workspace, 'src', 'gaps.html'))
+    await api.usage.scan()
+    assert.ok(!api.usage.missing().some((m) => m.name === 'toto'), 'removing the last reference must clear it')
+  })
+
+  test('a saved edit keeps the missing list current', async () => {
+    const file = path.join(workspace, 'src', 'gaps2.html')
+    fs.writeFileSync(file, '<i class="app-zzz"></i>\n')
+    await api.usage.scan()
+    assert.ok(api.usage.missing().some((m) => m.name === 'zzz'))
+
+    // updateFile is the on-save path; it used to refresh usage but not the gaps, so
+    // the panel went on claiming an icon was missing after the reference had gone
+    api.usage.updateFile(vscode.Uri.file(file), '<i class="app-home"></i>\n')
+    assert.ok(!api.usage.missing().some((m) => m.name === 'zzz'))
+
+    fs.rmSync(file)
+    await api.usage.scan()
+  })
+
   test('spots a prefix the code uses that the font does not', async () => {
     fs.writeFileSync(
       path.join(workspace, 'src', 'legacy.html'),

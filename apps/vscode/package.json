@@ -114,6 +114,18 @@
         "title": "Export Fonts With Pending Changes",
         "category": "Iconotype",
         "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "iconotype.addMissingFromLibrary",
+        "title": "Find This Icon in Open Libraries…",
+        "category": "Iconotype",
+        "icon": "$(search)"
+      },
+      {
+        "command": "iconotype.addMissingFromSvg",
+        "title": "Add This Icon from an SVG…",
+        "category": "Iconotype",
+        "icon": "$(add)"
       }
     ],
     "viewsContainers": {
@@ -220,6 +232,16 @@
           "command": "iconotype.flattenIcon",
           "when": "view == iconotype.fonts && viewItem =~ /iconotype.icon/",
           "group": "iconotype@2"
+        },
+        {
+          "command": "iconotype.addMissingFromLibrary",
+          "when": "view == iconotype.usage && viewItem == iconotype.missingIcon",
+          "group": "inline@1"
+        },
+        {
+          "command": "iconotype.addMissingFromSvg",
+          "when": "view == iconotype.usage && viewItem == iconotype.missingIcon",
+          "group": "inline@2"
         }
       ],
       "explorer/context": [
@@ -253,6 +275,14 @@
         },
         {
           "command": "iconotype.flattenIcon",
+          "when": "false"
+        },
+        {
+          "command": "iconotype.addMissingFromLibrary",
+          "when": "false"
+        },
+        {
+          "command": "iconotype.addMissingFromSvg",
           "when": "false"
         }
       ]

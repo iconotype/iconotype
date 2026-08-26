@@ -10,7 +10,9 @@ import { GlyphIconCache } from './render.js'
 import { describeResult, exportFont, resolveOutputConfig } from './export.js'
 import { IconDiagnostics, IconQuickFixes } from './diagnostics.js'
 import { autoExportMode, ExportState } from './stale.js'
-import { IconCompletionProvider, IconDecorator, IconHoverProvider, SUPPORTED_LANGUAGES } from './language.js'
+import {
+  IconCompletionProvider, IconDecorator, IconHoverProvider, referencePattern, SUPPORTED_LANGUAGES,
+} from './language.js'
 import { IconDefinitionProvider, IconReferenceProvider, IconRenameProvider } from './rename.js'
 import {
   DEFAULT_EXCLUDE_DIRS, excludeGlobFor, pickUsageSite, usagePickItems, UsageIndex, UsageTreeProvider,
@@ -835,7 +837,7 @@ export async function activate(context: vscode.ExtensionContext) {
     registry, usage, decorator, diagnostics, exportFont: runExport, addSvgFiles, grid,
     // the import wizard's own steps are dialogs, so the tests drive these directly
     readImportable, mergeIntoFont, prepareImported, usageTree,
-    usageInternals: { DEFAULT_EXCLUDE_DIRS, excludeGlobFor, usagePickItems },
+    usageInternals: { DEFAULT_EXCLUDE_DIRS, excludeGlobFor, usagePickItems, referencePattern },
     exports, fontTree, heavyLoaded,
   }
 }

@@ -882,6 +882,49 @@ suite('iconotype extension', function () {
     await api.usage.scan()
   })
 
+  test('a module path is not an icon reference', () => {
+    const match = (line) => [...line.matchAll(api.usageInternals.referencePattern(['app-']))].map((m) => m[0])
+
+    /*
+     * The reported case. An import list is long enough that a few of these bury every
+     * real finding: the scan calls them used, and the missing-icon report invents
+     * icons nobody ever wrote.
+     */
+    assert.deepStrictEqual(match(`import { e } from '@akylas/nativescript-app-utils/error'`), [])
+    assert.deepStrictEqual(match(`import { e } from '@akylas/app-utils/error'`), [])
+    assert.deepStrictEqual(match(`import { e } from 'app-utils/error'`), [])
+    // the prefix may not continue a longer word
+    assert.deepStrictEqual(match('myapp-utils'), [])
+    // a template literal names nothing resolvable
+    assert.deepStrictEqual(match('`app-${name}`'), [])
+
+    // and everything a reference is genuinely written against still counts
+    assert.deepStrictEqual(match(`const c = 'app-utils'`), ['app-utils'])
+    assert.deepStrictEqual(match(`const c = "app-utils"`), ['app-utils'])
+    assert.deepStrictEqual(match('<i class="app-home"></i>'), ['app-home'])
+    assert.deepStrictEqual(match('<i class="app-home"/>'), ['app-home'])
+    assert.deepStrictEqual(match('.app-home.active {}'), ['app-home'])
+    assert.deepStrictEqual(match('<div class:app-active />'), ['app-active'])
+    assert.deepStrictEqual(match('class="icon app-home other"'), ['app-home'])
+  })
+
+  test('an import of a package that looks like the prefix is neither usage nor missing', async () => {
+    const file = path.join(workspace, 'src', 'imports.ts')
+    fs.writeFileSync(file, [
+      `import { showError } from '@akylas/nativescript-app-utils/error'`,
+      `const icon = 'app-nowhere'`,
+    ].join('\n'))
+    try {
+      await api.usage.scan()
+      const missing = api.usage.missing().map((m) => m.name)
+      assert.ok(!missing.includes('utils'), `the import path was read as an icon: ${missing}`)
+      assert.ok(missing.includes('nowhere'), 'the real reference on the next line still counts')
+    } finally {
+      fs.rmSync(file)
+      await api.usage.scan()
+    }
+  })
+
   test('missing icons can be scoped to real source files', async () => {
     const config = vscode.workspace.getConfiguration('iconotype')
     const font = appFont()

@@ -63,6 +63,23 @@ suite('iconotype extension', function () {
     return font
   }
 
+  /**
+   * Puts an icon into a known selection state, through the real command.
+   *
+   * `toggleIcon` flips whatever the FILE currently says and deliberately ignores the
+   * `selected` on the node handed to it: a tree node's copy of the project goes stale
+   * the moment the file reloads, so trusting it would flip from the wrong reading. A
+   * test that wants a specific state therefore has to check the live one first.
+   */
+  const setSelected = async (name, selected) => {
+    const font = appFont()
+    const glyph = font.project.sets.flatMap((set) => set.glyphs).find((g) => g.name === name)
+    assert.ok(glyph, `no icon named ${name} in the app font`)
+    if ((glyph.selected !== false) === selected) return
+    await vscode.commands.executeCommand('iconotype.toggleIcon', { font, glyph })
+    await wait(400)
+  }
+
   test('discovers the icon fonts in the workspace', () => {
     const font = appFont()
     assert.strictEqual(font.prefix, 'app-')
@@ -279,10 +296,7 @@ suite('iconotype extension', function () {
 
   test('renders the icon grid with selection state and a locked-down CSP', async () => {
     // set the state this test asserts on, rather than inheriting it from another test
-    const font = appFont()
-    const user = font.project.sets[0].glyphs.find((g) => g.name === 'user')
-    await vscode.commands.executeCommand('iconotype.toggleIcon', { font, glyph: { ...user, selected: true } })
-    await wait(400)
+    await setSelected('user', false)
 
     const html = api.grid.renderHtml({ cspSource: 'vscode-resource:' })
 
@@ -324,10 +338,7 @@ suite('iconotype extension', function () {
   })
 
   test('flags an icon that exists but is excluded from the built font', async () => {
-    const font = appFont()
-    const user = font.project.sets[0].glyphs.find((g) => g.name === 'user')
-    await vscode.commands.executeCommand('iconotype.toggleIcon', { font, glyph: { ...user, selected: true } })
-    await wait(400)
+    await setSelected('user', false)
 
     const document = await vscode.workspace.openTextDocument({
       language: 'html', content: '<i class="app-user"></i>',
@@ -338,10 +349,7 @@ suite('iconotype extension', function () {
     assert.match(found[0].message, /will render nothing/)
 
     // put it back for the tests that follow
-    await vscode.commands.executeCommand('iconotype.toggleIcon', {
-      font: appFont(), glyph: { ...user, selected: false },
-    })
-    await wait(400)
+    await setSelected('user', true)
   })
 
   test('offers the suggestion as a quick fix', async () => {
@@ -780,6 +788,59 @@ suite('iconotype extension', function () {
     assert.strictEqual(after.sets[0].glyphs[0].paths.length, 3, 'the artwork must survive as subpaths')
 
     fs.unlinkSync(file)
+  })
+
+  /**
+   * A tree node and the usage index both hold the IconFont object they were built
+   * with, and the registry swaps that object out on every reload. Handing the captured
+   * copy to a mutating command used to write its equally-captured project over the
+   * file, silently undoing whatever had landed in between.
+   */
+  test('a stale font captured before a reload cannot write an out-of-date project back', async () => {
+    const file = path.join(workspace, 'stale.iconotype.json')
+    const writeFont = (icons) => fs.writeFileSync(file, JSON.stringify({
+      schemaVersion: 1,
+      name: 'stale',
+      font: { family: 'stale', prefix: 'stale-', emSize: 1024, baseline: 6.25, whitespace: 50, version: '1.0' },
+      height: 1024,
+      icons,
+    }, null, 2))
+
+    const anchor = { name: 'anchor', code: 'e920', selected: false, paths: ['M0 0H10V10H0Z'] }
+    writeFont([anchor])
+    await api.registry.load(vscode.Uri.file(file))
+    fs.writeFileSync(path.join(workspace, 'src', 'stale.html'), '<i class="stale-anchor"></i>\n')
+    await api.usage.scan()
+
+    // the index builds its IconRefs from the font AS IT WAS at scan time
+    const captured = api.usage.all().find((u) => u.icon.font.name === 'stale').icon
+
+    // the file then changes underneath: a colleague's commit, a branch switch, an
+    // external edit — anything that makes the registry reload it
+    writeFont([anchor, { name: 'added-elsewhere', code: 'e921', paths: ['M0 0H20V20H0Z'] }])
+    await api.registry.load(vscode.Uri.file(file))
+
+    assert.notStrictEqual(
+      captured.font, api.registry.get(vscode.Uri.file(file)), 'the captured font should be stale by now')
+    assert.strictEqual(
+      captured.font.project.sets[0].glyphs.length, 1, 'the stale copy must predate the second icon')
+
+    // exactly what a tree node hands the command
+    await vscode.commands.executeCommand('iconotype.toggleIcon', { font: captured.font, glyph: captured.glyph })
+    await wait(400)
+
+    const onDisk = JSON.parse(fs.readFileSync(file, 'utf8'))
+    assert.ok(
+      onDisk.icons.some((i) => i.name === 'added-elsewhere'),
+      'the stale project was written back, losing the icon that was added outside the editor',
+    )
+    const written = onDisk.icons.find((i) => i.name === 'anchor')
+    assert.ok(!('selected' in written) || written.selected === true, 'the toggle did not take effect')
+
+    fs.unlinkSync(file)
+    fs.unlinkSync(path.join(workspace, 'src', 'stale.html'))
+    await wait(300)
+    await api.usage.scan()
   })
 
   test('the grid shows colour and multicolor state, a context menu and font settings', () => {

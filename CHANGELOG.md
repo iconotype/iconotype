@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.4 — 2026-08-26
+
+### Features
+
+- **vscode:** scope missing-icon reporting separately from usage (80b22e2)
+- **vscode:** report icons the code asks for and the font does not have (bfd0d47)
+- **vscode:** reuse the editor panel, and make icon usage reachable (fb31a6a)
+- **io:** import older icon-font projects, and unsquash the empty sidebar (3dc804f)
+- **site:** serve the demo GIF as well (5024e82)
+
+### Fixes
+
+- **vscode:** only a prefix the code writes can produce a missing icon (e57cb05)
+- **vscode:** a module path is not an icon reference (9d525d1)
+- **vscode:** re-resolve tree nodes before acting on them (77afef8)
+- **io:** point $schema at a URL that exists (732d60c)
+
+### Other
+
+- **desktop:** catch Cargo.lock up to 0.2.3 (9cb30ac)
+
 ## 0.2.3 — 2026-08-24
 
 ### Features

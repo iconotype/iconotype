@@ -199,10 +199,19 @@ export class UsageIndex {
       usage.get(`${icon.font.name}/${icon.glyph.name}`)?.sites.push(site)
       return
     }
+    /*
+     * Absent, but only a finding if the code was ever meant to write this prefix.
+     * A project that declares `usagePrefixes` writes those and nothing else; its class
+     * prefix still matches for usage — a hand-written stylesheet is a real use — but an
+     * unrelated `icon-…` under a class prefix of `icon-` is not an icon anyone forgot.
+     */
+    const written = this.registry.matchWritten(reference)
+    if (!written) return
     // still usage-scanned, just not somewhere a missing icon is worth reporting
     if (scope && !scope.has(site.uri.path)) return
-    const key = `${hit.font.name}/${hit.name}`
-    const entry = missing.get(key) ?? { font: hit.font, name: hit.name, prefix: hit.prefix, sites: [] }
+    const key = `${written.font.name}/${written.name}`
+    const entry = missing.get(key)
+      ?? { font: written.font, name: written.name, prefix: written.prefix, sites: [] }
     entry.sites.push(site)
     missing.set(key, entry)
   }

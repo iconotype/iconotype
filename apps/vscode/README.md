@@ -142,6 +142,12 @@ code:
 A file left out this way is still scanned for usage; it simply cannot report a
 missing icon. Both settings are empty by default, which follows `usage.include`.
 
+Only the prefixes the code is expected to *write* can produce a missing icon:
+`usagePrefixes` when the project declares them, otherwise the class prefix. Declare
+`usagePrefixes: ["app-"]` against a class prefix of `icon-` and unrelated `icon-…`
+names in the workspace stay out of it — they still count as usage, because a
+hand-written stylesheet using the class prefix is a real use.
+
 This also matters when the prefix is broad: with `app-`, an ordinary class like
 `app-container` will be reported, because nothing distinguishes it from an icon
 reference. Scoping to source files, or excluding the file that holds them, is the

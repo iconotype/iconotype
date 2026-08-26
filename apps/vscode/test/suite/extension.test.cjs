@@ -882,6 +882,58 @@ suite('iconotype extension', function () {
     await api.usage.scan()
   })
 
+  test('only the prefixes the code writes can produce a missing icon', async () => {
+    const file = path.join(workspace, 'aliased2.iconotype.json')
+    /*
+     * The reported shape: the stylesheet declares `.ico2-…`, but the build means the
+     * code writes `zz-…`. Deliberately not `app-`, which the workspace's own font
+     * already claims — two fonts sharing a written prefix is a different problem.
+     */
+    fs.writeFileSync(file, JSON.stringify({
+      schemaVersion: 1,
+      name: 'aliased2',
+      font: {
+        family: 'aliased2', prefix: 'ico2-', usagePrefixes: ['zz-'],
+        emSize: 1024, baseline: 6.25, whitespace: 50, version: '1.0',
+      },
+      height: 1024,
+      icons: [{ name: 'summit', code: 'e931', paths: ['M0 0H10V10H0Z'] }],
+    }, null, 2))
+    await api.registry.load(vscode.Uri.file(file))
+
+    const font = api.registry.fonts.find((f) => f.name === 'aliased2')
+    // usagePrefixes wins outright; the class prefix still matches, just not for findings
+    assert.deepStrictEqual(font.usagePrefixes, ['zz-'])
+    assert.deepStrictEqual([...font.prefixes].sort(), ['ico2-', 'zz-'])
+    assert.ok(api.registry.matchWritten('zz-whatever'))
+    assert.strictEqual(api.registry.matchWritten('ico2-whatever'), undefined)
+
+    const source = path.join(workspace, 'src', 'aliased2.ts')
+    fs.writeFileSync(source, [
+      `const styled = 'ico2-carousel'`,   // not an icon, and never meant to be one
+      `const real = 'zz-nosuch'`,         // written the way the code writes them
+    ].join('\n'))
+    try {
+      await api.usage.scan()
+      const missing = api.usage.missing().map((m) => `${m.prefix}${m.name}`)
+      assert.ok(!missing.includes('ico2-carousel'),
+        `the class prefix invented a missing icon: ${missing}`)
+      assert.ok(missing.includes('zz-nosuch'), `the written prefix must still report: ${missing}`)
+    } finally {
+      fs.rmSync(source)
+      fs.rmSync(file)
+      // the registry drops a font from its file watcher, which is not synchronous
+      await wait(400)
+      await api.usage.scan()
+    }
+  })
+
+  test('with no usagePrefixes, the class prefix is what the code writes', async () => {
+    const font = appFont()
+    assert.deepStrictEqual(font.usagePrefixes, [font.classPrefix])
+    assert.ok(api.registry.matchWritten(`${font.classPrefix}anything`))
+  })
+
   test('a module path is not an icon reference', () => {
     const match = (line) => [...line.matchAll(api.usageInternals.referencePattern(['app-']))].map((m) => m[0])
 
@@ -954,7 +1006,8 @@ suite('iconotype extension', function () {
        * only from a file outside the scope read as unused — and the next thing anyone
        * does with an unused icon is delete it.
        */
-      const usage = api.usage.all().find((u) => u.icon.glyph.name === real)
+      // by font as well as name: several fonts in this workspace have a `home`
+      const usage = api.usage.all().find((u) => u.icon.font.name === 'app' && u.icon.glyph.name === real)
       assert.ok(usage.sites.some((site) => /notes\.md$/.test(site.uri.fsPath)),
         'markdown is outside the missing scope but must still count as usage')
     } finally {
@@ -976,7 +1029,7 @@ suite('iconotype extension', function () {
       await api.usage.scan()
 
       assert.ok(!api.usage.missing().some((m) => m.name === 'ghost'), 'excluded from missing')
-      const usage = api.usage.all().find((u) => u.icon.glyph.name === real)
+      const usage = api.usage.all().find((u) => u.icon.font.name === 'app' && u.icon.glyph.name === real)
       assert.ok(usage.sites.some((site) => /fixture\.ts$/.test(site.uri.fsPath)),
         'but still counted as usage')
     } finally {

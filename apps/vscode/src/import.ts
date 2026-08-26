@@ -51,8 +51,10 @@ async function svgFilesIn(dir: vscode.Uri): Promise<vscode.Uri[]> {
  * or virtual workspace has no local path at all).
  */
 export async function readImportable(uri: vscode.Uri, targetHeight = 1024): Promise<ImportedSource> {
-  const { importIcoMoon, importIcoMoonZip, importSvg, importSvgZip } = await heavy()
+  const { importIcoMoon, importIcoMoonZip, importSvg, importSvgZip, importSvgNodeProject } = await heavy()
   const { isIcoMoonFile } = await import('@iconotype/core-io/icomoon-import')
+  // detection only — the importer next door reaches the SVG pipeline, which stays lazy
+  const { isSvgNodeProject } = await import('@iconotype/core-io/svgnode-detect')
   const label = vscode.workspace.asRelativePath(uri)
   const stat = await vscode.workspace.fs.stat(uri)
 
@@ -105,6 +107,11 @@ export async function readImportable(uri: vscode.Uri, targetHeight = 1024): Prom
 
   if (isIconFontFile(data)) return { project: fromIconFontFile(data, uri.toString()), warnings: [], label }
   if (isIcoMoonFile(data)) return { ...importIcoMoon(data, { projectId: uri.toString() }), label }
+  // an older icon-font project, storing each glyph as a parsed SVG tree rather than markup
+  if (isSvgNodeProject(data)) {
+    const name = uri.path.split('/').pop()!.replace(/\.json$/i, '')
+    return { ...importSvgNodeProject(data, { projectId: uri.toString(), name, targetHeight }), label }
+  }
   if (Array.isArray((data as Project).sets)) return { project: data as Project, warnings: [], label }
   throw new Error(`${label}: not an IcoMoon or Iconotype project`)
 }

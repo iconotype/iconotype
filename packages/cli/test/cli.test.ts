@@ -9,6 +9,7 @@ import { importIcoMoon } from '@iconotype/core-io'
 
 const FIXTURE = fileURLToPath(new URL('../../../fixtures/icomoon/alpimaps.json', import.meta.url))
 const SVG_FIXTURES = fileURLToPath(new URL('../../../fixtures/svg/', import.meta.url))
+const SVGNODE_FIXTURE = fileURLToPath(new URL('../../../fixtures/svgnode/eosya.json', import.meta.url))
 
 let out: string[] = []
 let err: string[] = []
@@ -62,6 +63,26 @@ describe('iconotype build', () => {
     for (const name of ['fonts/alpimaps.ttf', 'fonts/alpimaps.woff2', 'style.css']) {
       expect(readFileSync(join(a, name)), name).toEqual(readFileSync(join(b, name)))
     }
+  })
+
+  /**
+   * An older icon-font project, storing each glyph as a parsed SVG tree. The point of
+   * the test is the codepoints: an app that already ships `\ue900` in its markup has
+   * to get the same font back, not a renumbered one.
+   */
+  it('builds from an older icon-font project, keeping its codepoints', async () => {
+    const dir = tmp()
+    expect(await exec('build', '--input', SVGNODE_FIXTURE, '--out', dir)).toBe(0)
+
+    const { project } = loadProject(SVGNODE_FIXTURE)
+    expect(project.sets[0]!.glyphs).toHaveLength(55)
+    expect(project.codepoints.altitude).toBe(0xf000)
+    expect(project.codepoints.summit).toBe(0xe92d)
+    expect(project.preferences.font.family).toBe('app')
+
+    const css = readFileSync(join(dir, 'style.css'), 'utf8')
+    expect(css).toContain('\\e92d')
+    expect(readdirSync(join(dir, 'fonts'))).toContain('app.woff2')
   })
 
   it('builds from a folder of SVGs, assigning codepoints from 0xe900', async () => {

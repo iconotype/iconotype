@@ -189,7 +189,7 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
           <p>No icon font in this workspace yet.</p>
           <p><button class="primary" data-command="importProject">Import IcoMoon project…</button></p>
           <p><button data-command="create">Start an empty font</button></p>
-          <p class="hint">An IcoMoon <code>.json</code>, a font package <code>.zip</code>, or a folder of SVGs.</p>
+          <p class="hint">An IcoMoon or older icon-font <code>.json</code>, a font package <code>.zip</code>, or a folder of SVGs.</p>
         </div>`
       : font.project.sets
           .flatMap((set) => set.glyphs)
@@ -332,7 +332,9 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
                    color: var(--vscode-statusBarItem-warningForeground, #fff); }
   button.pending .dot { background: currentColor; }
   .status.pending { opacity: 1; color: var(--vscode-editorWarning-foreground, #d7a03c); }
-  .empty { text-align: center; opacity: .9; font-size: 12px; padding: 8px 4px; }
+  /* the empty state lives in the same container as the cells, so it has to opt out
+     of the 62px icon columns or it renders one column wide */
+  .empty { grid-column: 1 / -1; text-align: center; opacity: .9; font-size: 12px; padding: 8px 4px; }
   .empty p { margin: 8px 0; }
   .empty .hint { font-size: 10px; opacity: .6; }
 </style>

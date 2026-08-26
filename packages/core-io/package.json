@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./iconfont-file": "./src/iconfont-file.ts",
-    "./icomoon-import": "./src/icomoon-import.ts"
+    "./icomoon-import": "./src/icomoon-import.ts",
+    "./svgnode-import": "./src/svgnode-import.ts",
+    "./svgnode-detect": "./src/svgnode-detect.ts"
   },
   "dependencies": {
     "@iconotype/core-model": "workspace:*",

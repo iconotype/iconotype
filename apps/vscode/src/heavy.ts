@@ -13,6 +13,6 @@
  * gone and the split silently stops working.
  */
 export { fixSvg, fixPaths } from '@iconotype/core-svg'
-export { importSvg, importIcoMoon, importIcoMoonZip, importSvgZip } from '@iconotype/core-io'
+export { importSvg, importIcoMoon, importIcoMoonZip, importSvgZip, importSvgNodeProject } from '@iconotype/core-io'
 export { resolveOutputs } from '@iconotype/core-export'
 export type { OutputFile } from '@iconotype/core-export'

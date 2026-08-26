@@ -204,22 +204,22 @@
         {
           "command": "iconotype.removeIcon",
           "when": "view == iconotype.fonts && viewItem =~ /iconotype.icon/",
-          "group": "inline@2"
+          "group": "inline@3"
         },
         {
           "command": "iconotype.showUsage",
           "when": "view == iconotype.fonts && viewItem =~ /iconotype.icon/",
-          "group": "iconotype@1"
+          "group": "inline@2"
         },
         {
           "command": "iconotype.replaceIcon",
           "when": "view == iconotype.fonts && viewItem =~ /iconotype.icon/",
-          "group": "iconotype@2"
+          "group": "iconotype@1"
         },
         {
           "command": "iconotype.flattenIcon",
           "when": "view == iconotype.fonts && viewItem =~ /iconotype.icon/",
-          "group": "iconotype@3"
+          "group": "iconotype@2"
         }
       ],
       "explorer/context": [

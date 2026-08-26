@@ -37,6 +37,38 @@ const media = (files: string[]): Plugin => {
 }
 
 /**
+ * The JSON schema every `.iconotype.json` points at, served from the one copy on disk.
+ *
+ * `$schema` in a generated file is a promise to whoever opens it later — their editor,
+ * their CI, a stranger reading the diff — so the URL has to resolve. It named a domain
+ * that was never registered, which is worse than naming nothing: tooling reports a
+ * fetch failure rather than "no schema".
+ *
+ * The path carries the version (`iconfont-1.json`) because the URL must keep meaning
+ * the same thing forever; `ICONFONT_SCHEMA_URL` in core-io is the other half of this
+ * and the two have to agree. The extension keeps registering its local copy, so
+ * validation inside VS Code never depended on the network and still does not.
+ */
+const schema = (): Plugin => {
+  const source = () =>
+    readFileSync(fileURLToPath(new URL('../vscode/schema/iconfont.schema.json', import.meta.url)))
+  const path = 'schema/iconfont-1.json'
+  return {
+    name: 'iconotype-schema',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.split('?')[0].endsWith(`/${path}`)) return next()
+        res.setHeader('content-type', 'application/schema+json')
+        res.end(source())
+      })
+    },
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: path, source: source() })
+    },
+  }
+}
+
+/**
  * The product page.
  *
  * No framework: it is one document, and every kilobyte of JavaScript here is a
@@ -53,7 +85,7 @@ const media = (files: string[]): Plugin => {
 const page = (name: string) => fileURLToPath(new URL(`./${name}/index.html`, import.meta.url))
 
 export default defineConfig({
-  plugins: [media(['demo.mp4', 'demo.gif', 'demo-poster.jpg', 'social-preview.png'])],
+  plugins: [media(['demo.mp4', 'demo.gif', 'demo-poster.jpg', 'social-preview.png']), schema()],
   base: process.env.BASE_PATH ?? '/',
   build: {
     target: 'es2022',

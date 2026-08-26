@@ -592,7 +592,10 @@ export class AppStore {
     const text = () => new TextDecoder().decode(f.data)
     try {
       if (/\.json$/i.test(f.name)) {
-        const { importIcoMoon, isIcoMoonFile, isIconFontFile, fromIconFontFile } = await io()
+        const {
+          importIcoMoon, isIcoMoonFile, isIconFontFile, fromIconFontFile,
+          importSvgNodeProject, isSvgNodeProject,
+        } = await io()
         const data = JSON.parse(text())
 
         /**
@@ -608,6 +611,24 @@ export class AppStore {
           this.session.open(project, `Open ${f.name}`)
           this.selectNone()
           this.notify('info', `Opened ${f.name}: ${project.sets.reduce((n, s) => n + s.glyphs.length, 0)} icon(s)`)
+          return
+        }
+
+        /**
+         * An older icon-font project stores each glyph as an already-parsed SVG tree
+         * rather than markup, and carries no format marker at all, so it has to be
+         * sniffed after the IcoMoon shapes have had their turn.
+         */
+        if (isSvgNodeProject(data)) {
+          const { project, warnings } = importSvgNodeProject(data, {
+            projectId: this.session.project.id,
+            name: f.name.replace(/\.json$/i, ''),
+            targetHeight: this.#targetSet().height,
+          })
+          this.session.open(project, `Import ${f.name}`)
+          this.selectNone()
+          warnings.forEach((w) => this.notify('warn', w))
+          this.notify('info', `Imported ${project.sets[0]!.glyphs.length} glyph(s) from ${f.name}`)
           return
         }
 

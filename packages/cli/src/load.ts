@@ -2,7 +2,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import { emptyProject, emptySet, allocate, parseLock, type Project } from '@iconotype/core-model'
 import {
-  fromIconFontFile, importIcoMoon, importIcoMoonZip, importSvg, isIcoMoonFile, isIconFontFile,
+  fromIconFontFile, importIcoMoon, importIcoMoonZip, importSvg, importSvgNodeProject,
+  isIcoMoonFile, isIconFontFile, isSvgNodeProject,
 } from '@iconotype/core-io'
 
 export interface LoadResult {
@@ -60,6 +61,12 @@ export function loadProject(input: string, opts: { lock?: string; targetHeight?:
       project = fromIconFontFile(data, input)
     } else if (isIcoMoonFile(data)) {
       const result = importIcoMoon(data)
+      project = result.project
+      warnings.push(...result.warnings)
+    } else if (isSvgNodeProject(data)) {
+      // an older icon-font project: each glyph is a parsed SVG tree, not markup
+      const name = input.split('/').pop()!.replace(/\.json$/i, '')
+      const result = importSvgNodeProject(data, { name, targetHeight: opts.targetHeight })
       project = result.project
       warnings.push(...result.warnings)
     } else if (Array.isArray((data as Project).sets)) {

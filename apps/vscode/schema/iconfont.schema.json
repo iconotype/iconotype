@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://iconotype.github.io/iconotype/schema/iconfont-1.json",
   "title": "Iconotype icon font",
   "description": "A committed icon font project: the artwork, its codepoints, and where a build writes its output.",
   "type": "object",

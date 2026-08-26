@@ -2,10 +2,37 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { emptyProject } from '@iconotype/core-model'
-import { importIcoMoon, parseIconFont, serializeIconFont, selectedGlyphs, toIconFontFile, fromIconFontFile } from '../src/index.js'
+import {
+  ICONFONT_SCHEMA_URL, ICONFONT_SCHEMA_VERSION,
+  importIcoMoon, parseIconFont, serializeIconFont, selectedGlyphs, toIconFontFile, fromIconFontFile,
+} from '../src/index.js'
 
 const project = () => importIcoMoon(JSON.parse(readFileSync(
   fileURLToPath(new URL('../../../fixtures/icomoon/alpimaps.json', import.meta.url)), 'utf8'))).project
+
+/**
+ * `$schema` in a generated file is a promise to whoever opens it later. It pointed at a
+ * domain that was never registered, which is worse than pointing at nothing: an editor
+ * reports a failed fetch rather than "no schema". These keep the three places that have
+ * to agree — the constant, the file we emit, and the schema we publish — from drifting.
+ */
+describe('the published schema URL', () => {
+  const schema = () => JSON.parse(readFileSync(
+    fileURLToPath(new URL('../../../apps/vscode/schema/iconfont.schema.json', import.meta.url)), 'utf8'))
+
+  it('carries the schema version in its path', () => {
+    // a breaking change gets a new number and a new URL, never an edit to this one
+    expect(ICONFONT_SCHEMA_URL).toMatch(new RegExp(`/iconfont-${ICONFONT_SCHEMA_VERSION}\\.json$`))
+  })
+
+  it('is what the schema we publish calls itself', () => {
+    expect(schema().$id).toBe(ICONFONT_SCHEMA_URL)
+  })
+
+  it('is written into every file we emit', () => {
+    expect(toIconFontFile(project()).$schema).toBe(ICONFONT_SCHEMA_URL)
+  })
+})
 
 describe('.iconotype.json project file', () => {
   it('round-trips a real project', () => {

@@ -14,6 +14,23 @@ import {
 export const ICONFONT_EXTENSION = '.iconotype.json'
 export const ICONFONT_SCHEMA_VERSION = 1
 
+/**
+ * Where the schema for this version is published, written into every file we emit.
+ *
+ * It has to be a URL that keeps meaning the same thing forever: the file it describes
+ * sits in someone's repository for years, and a schema that quietly changes underneath
+ * turns a green CI red on a commit that touched nothing. So the version is in the path
+ * — `iconfont-1.json` is frozen once shipped, and a breaking change gets `-2` and a new
+ * `ICONFONT_SCHEMA_VERSION` rather than an edit to what `-1` means.
+ *
+ * That is also why this is not a raw.githubusercontent link. Those pin a ref, so `main`
+ * moves under the file and a tag puts the version in the URL twice; they are served as
+ * text/plain, rate-limited, and dead the day the repository is renamed. This is the
+ * project's own site, which the pages workflow already deploys.
+ */
+export const ICONFONT_SCHEMA_URL =
+  `https://iconotype.github.io/iconotype/schema/iconfont-${ICONFONT_SCHEMA_VERSION}.json`
+
 export interface IconFontIcon {
   name: string
   /** hex, without the U+ */
@@ -137,7 +154,7 @@ export function toIconFontFile(project: Project): IconFontFile {
   const credits = [...carried, ...fromSets.filter((c) => !known.has(`${c.designer ?? ''}|${c.license ?? ''}`))]
 
   return {
-    $schema: 'https://iconotype.dev/schema/iconfont-1.json',
+    $schema: ICONFONT_SCHEMA_URL,
     schemaVersion: ICONFONT_SCHEMA_VERSION,
     name: prefs.family,
     font: {

@@ -20,6 +20,7 @@ import {
 } from './usage.js'
 import { FontTreeProvider, IconDecorationProvider, IconGridViewProvider, type GridMessage } from './views.js'
 import { describeMerge, mergeIntoFont, prepareImported, readImportable, runImportWizard } from './import.js'
+import { FontTreeDropController, fromUri, isSvg, parseUriList, svgsIn, type SvgSource } from './drop.js'
 
 /** Applies ops to a font's project and writes the file back. */
 async function mutate(registry: IconFontRegistry, font: IconFont, ...ops: Op[]): Promise<Project> {
@@ -92,6 +93,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel('Iconotype')
   const exports = new ExportState(registry, context.workspaceState)
   context.subscriptions.push(registry, icons, usage, decorator, diagnostics, output, exports)
+  output.appendLine(`Iconotype ${context.extension.packageJSON.version} activated`)
 
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
   status.command = 'iconotype.exportAll'
@@ -125,10 +127,12 @@ export async function activate(context: vscode.ExtensionContext) {
   const grid = new IconGridViewProvider(registry, (message) => void onGridMessage(message), exports)
 
   const decorations = new IconDecorationProvider(registry)
+  const fontTreeDrop = new FontTreeDropController(
+    registry, () => pickFont(), (font, sources) => addSvgSources(font, sources))
   context.subscriptions.push(
     decorations,
     vscode.window.registerFileDecorationProvider(decorations),
-    vscode.window.registerTreeDataProvider('iconotype.fonts', fontTree),
+    vscode.window.createTreeView('iconotype.fonts', { treeDataProvider: fontTree, dragAndDropController: fontTreeDrop }),
     vscode.window.registerTreeDataProvider('iconotype.usage', usageTree),
     vscode.window.registerWebviewViewProvider(IconGridViewProvider.viewType, grid),
   )
@@ -198,17 +202,23 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  const addSvgFiles = async (font: IconFont, uris: vscode.Uri[], as?: string) => {
+  const addSvgFiles = (font: IconFont, uris: vscode.Uri[], as?: string) =>
+    addSvgSources(font, uris.map(fromUri), as)
+
+  const addSvgSources = async (font: IconFont, sources: SvgSource[], as?: string) => {
     const set = font.project.sets[0]
     if (!set) return
     const { importSvg } = await heavy()
     const glyphs = []
     const warnings: string[] = []
-    for (const uri of uris) {
-      const name = uri.path.split('/').pop()!
+    for (const { name, read } of sources) {
       try {
-        const text = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri))
-        const result = importSvg(text, name, { targetHeight: set.height })
+        const result = importSvg(await read(), name, { targetHeight: set.height })
+        // an empty glyph is a blank cell with a codepoint: worse than not adding it
+        if (!result.glyph.paths.some((d) => d.trim())) {
+          warnings.push(`${name}: skipped, nothing drawable in it (${result.warnings.join('; ') || 'no geometry'})`)
+          continue
+        }
         // filling a named gap: the glyph has to answer to the name the code already
         // writes, whatever the file on disk happens to be called
         if (as) result.glyph.name = as
@@ -330,6 +340,19 @@ export async function activate(context: vscode.ExtensionContext) {
             return
           }
         }
+        return
+      }
+      case 'drop': {
+        if (!font) return
+        const uris = (await svgsIn(parseUriList(message.uris.join('\n')))).map(fromUri)
+        const files = message.files
+          .filter((f) => isSvg(f.name))
+          .map((f): SvgSource => ({ name: f.name, read: () => Promise.resolve(f.text) }))
+        if (!uris.length && !files.length) {
+          vscode.window.showWarningMessage('Iconotype: nothing to add — drop .svg files or a folder of them.')
+          return
+        }
+        await addSvgSources(font, [...uris, ...files])
         return
       }
       case 'selectAll':
@@ -684,6 +707,27 @@ export async function activate(context: vscode.ExtensionContext) {
    * were last working in was never the one that came forward. Opening a font that is
    * already open now reveals that panel and re-points it at the icon you asked for.
    */
+  /**
+   * The last line of defence against an editor save that empties a font.
+   *
+   * Nothing the editor does on purpose should need this — but an editor that lost track
+   * of its project once wrote an empty font over a real one, and the file is the only
+   * copy. Removing every icon, or most of a sizeable font, in one save is asked about.
+   */
+  async function confirmLoss(font: IconFont, next: Project): Promise<boolean> {
+    const count = (p: Project) => p.sets.reduce((n, s) => n + s.glyphs.length, 0)
+    const before = count(font.project)
+    const removed = before - count(next)
+    if (before === 0 || removed <= 0) return true
+    if (removed < before && (removed < 10 || removed * 2 <= before)) return true
+    const choice = await vscode.window.showWarningMessage(
+      `The editor is about to remove ${removed === before ? `all ${before}` : `${removed} of ${before}`} icons from ${font.name}.`,
+      { modal: true, detail: 'Keep the file as it is if you did not mean to do this.' },
+      'Remove them',
+    )
+    return choice === 'Remove them'
+  }
+
   const editors = new Map<string, {
     panel: vscode.WebviewPanel
     focus: (glyph?: string, library?: boolean, query?: string) => void
@@ -722,6 +766,13 @@ export async function activate(context: vscode.ExtensionContext) {
      */
     const token = [...Array(16)].map(() => Math.random().toString(36)[2]).join('')
     let sentOnce = false
+    /**
+     * The file text of this panel's last save. The watcher reloads the file after every
+     * save and the re-parsed project is not always the identical object the editor
+     * sent, so the editor would take its own edit for an outside change — and an
+     * outside change starts a fresh history, which would empty undo after every edit.
+     */
+    let lastSaved: string | undefined
 
     const send = (focusGlyph?: string, openLibrary?: boolean, libraryQuery?: string) => {
       const current = registry.get(font.uri)
@@ -744,16 +795,28 @@ export async function activate(context: vscode.ExtensionContext) {
           return
         }
         const current = registry.get(font.uri) ?? font
+        if (!(await confirmLoss(current, message.project))) {
+          // put the editor back on what the file actually holds
+          lastSaved = undefined
+          send()
+          return
+        }
         try {
+          lastSaved = serializeIconFont(message.project)
           await registry.save(current, message.project)
         } catch (e) {
+          lastSaved = undefined
           vscode.window.showErrorMessage(`Iconotype: could not save — ${(e as Error).message}`)
         }
       }
     })
 
     // keep the panel in step with edits made elsewhere (the grid, the tree, git)
-    const subscription = registry.onDidChange(() => send())
+    const subscription = registry.onDidChange(() => {
+      const current = registry.get(font.uri)
+      if (current && !current.error && lastSaved !== undefined && serializeIconFont(current.project) === lastSaved) return
+      send()
+    })
     editors.set(key, { panel, focus: send })
     panel.onDidDispose(() => {
       subscription.dispose()
@@ -890,7 +953,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // the import wizard's own steps are dialogs, so the tests drive these directly
     readImportable, mergeIntoFont, prepareImported, usageTree,
     usageInternals: { DEFAULT_EXCLUDE_DIRS, excludeGlobFor, usagePickItems, referencePattern },
-    exports, fontTree, heavyLoaded,
+    exports, fontTree, heavyLoaded, fontTreeDrop,
   }
 }
 

@@ -47,6 +47,13 @@ const INHERITED = [
   'stroke-linejoin', 'stroke-miterlimit', 'stroke-dasharray', 'stroke-opacity', 'color',
 ]
 
+/** The paint an element hands down to its children, on top of what it inherited. */
+export function inheritStyle(parent: Record<string, string>, attrs: Record<string, string>): Record<string, string> {
+  const style: Record<string, string> = { ...parent }
+  for (const key of INHERITED) if (attrs[key] !== undefined) style[key] = attrs[key]!
+  return style
+}
+
 export interface TraverseContext {
   matrix: Matrix
   style: Record<string, string>
@@ -140,8 +147,7 @@ export function traverse(
     }
 
     const matrix = multiply(ctx.matrix, parseTransform(attrs.transform))
-    const style: Record<string, string> = { ...ctx.style }
-    for (const key of INHERITED) if (attrs[key] !== undefined) style[key] = attrs[key]!
+    const style = inheritStyle(ctx.style, attrs)
 
     const groupOpacity = ctx.opacity * num(attrs.opacity, 1)
 

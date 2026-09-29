@@ -122,6 +122,62 @@ suite('iconotype webview', function () {
     panel.dispose()
   })
 
+  /**
+   * Loading the project was itself an undoable step whose parent was the empty
+   * placeholder, so enough ⌘Z emptied the editor — and the save effect wrote that
+   * empty font over the file.
+   */
+  test('undo stops at the opened project and never empties the file', async () => {
+    const font = ext().exports.registry.fonts.find((f) => !f.error)
+    const beforeIcons = JSON.parse(fs.readFileSync(font.uri.fsPath, 'utf8')).icons.length
+    assert.ok(beforeIcons > 0, 'the fixture must have icons for this to prove anything')
+
+    const panel = await vscode.commands.executeCommand('iconotype.open', font.uri)
+    await waitFor(panel, 'ready')
+    await new Promise((r) => setTimeout(r, 500))
+
+    panel.webview.postMessage({ type: 'test:undo', times: 10 })
+    const result = await waitFor(panel, 'test:undoResult')
+    assert.strictEqual(result.canUndo, false, 'opening the project must not be an undoable step')
+    assert.strictEqual(result.glyphs, beforeIcons, 'undo emptied the editor')
+    await new Promise((r) => setTimeout(r, 800))
+    assert.strictEqual(
+      JSON.parse(fs.readFileSync(font.uri.fsPath, 'utf8')).icons.length, beforeIcons, 'undo wiped the file')
+    panel.dispose()
+  })
+
+  /** Undo takes back what the editor did, and only that — the edit, then nothing. */
+  test('undo reverts an editor edit and survives its own save round trip', async () => {
+    const font = ext().exports.registry.fonts.find((f) => !f.error)
+    const before = fs.readFileSync(font.uri.fsPath, 'utf8')
+    const beforeName = JSON.parse(before).name
+
+    const panel = await vscode.commands.executeCommand('iconotype.open', font.uri)
+    await waitFor(panel, 'ready')
+    await new Promise((r) => setTimeout(r, 500))
+    await panel.webview.postMessage({ type: 'test:edit', name: 'edited-then-undone' })
+    // let the save reach the file and the watcher reload it: that echo must not reset history
+    for (let i = 0; i < 40; i++) {
+      if (JSON.parse(fs.readFileSync(font.uri.fsPath, 'utf8')).name === 'edited-then-undone') break
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    await new Promise((r) => setTimeout(r, 800))
+
+    // test:edit makes two steps
+    panel.webview.postMessage({ type: 'test:undo', times: 2 })
+    const result = await waitFor(panel, 'test:undoResult')
+    assert.strictEqual(result.name, beforeName, 'undo did not take the edit back')
+    assert.strictEqual(result.canUndo, false, 'there should be nothing left to undo')
+    for (let i = 0; i < 40; i++) {
+      if (JSON.parse(fs.readFileSync(font.uri.fsPath, 'utf8')).name === beforeName) break
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    assert.strictEqual(JSON.parse(fs.readFileSync(font.uri.fsPath, 'utf8')).name, beforeName, 'the undo was not saved')
+
+    fs.writeFileSync(font.uri.fsPath, before)
+    panel.dispose()
+  })
+
   test('a save without the panel token is ignored', async () => {
     const font = ext().exports.registry.fonts.find((f) => !f.error)
     const before = fs.readFileSync(font.uri.fsPath, 'utf8')

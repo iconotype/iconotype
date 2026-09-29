@@ -55,9 +55,22 @@
     if (message?.type !== 'project' || !message.project) return
     if (message.token) token = message.token
     const snapshot = JSON.stringify(message.project)
+    /**
+     * A project from the extension starts a new history; it is never a step in one.
+     *
+     * This used to be `session.replace`, which recorded the load as an undoable edit
+     * whose parent was the empty "Loading…" placeholder. Undo walked back past it, the
+     * editor held an empty font, and the save effect wrote that over the file — every
+     * icon gone. The same went for a change made outside the editor (the grid, git):
+     * undo reverted it wholesale. Undo is for what was done in this editor, nothing else.
+     */
     if (snapshot !== synced) { // otherwise it is our own save coming back through the watcher
+      const first = synced === ''
       synced = snapshot
-      session.replace(message.project, `Open ${message.name ?? message.project.name}`)
+      session.open(
+        message.project,
+        first ? `Open ${message.name ?? message.project.name}` : 'Changed outside the editor',
+      )
     }
     // alt-clicking an icon in the sidebar opens the editor ON that icon
     if (message.focus) {
@@ -71,6 +84,63 @@
       app.libraryQuery = message.libraryQuery ?? ''
       app.showLibrary = true
     }
+  })
+
+  /**
+   * SVGs dropped on the editor (Shift held — VS Code keeps a drop out of a webview
+   * otherwise). They go through `importFiles`, so each file is a step in THIS
+   * editor's history and undo takes it back out.
+   *
+   * SVGs only. A dropped .json or .zip is a whole project to the app, which would
+   * replace this font wholesale; that belongs to "Add Icons from Project or Zip…",
+   * which merges instead.
+   */
+  const svg = (name: string) => /\.svg$/i.test(name)
+  const pathOf = (uri: string): string | null => {
+    try {
+      const url = new URL(uri)
+      if (url.protocol !== 'file:') return null
+      const path = decodeURIComponent(url.pathname)
+      return /^\/[A-Za-z]:/.test(path) ? path.slice(1) : path
+    } catch { return null }
+  }
+  async function svgFilesAt(path: string, depth = 0): Promise<Array<{ name: string; data: Uint8Array }>> {
+    if (svg(path)) return [{ name: path.split(/[\\/]/).pop()!, data: await host.fs.read(path) }]
+    if (depth > 8) return []
+    let entries
+    try { entries = await host.fs.list(path) } catch { return [] } // a file that is not an svg
+    const out = []
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
+      if (entry.kind === 'directory') out.push(...await svgFilesAt(entry.path, depth + 1))
+      else if (svg(entry.name)) out.push(...await svgFilesAt(entry.path, depth + 1))
+    }
+    return out
+  }
+  const accepts = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])]
+    .some((t) => t === 'Files' || t === 'text/uri-list' || t === 'application/vnd.code.uri-list')
+
+  window.addEventListener('dragover', (e) => {
+    if (!accepts(e) || !token) return
+    e.preventDefault()
+    e.dataTransfer!.dropEffect = 'copy'
+  })
+  window.addEventListener('drop', async (e) => {
+    if (!accepts(e) || !token) return
+    e.preventDefault()
+    const transfer = e.dataTransfer!
+    const list = transfer.getData('application/vnd.code.uri-list') || transfer.getData('text/uri-list')
+    const paths = list.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
+      .map(pathOf).filter((p): p is string => p !== null)
+    const files = paths.length
+      ? (await Promise.all(paths.map((p) => svgFilesAt(p)))).flat()
+      : await Promise.all([...transfer.files].filter((f) => svg(f.name))
+        .map(async (f) => ({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) })))
+    if (!files.length) {
+      app.notify('warn', 'Nothing to add — drop .svg files or a folder of them.')
+      return
+    }
+    await app.importFiles(files)
   })
 
   // ask for the project once we are alive; the extension answers with `project`
@@ -98,6 +168,19 @@
     // the file's `name` is written from the font family, so change that
     session.do({ t: 'prefs.patch', patch: { font: { family: m.name } } })
     session.do({ t: 'project.rename', name: m.name })
+  })
+
+  /**
+   * Test seam: presses undo as many times as asked, then reports what is left. Undo
+   * must stop at the project as it was opened, never walk back into the placeholder.
+   */
+  window.addEventListener('message', (e: MessageEvent) => {
+    const m = e.data as { type?: string; times?: number }
+    if (m?.type !== 'test:undo') return
+    for (let i = 0; i < (m.times ?? 1); i++) session.undo()
+    vscodeApi()?.postMessage({
+      type: 'test:undoResult', canUndo: session.canUndo, glyphs: session.glyphCount, name: session.project.name,
+    })
   })
 
   /**

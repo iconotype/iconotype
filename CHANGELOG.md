@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.5 — 2026-09-29
+
+### Features
+
+- **vscode:** drag SVGs in to add them to a font (51be02b)
+
+### Fixes
+
+- **vscode:** undo in the editor can never empty the font (65d0736)
+- **svg:** paint declared on the root <svg> reaches its children (a05ceda)
+
 ## 0.2.4 — 2026-08-26
 
 ### Features

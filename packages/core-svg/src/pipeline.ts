@@ -1,7 +1,7 @@
 import svgpath from 'svgpath'
 import { FindingLog, type Finding } from './findings.js'
 import { prepare } from './prepare.js'
-import { traverse, type Emitted } from './traverse.js'
+import { inheritStyle, traverse, type Emitted } from './traverse.js'
 import { viewBoxMatrix, multiply, parseTransform, type Matrix } from './matrix.js'
 import {
   applyClipAndMask, boundsOf, evenOddToNonZero, fitPaths, hygiene, statsOf, unite,
@@ -112,8 +112,20 @@ export function fixSvg(source: string, options: FixOptions = {}): FixResult {
     parseTransform(attrs.transform),
   )
 
+  /**
+   * The root is an element too: `<svg fill="none" stroke="…">` is how most line-icon
+   * sets (Lucide, Feather, Tabler) paint every child. Starting from an empty style
+   * read those shapes as filled black with no stroke — and a `<line>` has no area,
+   * so the whole icon came out empty.
+   */
+  const style = inheritStyle({}, attrs)
+  const opacity = parseFloat(attrs.opacity ?? '')
   const emitted: Emitted[] = []
-  traverse(root, { matrix: base, style: {}, opacity: 1, precision: opts.precision }, byId, emitted, log)
+  traverse(
+    root,
+    { matrix: base, style, opacity: Number.isFinite(opacity) ? opacity : 1, precision: opts.precision },
+    byId, emitted, log,
+  )
 
   const visible = emitted.filter((e) => {
     if (e.opacity < 0.05) {

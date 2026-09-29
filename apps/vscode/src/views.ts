@@ -337,6 +337,13 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
   .empty { grid-column: 1 / -1; text-align: center; opacity: .9; font-size: 12px; padding: 8px 4px; }
   .empty p { margin: 8px 0; }
   .empty .hint { font-size: 10px; opacity: .6; }
+  body.dropping { outline: 1px dashed var(--vscode-focusBorder); outline-offset: -3px;
+                  background: var(--vscode-list-dropBackground, transparent); }
+  /* fixed, so showing it moves nothing underneath the pointer */
+  .drop-hint { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 20; pointer-events: none;
+               padding: 6px 8px; border-radius: 4px; font-size: 11px; text-align: center;
+               background: var(--vscode-editorWidget-background); color: var(--vscode-foreground);
+               border: 1px solid var(--vscode-focusBorder); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
 </style>
 </head>
 <body>
@@ -355,7 +362,10 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
   </div>
   <div class="grid" id="grid">${cells}</div>
   <p class="status${pending ? ' pending' : ''}">${selectedCount}/${total} selected for export${pending ? ' · font files are out of date' : ''} · click to open, tick to include, right-click for more</p>
+  <p class="status">Add SVGs by dropping them on a font in the Fonts view, or here while holding Shift.</p>
   ${settings}
+
+  <div class="drop-hint" id="drop-hint" hidden></div>
 
   <div class="menu" id="menu" hidden>
     <button data-action="open">Open in editor</button>
@@ -431,6 +441,48 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
     })
   }
 
+  /**
+   * Dropping SVGs in. VS Code only lets a drop reach a webview while Shift is held;
+   * without it the editor area takes the file and opens it. The Explorer hands over
+   * uris (folders included, the extension walks them), the OS hands over files, which
+   * a webview can read but cannot name a path for — so those travel as text.
+   */
+  let depth = 0
+  const hint = document.getElementById('drop-hint')
+  const showDrop = (on) => {
+    document.body.classList.toggle('dropping', on)
+    if (hint) hint.hidden = !on
+  }
+  if (hint) hint.textContent = ${JSON.stringify(font ? `Release to add SVGs to ${font.name}` : 'Create a font first, then drop SVGs on it').replace(/</g, '\\u003c')}
+  const accepts = (e) => [...(e.dataTransfer?.types ?? [])].some((t) =>
+    t === 'Files' || t === 'text/uri-list' || t === 'application/vnd.code.uri-list')
+  document.addEventListener('dragenter', (e) => {
+    if (!accepts(e)) return
+    e.preventDefault()
+    depth++
+    showDrop(true)
+  })
+  document.addEventListener('dragover', (e) => {
+    if (!accepts(e)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  })
+  document.addEventListener('dragleave', () => {
+    if (--depth <= 0) { depth = 0; showDrop(false) }
+  })
+  document.addEventListener('drop', async (e) => {
+    if (!accepts(e)) return
+    e.preventDefault()
+    depth = 0
+    showDrop(false)
+    const list = e.dataTransfer.getData('application/vnd.code.uri-list') || e.dataTransfer.getData('text/uri-list')
+    const uris = list.split(/\\r?\\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
+    const files = uris.length ? [] : await Promise.all([...e.dataTransfer.files]
+      .filter((f) => /\\.svg$/i.test(f.name))
+      .map(async (f) => ({ name: f.name, text: await f.text() })))
+    if (uris.length || files.length) vscode.postMessage({ type: 'drop', uris, files })
+  })
+
   for (const input of document.querySelectorAll('[data-setting]')) {
     input.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter') return
@@ -462,6 +514,8 @@ export type GridMessage =
   | { type: 'create' }
   | { type: 'selectAll' }
   | { type: 'selectNone' }
+  /** SVGs dropped on the grid: uris from the Explorer, contents from the OS */
+  | { type: 'drop'; uris: string[]; files: Array<{ name: string; text: string }> }
 
 const escapeHtml = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')

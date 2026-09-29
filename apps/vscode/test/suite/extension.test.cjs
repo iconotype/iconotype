@@ -243,6 +243,42 @@ suite('iconotype extension', function () {
     assert.ok(onDisk.icons.some((i) => i.name === 'star'), 'the project file was not updated')
   })
 
+  /**
+   * Dragging a folder of line icons onto a font in the tree. Line-icon sets paint on
+   * the root (`<svg fill="none" stroke=…>`), which the importer used to ignore — every
+   * `<line>` came out as nothing and the glyph was added empty.
+   */
+  test('dropping a folder on the tree adds its SVGs, root-stroked ones included', async () => {
+    const dir = path.join(workspace, 'dropped-icons')
+    fs.mkdirSync(path.join(dir, 'nested'), { recursive: true })
+    fs.writeFileSync(path.join(dir, 'vertical.svg'),
+      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#262019" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="5" y1="20" x2="5" y2="14"/><line x1="12" y1="20" x2="12" y2="9"/><line x1="19" y1="20" x2="19" y2="4"/></svg>')
+    fs.writeFileSync(path.join(dir, 'nested', 'blank.svg'), '<svg viewBox="0 0 24 24"></svg>')
+    fs.writeFileSync(path.join(dir, 'README.md'), 'not an icon')
+
+    const file = path.join(workspace, 'drop.iconotype.json')
+    fs.writeFileSync(file, JSON.stringify({
+      schemaVersion: 1, name: 'drop',
+      font: { family: 'drop', prefix: 'drop-', emSize: 1024, baseline: 6.25, whitespace: 50, version: '1.0' },
+      height: 1024, icons: [],
+    }, null, 2))
+    const font = await api.registry.load(vscode.Uri.file(file))
+
+    const data = new vscode.DataTransfer()
+    data.set('text/uri-list', new vscode.DataTransferItem(vscode.Uri.file(dir).toString()))
+    await api.fontTreeDrop.handleDrop({ kind: 'font', font }, data)
+    await wait(400)
+
+    const glyphs = api.registry.get(font.uri).project.sets[0].glyphs
+    const vertical = glyphs.find((g) => g.name === 'vertical')
+    assert.ok(vertical, 'vertical.svg was not added')
+    assert.ok(vertical.paths.some((d) => d.trim()), 'a root-stroked SVG must not import empty')
+    assert.ok(!glyphs.some((g) => g.name === 'blank'), 'an SVG with nothing drawable must be skipped, not added blank')
+
+    fs.rmSync(dir, { recursive: true, force: true })
+    fs.rmSync(file, { force: true })
+  })
+
   test('toggling selection is written to the project file', async () => {
     const font = appFont()
     const legacy = font.project.sets[0].glyphs.find((g) => g.name === 'legacy')

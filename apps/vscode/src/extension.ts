@@ -684,6 +684,27 @@ export async function activate(context: vscode.ExtensionContext) {
    * were last working in was never the one that came forward. Opening a font that is
    * already open now reveals that panel and re-points it at the icon you asked for.
    */
+  /**
+   * The last line of defence against an editor save that empties a font.
+   *
+   * Nothing the editor does on purpose should need this — but an editor that lost track
+   * of its project once wrote an empty font over a real one, and the file is the only
+   * copy. Removing every icon, or most of a sizeable font, in one save is asked about.
+   */
+  async function confirmLoss(font: IconFont, next: Project): Promise<boolean> {
+    const count = (p: Project) => p.sets.reduce((n, s) => n + s.glyphs.length, 0)
+    const before = count(font.project)
+    const removed = before - count(next)
+    if (before === 0 || removed <= 0) return true
+    if (removed < before && (removed < 10 || removed * 2 <= before)) return true
+    const choice = await vscode.window.showWarningMessage(
+      `The editor is about to remove ${removed === before ? `all ${before}` : `${removed} of ${before}`} icons from ${font.name}.`,
+      { modal: true, detail: 'Keep the file as it is if you did not mean to do this.' },
+      'Remove them',
+    )
+    return choice === 'Remove them'
+  }
+
   const editors = new Map<string, {
     panel: vscode.WebviewPanel
     focus: (glyph?: string, library?: boolean, query?: string) => void
@@ -722,6 +743,13 @@ export async function activate(context: vscode.ExtensionContext) {
      */
     const token = [...Array(16)].map(() => Math.random().toString(36)[2]).join('')
     let sentOnce = false
+    /**
+     * The file text of this panel's last save. The watcher reloads the file after every
+     * save and the re-parsed project is not always the identical object the editor
+     * sent, so the editor would take its own edit for an outside change — and an
+     * outside change starts a fresh history, which would empty undo after every edit.
+     */
+    let lastSaved: string | undefined
 
     const send = (focusGlyph?: string, openLibrary?: boolean, libraryQuery?: string) => {
       const current = registry.get(font.uri)
@@ -744,16 +772,28 @@ export async function activate(context: vscode.ExtensionContext) {
           return
         }
         const current = registry.get(font.uri) ?? font
+        if (!(await confirmLoss(current, message.project))) {
+          // put the editor back on what the file actually holds
+          lastSaved = undefined
+          send()
+          return
+        }
         try {
+          lastSaved = serializeIconFont(message.project)
           await registry.save(current, message.project)
         } catch (e) {
+          lastSaved = undefined
           vscode.window.showErrorMessage(`Iconotype: could not save — ${(e as Error).message}`)
         }
       }
     })
 
     // keep the panel in step with edits made elsewhere (the grid, the tree, git)
-    const subscription = registry.onDidChange(() => send())
+    const subscription = registry.onDidChange(() => {
+      const current = registry.get(font.uri)
+      if (current && !current.error && lastSaved !== undefined && serializeIconFont(current.project) === lastSaved) return
+      send()
+    })
     editors.set(key, { panel, focus: send })
     panel.onDidDispose(() => {
       subscription.dispose()

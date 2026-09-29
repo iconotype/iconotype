@@ -55,9 +55,22 @@
     if (message?.type !== 'project' || !message.project) return
     if (message.token) token = message.token
     const snapshot = JSON.stringify(message.project)
+    /**
+     * A project from the extension starts a new history; it is never a step in one.
+     *
+     * This used to be `session.replace`, which recorded the load as an undoable edit
+     * whose parent was the empty "Loading…" placeholder. Undo walked back past it, the
+     * editor held an empty font, and the save effect wrote that over the file — every
+     * icon gone. The same went for a change made outside the editor (the grid, git):
+     * undo reverted it wholesale. Undo is for what was done in this editor, nothing else.
+     */
     if (snapshot !== synced) { // otherwise it is our own save coming back through the watcher
+      const first = synced === ''
       synced = snapshot
-      session.replace(message.project, `Open ${message.name ?? message.project.name}`)
+      session.open(
+        message.project,
+        first ? `Open ${message.name ?? message.project.name}` : 'Changed outside the editor',
+      )
     }
     // alt-clicking an icon in the sidebar opens the editor ON that icon
     if (message.focus) {
@@ -149,3 +162,16 @@
 </script>
 
 <AppShell embedded />
+   * Test seam: presses undo as many times as asked, then reports what is left. Undo
+   * must stop at the project as it was opened, never walk back into the placeholder.
+   */
+  window.addEventListener('message', (e: MessageEvent) => {
+    const m = e.data as { type?: string; times?: number }
+    if (m?.type !== 'test:undo') return
+    for (let i = 0; i < (m.times ?? 1); i++) session.undo()
+    vscodeApi()?.postMessage({
+      type: 'test:undoResult', canUndo: session.canUndo, glyphs: session.glyphCount, name: session.project.name,
+    })
+  })
+
+  /**

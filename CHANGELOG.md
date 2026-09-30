@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — 2026-09-30
+
+### Features
+
+- **editor:** a Layers panel to list and delete layers and shapes, and drop colours (dae488e)
+- **vscode:** select several icons and act on them together (112d112)
+
+### Fixes
+
+- **import:** an SVG named like an existing icon replaces it (a57035f)
+
 ## 0.2.5 — 2026-09-29
 
 ### Features

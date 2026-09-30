@@ -275,6 +275,25 @@ suite('iconotype extension', function () {
     assert.ok(vertical.paths.some((d) => d.trim()), 'a root-stroked SVG must not import empty')
     assert.ok(!glyphs.some((g) => g.name === 'blank'), 'an SVG with nothing drawable must be skipped, not added blank')
 
+    // dropping an SVG named like an icon the font has replaces that icon's artwork
+    const before = api.registry.get(font.uri)
+    const code = before.project.codepoints.vertical
+    const again = path.join(dir, 'again')
+    fs.mkdirSync(again)
+    fs.writeFileSync(path.join(again, 'vertical.svg'),
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20"/></svg>')
+    const replace = new vscode.DataTransfer()
+    replace.set('text/uri-list', new vscode.DataTransferItem(vscode.Uri.file(again).toString()))
+    await api.fontTreeDrop.handleDrop({ kind: 'font', font: before }, replace)
+    await wait(400)
+
+    const after = api.registry.get(font.uri)
+    const verticals = after.project.sets[0].glyphs.filter((g) => g.name === 'vertical')
+    assert.strictEqual(verticals.length, 1, 'a same-name drop must replace, not add a duplicate')
+    assert.strictEqual(verticals[0].id, vertical.id, 'the replaced icon keeps its id')
+    assert.notDeepStrictEqual(verticals[0].paths, vertical.paths, 'the artwork was not replaced')
+    assert.deepStrictEqual(after.project.codepoints.vertical, code, 'the replaced icon keeps its codepoint')
+
     fs.rmSync(dir, { recursive: true, force: true })
     fs.rmSync(file, { force: true })
   })

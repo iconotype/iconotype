@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import {
-  apply, allocate, emptyProject, parsePathList, toPaths, type Glyph, type Op, type Project,
+  apply, allocate, emptyProject, fitCodepoints, parsePathList, toPaths, type Glyph, type Op, type Project,
 } from '@iconotype/core-model'
 import { serializeIconFont, ICONFONT_EXTENSION } from '@iconotype/core-io/iconfont-file'
 import { heavy, heavyLoaded } from './lazy.js'
@@ -236,7 +236,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const set = font.project.sets[0]
     if (!set) return
     const { importSvg } = await heavy()
-    const glyphs = []
+    /**
+     * Keyed by name: the name IS the icon — it is the class, the codepoint key and the
+     * glyph id. Two glyphs sharing one used to be added side by side and then fought
+     * over all three, so a later file with the same name wins over an earlier one.
+     */
+    const imported = new Map<string, Glyph>()
     const warnings: string[] = []
     for (const { name, read } of sources) {
       try {
@@ -249,27 +254,59 @@ export async function activate(context: vscode.ExtensionContext) {
         // filling a named gap: the glyph has to answer to the name the code already
         // writes, whatever the file on disk happens to be called
         if (as) result.glyph.name = as
-        glyphs.push({ ...result.glyph, id: `${font.uri.toString()}:${result.glyph.name}` })
+        imported.set(result.glyph.name, { ...result.glyph, id: `${font.uri.toString()}:${result.glyph.name}` })
         warnings.push(...result.warnings.map((w) => `${name}: ${w}`))
       } catch (e) {
         warnings.push((e as Error).message)
       }
     }
-    if (!glyphs.length) {
+    if (!imported.size) {
       vscode.window.showErrorMessage(`Iconotype: nothing importable.\n${warnings.join('\n')}`)
       return
     }
-    const withGlyphs = apply(font.project, { t: 'glyph.add', setId: set.id, glyphs }).next
+
+    /**
+     * An SVG named like an icon the font already has replaces that icon's artwork —
+     * exactly what "Replace SVG…" does, so its codepoint, tags and inclusion stay and
+     * nothing already built changes what `icon-home` renders to.
+     */
+    const existing = new Map(font.project.sets.flatMap((s) => s.glyphs).map((g) => [g.name, g]))
+    const replaced: Op[] = []
+    const glyphs: Glyph[] = []
+    const refit: Glyph[] = []
+    for (const glyph of imported.values()) {
+      const old = existing.get(glyph.name)
+      if (!old) { glyphs.push(glyph); continue }
+      refit.push(glyph)
+      replaced.push({
+        t: 'glyph.patch',
+        id: old.id,
+        patch: { paths: glyph.paths, attrs: glyph.attrs, isMulticolor: glyph.isMulticolor, grid: glyph.grid },
+      })
+    }
+    let project = font.project
+    for (const op of replaced) project = apply(project, op).next
+    if (glyphs.length) project = apply(project, { t: 'glyph.add', setId: set.id, glyphs }).next
     const { assignments, overflow } = allocate(
-      withGlyphs,
+      project,
       glyphs.map((g) => ({ name: g.name, layers: g.isMulticolor ? g.paths.length : 1 })),
     )
-    await mutate(registry, { ...font, project: withGlyphs }, { t: 'codepoint.assign', assignments })
+    // replaced artwork may have more (or fewer) colour layers than codepoints
+    for (const g of refit) {
+      const fitted = fitCodepoints(
+        apply(project, { t: 'codepoint.assign', assignments }).next, g.name, g.isMulticolor ? g.paths.length : 1)
+      if (fitted !== undefined) assignments[g.name] = fitted
+    }
+    await mutate(registry, { ...font, project }, { t: 'codepoint.assign', assignments })
 
     for (const warning of warnings) output.appendLine(warning)
     if (overflow.length) vscode.window.showErrorMessage(`Iconotype: no codepoint available for ${overflow.join(', ')}`)
+    const did = [
+      glyphs.length ? `added ${glyphs.length}` : '',
+      replaced.length ? `replaced ${replaced.length}` : '',
+    ].filter(Boolean).join(' and ')
     vscode.window.showInformationMessage(
-      `Iconotype: added ${glyphs.length} icon(s) to ${font.name}${warnings.length ? ` (${warnings.length} warning(s), see the output panel)` : ''}`)
+      `Iconotype: ${did} icon(s) in ${font.name}${warnings.length ? ` (${warnings.length} warning(s), see the output panel)` : ''}`)
   }
 
   /**
@@ -542,7 +579,7 @@ export async function activate(context: vscode.ExtensionContext) {
        * Artwork only. The name, the tags and above all the CODEPOINT stay: replacing a
        * drawing must not change what `icon-home` renders to in anything already built.
        */
-      await mutate(registry, font, {
+      const patch: Op = {
         t: 'glyph.patch',
         id: target.glyph.id,
         patch: {
@@ -551,7 +588,12 @@ export async function activate(context: vscode.ExtensionContext) {
           isMulticolor: result.glyph.isMulticolor,
           grid: result.glyph.grid,
         },
-      })
+      }
+      // the codepoint stays; a second colour layer needs a second one beside it
+      const fitted = fitCodepoints(font.project, target.glyph.name,
+        result.glyph.isMulticolor ? result.glyph.paths.length : 1)
+      await mutate(registry, font, patch,
+        ...(fitted === undefined ? [] : [{ t: 'codepoint.assign', assignments: { [target.glyph.name]: fitted } } as Op]))
       for (const warning of result.warnings) output.appendLine(`${target.glyph.name}: ${warning}`)
       vscode.window.showInformationMessage(`Iconotype: replaced the artwork for "${target.glyph.name}"`)
     } catch (e) {

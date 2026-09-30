@@ -154,6 +154,41 @@ describe('AppStore import', () => {
     expect(session.project.preferences.font.family).toBe('ossweather')
   })
 
+  it('an SVG named like an existing icon replaces its artwork instead of duplicating it', async () => {
+    const project = emptyProject('p')
+    project.sets[0]!.glyphs = [glyph('home')]
+    project.codepoints = { home: 0xe900 }
+    const { app, session } = store(project)
+
+    await app.importFiles([
+      file('home.svg', '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/></svg>'),
+      file('user.svg', '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="20"/></svg>'),
+    ])
+
+    const glyphs = session.project.sets.flatMap((s) => s.glyphs)
+    expect(glyphs.map((g) => g.name)).toEqual(['home', 'user'])
+    const home = glyphs.find((g) => g.name === 'home')!
+    expect(home.id).toBe('home')
+    expect(home.paths).not.toEqual(['M0 0h512v512h-512z'])
+    expect(home.tags).toEqual(['home'])
+    expect(session.project.codepoints['home']).toBe(0xe900)
+    expect(session.project.codepoints['user']).toBeDefined()
+  })
+
+  it('replacing with more colours gives the icon a codepoint per layer', async () => {
+    const project = emptyProject('p')
+    project.sets[0]!.glyphs = [glyph('filter'), glyph('other')]
+    project.codepoints = { filter: 0xe900, other: 0xe901 }
+    const { app, session } = store(project)
+
+    await app.importFiles([file('filter.svg',
+      '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="24" fill="#D95D39"/><path d="M8 8H40V14H8Z" fill="white"/></svg>')])
+
+    const filter = session.project.sets[0]!.glyphs.find((g) => g.name === 'filter')!
+    expect(filter.isMulticolor).toBe(true)
+    expect(session.project.codepoints['filter']).toEqual([0xe900, 0xe902])
+  })
+
   it('says what it accepts when handed something else', async () => {
     const { app } = store()
     await app.importFiles([file('random.json', '{"hello":"world"}')])

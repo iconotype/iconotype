@@ -1,5 +1,5 @@
 import type { Host } from '@iconotype/core-host'
-import { allocate, emptySet, fitCodepoints, type Glyph, type GlyphId, type IconSet, type OutputConfig, type SetId } from '@iconotype/core-model'
+import { allocate, emptySet, fitCodepoints, splitShapes, type Glyph, type GlyphId, type IconSet, type OutputConfig, type SetId } from '@iconotype/core-model'
 import type { CollectionInfo, IconRef } from '@iconotype/core-io'
 import type { FontFormat } from '@iconotype/core-font'
 import type { AlignMode, Finding, FlipAxis } from '@iconotype/core-svg'
@@ -406,6 +406,79 @@ export class AppStore {
     if (Array.isArray(code) && code.length > 1) {
       this.session.do({ t: 'codepoint.assign', assignments: { [glyph.name]: code[0]! } })
     }
+  }
+
+  // ── layers ───────────────────────────────────────────────────────────────────
+  /**
+   * A glyph's layers are its `paths` entries; a layer's shapes are what `splitShapes`
+   * finds inside one. Deleting either is a single history step on the glyph, plus a
+   * codepoint step when a multicolor glyph loses a layer.
+   */
+  #glyph(id: GlyphId) { return this.session.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === id) }
+
+  /**
+   * Writes a glyph's layers back, keeping codepoints in step on a multicolor glyph.
+   *
+   * Layer `i` of a multicolor glyph is drawn at `codes[i]`, so the kept layers keep
+   * the codepoints they had — the one belonging to a deleted layer is released, and
+   * nothing already built changes what the others render to. Down to one layer, the
+   * glyph is plain monochrome again, on the first surviving codepoint.
+   */
+  #setLayers(id: GlyphId, kept: number[], paths: string[], attrs: Array<Record<string, string>>, label: string) {
+    const glyph = this.#glyph(id)
+    if (!glyph) return
+    const code = this.session.project.codepoints[glyph.name]
+    const wasMulti = glyph.isMulticolor
+    const isMulticolor = wasMulti && paths.length > 1
+    this.session.do({ t: 'glyph.patch', id, patch: { paths, attrs, isMulticolor } }, label)
+    if (wasMulti && Array.isArray(code) && kept.length !== code.length) {
+      const codes = kept.map((i) => code[i]).filter((c): c is number => c !== undefined)
+      if (codes.length) this.session.do({ t: 'codepoint.assign', assignments: { [glyph.name]: isMulticolor ? codes : codes[0]! } })
+    }
+  }
+
+  deleteLayer(id: GlyphId, index: number) {
+    const glyph = this.#glyph(id)
+    if (!glyph || glyph.paths.length < 2) {
+      if (glyph) this.notify('warn', `${glyph.name} has one layer — remove the icon instead`)
+      return
+    }
+    const kept = glyph.paths.map((_, i) => i).filter((i) => i !== index)
+    this.#setLayers(id, kept, kept.map((i) => glyph.paths[i]!), kept.map((i) => glyph.attrs[i] ?? {}),
+      `Delete layer ${index + 1} of ${glyph.name}`)
+  }
+
+  /** Deletes one shape out of a layer; the layer goes too once nothing is left in it. */
+  deleteShape(id: GlyphId, layer: number, shape: number) {
+    const glyph = this.#glyph(id)
+    const d = glyph?.paths[layer]
+    if (!glyph || d === undefined) return
+    const shapes = splitShapes(d)
+    if (shapes.length < 2) { this.deleteLayer(id, layer); return }
+    const paths = [...glyph.paths]
+    paths[layer] = shapes.filter((_, i) => i !== shape).map((s) => s.d).join(' ')
+    this.session.do({ t: 'glyph.patch', id, patch: { paths } }, `Delete a shape from ${glyph.name}`)
+  }
+
+  /**
+   * Drops a layer's own colour, so it paints in whatever the CSS says.
+   *
+   * With no colour left anywhere the glyph has nothing multicolor about it, and it
+   * is flattened the same way "Flatten to one colour" does.
+   */
+  removeLayerColor(id: GlyphId, index: number) {
+    const glyph = this.#glyph(id)
+    if (!glyph?.attrs[index]?.fill) return
+    const attrs = glyph.attrs.map((a, i) => {
+      if (i !== index) return a
+      const { fill: _fill, 'fill-opacity': _opacity, ...rest } = a
+      return rest
+    })
+    if (!attrs.some((a) => a?.fill && a.fill !== 'none' && a.fill !== 'currentColor')) {
+      this.flattenColors(id)
+      return
+    }
+    this.session.do({ t: 'glyph.patch', id, patch: { attrs } }, `Remove the colour of layer ${index + 1} of ${glyph.name}`)
   }
 
   /** Swaps one glyph's artwork for a new SVG, keeping its name, tags and codepoint. */

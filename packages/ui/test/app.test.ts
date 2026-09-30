@@ -287,3 +287,61 @@ describe('AppStore glyph editor', () => {
     expect(session.timeline.length).toBe(steps)
   })
 })
+
+describe('AppStore layers', () => {
+  const multi = () => {
+    const project = emptyProject('p')
+    project.sets[0]!.glyphs = [glyph('flag', {
+      isMulticolor: true,
+      paths: ['M0 0H10V10H0Z', 'M20 0H30V10H20Z M40 0H50V10H40Z', 'M60 0H70V10H60Z'],
+      attrs: [{ fill: '#f00' }, { fill: '#0f0' }, { fill: '#00f' }],
+    })]
+    project.codepoints = { flag: [0xe900, 0xe901, 0xe902] }
+    return store(project)
+  }
+  const flag = (session: SessionStore) => session.project.sets[0]!.glyphs[0]!
+
+  it('deleting a layer releases its codepoint and keeps the others on theirs', () => {
+    const { app, session } = multi()
+    app.deleteLayer('flag', 1)
+    expect(flag(session).paths).toEqual(['M0 0H10V10H0Z', 'M60 0H70V10H60Z'])
+    expect(flag(session).attrs).toEqual([{ fill: '#f00' }, { fill: '#00f' }])
+    expect(session.project.codepoints['flag']).toEqual([0xe900, 0xe902])
+  })
+
+  it('down to one layer, the glyph is monochrome on its surviving codepoint', () => {
+    const { app, session } = multi()
+    app.deleteLayer('flag', 0)
+    app.deleteLayer('flag', 0)
+    expect(flag(session).isMulticolor).toBe(false)
+    expect(session.project.codepoints['flag']).toBe(0xe902)
+    // and the last one cannot go: that is removing the icon
+    app.deleteLayer('flag', 0)
+    expect(flag(session).paths).toHaveLength(1)
+  })
+
+  it('deletes one shape out of a layer', () => {
+    const { app, session } = multi()
+    app.deleteShape('flag', 1, 0)
+    expect(flag(session).paths[1]).toBe('M40 0 H50 V10 H40 Z')
+    expect(flag(session).paths).toHaveLength(3)
+  })
+
+  it('removing the last colour flattens the glyph', () => {
+    const { app, session } = multi()
+    app.removeLayerColor('flag', 0)
+    expect(flag(session).attrs[0]).toEqual({})
+    expect(flag(session).isMulticolor).toBe(true)
+    app.removeLayerColor('flag', 1)
+    app.removeLayerColor('flag', 2)
+    expect(flag(session).isMulticolor).toBe(false)
+    expect(session.project.codepoints['flag']).toBe(0xe900)
+  })
+
+  it('each edit is undoable', () => {
+    const { app, session } = multi()
+    app.deleteShape('flag', 1, 0)
+    session.undo()
+    expect(flag(session).paths[1]).toBe('M20 0H30V10H20Z M40 0H50V10H40Z')
+  })
+})

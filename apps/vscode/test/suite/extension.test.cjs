@@ -279,6 +279,33 @@ suite('iconotype extension', function () {
     fs.rmSync(file, { force: true })
   })
 
+  test('removing several tree rows at once removes them all', async () => {
+    const file = path.join(workspace, 'many.iconotype.json')
+    const icon = (name, i) => ({ name, code: (0xe900 + i).toString(16), paths: ['M0 0H200V200H0Z'] })
+    fs.writeFileSync(file, JSON.stringify({
+      schemaVersion: 1, name: 'many',
+      font: { family: 'many', prefix: 'many-', emSize: 1024, baseline: 6.25, whitespace: 50, version: '1.0' },
+      height: 1024, icons: ['a', 'b', 'c'].map(icon),
+    }, null, 2))
+    const font = await api.registry.load(vscode.Uri.file(file))
+    const [a, b] = font.project.sets[0].glyphs
+    const nodes = [{ font, glyph: a }, { font, glyph: b }]
+
+    // the modal is answered for us: nothing but "Remove" gets past it
+    const original = vscode.window.showWarningMessage
+    vscode.window.showWarningMessage = async () => 'Remove'
+    try {
+      await vscode.commands.executeCommand('iconotype.removeIcon', nodes[0], nodes)
+    } finally {
+      vscode.window.showWarningMessage = original
+    }
+    await wait(400)
+
+    const left = api.registry.get(font.uri).project.sets[0].glyphs.map((g) => g.name)
+    assert.deepStrictEqual(left, ['c'])
+    fs.rmSync(file, { force: true })
+  })
+
   test('toggling selection is written to the project file', async () => {
     const font = appFont()
     const legacy = font.project.sets[0].glyphs.find((g) => g.name === 'legacy')
@@ -357,7 +384,12 @@ suite('iconotype extension', function () {
     for (const command of ['export', 'import', 'selectAll', 'selectNone', 'create']) {
       assert.ok(html.includes(`data-command="${command}"`) || command === 'create', `${command} control missing`)
     }
-    assert.match(html, /selected for export/)
+    assert.match(html, /included in the font/)
+
+    // picking several for a bulk action is its own thing, apart from the tick
+    for (const action of ['include', 'exclude', 'remove']) {
+      assert.ok(html.includes(`data-bulk="${action}"`), `bulk ${action} missing`)
+    }
   })
 
   test('flags a reference to an icon that does not exist, and suggests the right one', async () => {

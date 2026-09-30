@@ -135,6 +135,13 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
   #activeFont?: IconFont
   /** the icon to scroll to and outline after the next render */
   #focus?: string
+  /**
+   * The icons picked for a bulk action — the UI selection, which the tick is not: the
+   * tick says whether an icon ships. Kept here rather than in the page because every
+   * change to the font re-renders the page, and a selection that vanished on each
+   * include/exclude would be useless for the thing it is for.
+   */
+  #picked = new Set<string>()
 
   constructor(
     private registry: IconFontRegistry,
@@ -161,11 +168,19 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
     view.webview.onDidReceiveMessage((message: GridMessage) => {
       if (message.type === 'selectFont') {
         this.#activeFont = this.registry.fonts.find((f) => f.uri.toString() === message.uri)
+        this.#picked.clear()
         this.refresh()
         return
       }
+      // the page already shows it; this only remembers it for the next render
+      if (message.type === 'pick') { this.#picked = new Set(message.ids); return }
       this.onCommand(message)
     })
+    this.refresh()
+  }
+
+  clearPicked(): void {
+    this.#picked.clear()
     this.refresh()
   }
 
@@ -179,6 +194,9 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
     const nonce = [...Array(32)].map(() => Math.random().toString(36)[2]).join('')
     const font = this.activeFont
     const fonts = this.registry.fonts
+    // an icon removed or renamed since it was picked is no longer picked
+    const ids = new Set(font?.project.sets.flatMap((s) => s.glyphs.map((g) => g.id)) ?? [])
+    for (const id of this.#picked) if (!ids.has(id)) this.#picked.delete(id)
 
     const options = fonts
       .map((f) => `<option value="${f.uri.toString()}"${f === font ? ' selected' : ''}>${escapeHtml(f.name)}</option>`)
@@ -218,7 +236,8 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
               : ''
             const title = `${glyph.name}${code ? ` U+${code}` : ''}${glyph.isMulticolor ? ' · multicolor' : ''}${excluded ? ' · excluded' : ''}`
             /**
-             * A cell opens the icon; the tick includes or excludes it.
+             * A cell opens the icon; the tick includes or excludes it; ⌘/Ctrl- and
+             * Shift-click pick it for a bulk action.
              *
              * Clicking the icon used to toggle whether it shipped, which is a
              * destructive-ish thing to have on the most casual gesture there is —
@@ -228,7 +247,8 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
              * The cell is a div, not a button: a button cannot legally contain the
              * tick's own button, and the tick has to be clickable on its own.
              */
-            return `<div class="cell${excluded ? ' excluded' : ''}${focused ? ' focused' : ''}" data-id="${escapeHtml(glyph.id)}" data-name="${escapeHtml(glyph.name)}" title="${escapeHtml(title)}" role="button" tabindex="0">
+            const picked = this.#picked.has(glyph.id)
+            return `<div class="cell${excluded ? ' excluded' : ''}${focused ? ' focused' : ''}${picked ? ' picked' : ''}" data-id="${escapeHtml(glyph.id)}" data-name="${escapeHtml(glyph.name)}" title="${escapeHtml(title)}" role="button" tabindex="0">
               <button class="check${excluded ? '' : ' on'}" data-toggle="${escapeHtml(glyph.id)}" tabindex="-1"
                 title="${excluded ? 'Excluded from the font — click to include' : 'Included in the font — click to exclude'}"
                 aria-label="${excluded ? 'Include' : 'Exclude'} ${escapeHtml(glyph.name)}">${excluded ? '' : '✓'}</button>
@@ -288,6 +308,8 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
            color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
            border: 1px solid var(--vscode-contrastBorder, transparent); border-radius: 2px; padding: 2px 6px; cursor: pointer; }
   button.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+  /* shift-click picks a run of icons; without this it also drags a text selection */
+  .grid { user-select: none; -webkit-user-select: none; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 4px; }
   .cell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px;
           background: transparent; border: 1px solid var(--vscode-panel-border); border-radius: 3px;
@@ -303,6 +325,19 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
   .cell:hover .check { border-color: var(--vscode-focusBorder); }
   .cell.excluded { opacity: .4; }
   .cell.focused { border-color: var(--vscode-focusBorder); background: var(--vscode-list-activeSelectionBackground); }
+  .cell.picked { border-color: var(--vscode-list-focusOutline, var(--vscode-focusBorder));
+                 background: var(--vscode-list-activeSelectionBackground);
+                 color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground)); }
+  /* fixed like the drop hint: a selection appearing must not move the cell you
+     are about to shift-click */
+  .picks { position: fixed; left: 6px; right: 6px; bottom: 6px; z-index: 15; display: flex; gap: 4px;
+           align-items: center; padding: 4px 6px; border-radius: 4px; font-size: 11px;
+           background: var(--vscode-editorWidget-background); border: 1px solid var(--vscode-focusBorder);
+           box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+  .picks span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .picks button.danger { color: var(--vscode-errorForeground); }
+  body.picking { padding-bottom: 40px; }
+  .menu.bulk [data-action], .menu:not(.bulk) [data-bulk], .menu.bulk hr.single, .menu:not(.bulk) hr.bulk { display: none; }
   .dots { position: absolute; left: 3px; bottom: 3px; display: flex; gap: 1px; }
   .dots i { width: 5px; height: 5px; border-radius: 50%; display: block; box-shadow: 0 0 0 1px var(--vscode-panel-border); }
   .layers { position: absolute; right: 3px; bottom: 3px; font-size: 8px; font-family: var(--vscode-editor-font-family);
@@ -357,25 +392,38 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
     <input id="filter" type="search" placeholder="Filter…">
     <button data-command="import" title="Add SVG files as icons">+ SVG</button>
     <button data-command="importIcons" title="Merge in an IcoMoon project or font package">+ Project</button>
-    <button data-command="selectAll">All</button>
-    <button data-command="selectNone">None</button>
+    <button data-command="selectAll" title="Include every icon in the font">All</button>
+    <button data-command="selectNone" title="Exclude every icon from the font">None</button>
   </div>
   <div class="grid" id="grid">${cells}</div>
-  <p class="status${pending ? ' pending' : ''}">${selectedCount}/${total} selected for export${pending ? ' · font files are out of date' : ''} · click to open, tick to include, right-click for more</p>
+  <p class="status${pending ? ' pending' : ''}">${selectedCount}/${total} included in the font${pending ? ' · font files are out of date' : ''} · click to open, tick to include, ⌘/Ctrl- or Shift-click to select several, right-click for more</p>
   <p class="status">Add SVGs by dropping them on a font in the Fonts view, or here while holding Shift.</p>
   ${settings}
 
   <div class="drop-hint" id="drop-hint" hidden></div>
 
+  <div class="picks" id="picks" hidden>
+    <span id="picks-count"></span>
+    <button data-bulk="include" title="Include the selected icons in the font">Include</button>
+    <button data-bulk="exclude" title="Exclude the selected icons from the font">Exclude</button>
+    <button data-bulk="remove" class="danger" title="Remove the selected icons (Delete)">Remove</button>
+    <button id="picks-clear" title="Clear the selection (Esc)" aria-label="Clear the selection">✕</button>
+  </div>
+
+  <!-- on a cell that is part of a multi-selection, the menu acts on all of them -->
   <div class="menu" id="menu" hidden>
     <button data-action="open">Open in editor</button>
     <button data-action="usage">Show usage</button>
     <button data-action="replace">Replace SVG…</button>
-    <hr>
+    <hr class="single">
     <button data-action="toggle">Include / exclude</button>
     <button data-action="copy">Copy class name</button>
-    <hr>
+    <hr class="single">
     <button data-action="remove">Remove icon</button>
+    <button data-bulk="include">Include selected</button>
+    <button data-bulk="exclude">Exclude selected</button>
+    <hr class="bulk">
+    <button data-bulk="remove" id="menu-remove-many">Remove selected</button>
   </div>
 
 <script nonce="${nonce}">
@@ -399,8 +447,62 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
 
   const closeMenu = () => { if (menu) menu.hidden = true; target = null }
   document.addEventListener('click', closeMenu)
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu() })
   window.addEventListener('blur', closeMenu)
+
+  /**
+   * Picking icons for a bulk action: ⌘/Ctrl-click adds or drops one, Shift-click
+   * takes the run from the last one picked, in the order shown (a filter hides cells
+   * from a run, not from the selection). The extension remembers the set, so it
+   * survives the re-render every change to the font causes.
+   */
+  const cells = [...document.querySelectorAll('.cell')]
+  let picked = new Set(${JSON.stringify([...this.#picked]).replace(/</g, '\\u003c')})
+  let anchor = null
+  const picks = document.getElementById('picks')
+  const paint = () => {
+    for (const c of cells) {
+      c.classList.toggle('picked', picked.has(c.dataset.id))
+    }
+    if (picks) picks.hidden = !picked.size
+    document.body.classList.toggle('picking', picked.size > 0)
+    const count = document.getElementById('picks-count')
+    if (count) count.textContent = picked.size + ' selected'
+  }
+  const pick = (next) => {
+    picked = next
+    paint()
+    vscode.postMessage({ type: 'pick', ids: [...picked] })
+  }
+  const bulk = (action) => {
+    if (picked.size) vscode.postMessage({ type: 'bulk', action, ids: [...picked] })
+  }
+  paint()
+
+  document.getElementById('picks-clear')?.addEventListener('click', (e) => { e.stopPropagation(); pick(new Set()) })
+  for (const button of document.querySelectorAll('[data-bulk]')) {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation()
+      bulk(button.dataset.bulk)
+      closeMenu()
+    })
+  }
+
+  const typing = (e) => e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (menu && !menu.hidden) closeMenu()
+      else if (picked.size) pick(new Set())
+      return
+    }
+    if (typing(e)) return
+    if ((e.key === 'Delete' || e.key === 'Backspace') && picked.size) {
+      e.preventDefault()
+      bulk('remove')
+    } else if (e.key === 'a' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      pick(new Set(cells.filter((c) => !c.hidden).map((c) => c.dataset.id)))
+    }
+  })
 
   for (const check of document.querySelectorAll('[data-toggle]')) {
     check.addEventListener('click', (event) => {
@@ -409,10 +511,30 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
     })
   }
 
-  for (const cell of document.querySelectorAll('.cell')) {
+  for (const cell of cells) {
+    // shift-mousedown would otherwise extend a text selection across the grid
+    cell.addEventListener('mousedown', (event) => { if (event.shiftKey) event.preventDefault() })
     cell.addEventListener('click', (event) => {
-      // alt/ctrl still toggles, for anyone who learned the old gesture
-      vscode.postMessage({ type: event.altKey || event.ctrlKey || event.metaKey ? 'toggle' : 'open', id: cell.dataset.id })
+      const id = cell.dataset.id
+      if (event.shiftKey) {
+        const visible = cells.filter((c) => !c.hidden)
+        const from = visible.findIndex((c) => c.dataset.id === (anchor ?? [...picked].pop() ?? id))
+        const to = visible.indexOf(cell)
+        const run = visible.slice(Math.min(from < 0 ? to : from, to), Math.max(from, to) + 1).map((c) => c.dataset.id)
+        pick(new Set([...(event.metaKey || event.ctrlKey ? picked : []), ...run]))
+        return
+      }
+      if (event.metaKey || event.ctrlKey) {
+        const next = new Set(picked)
+        if (next.has(id)) next.delete(id); else next.add(id)
+        anchor = id
+        pick(next)
+        return
+      }
+      // alt still toggles inclusion, for anyone who learned the old gesture
+      if (event.altKey) { vscode.postMessage({ type: 'toggle', id }); return }
+      if (picked.size) pick(new Set())
+      vscode.postMessage({ type: 'open', id })
     })
     cell.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return
@@ -424,6 +546,11 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
       event.stopPropagation()
       if (!menu) return
       target = { id: cell.dataset.id, name: cell.dataset.name }
+      // right-clicking one of several picked icons acts on all of them
+      const many = picked.size > 1 && picked.has(cell.dataset.id)
+      menu.classList.toggle('bulk', many)
+      const removeMany = document.getElementById('menu-remove-many')
+      if (removeMany) removeMany.textContent = 'Remove ' + picked.size + ' icons'
       menu.hidden = false
       // keep it on screen: flip when it would run off the right or bottom edge
       const width = menu.offsetWidth || 150
@@ -433,7 +560,7 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
     })
   }
 
-  for (const entry of document.querySelectorAll('.menu button')) {
+  for (const entry of document.querySelectorAll('.menu [data-action]')) {
     entry.addEventListener('click', (event) => {
       event.stopPropagation()
       if (target) vscode.postMessage({ type: 'action', action: entry.dataset.action, id: target.id, name: target.name })
@@ -514,6 +641,9 @@ export type GridMessage =
   | { type: 'create' }
   | { type: 'selectAll' }
   | { type: 'selectNone' }
+  /** the icons picked for a bulk action changed; the page has already painted it */
+  | { type: 'pick'; ids: string[] }
+  | { type: 'bulk'; action: 'include' | 'exclude' | 'remove'; ids: string[] }
   /** SVGs dropped on the grid: uris from the Explorer, contents from the OS */
   | { type: 'drop'; uris: string[]; files: Array<{ name: string; text: string }> }
 

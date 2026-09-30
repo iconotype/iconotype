@@ -132,7 +132,9 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     decorations,
     vscode.window.registerFileDecorationProvider(decorations),
-    vscode.window.createTreeView('iconotype.fonts', { treeDataProvider: fontTree, dragAndDropController: fontTreeDrop }),
+    vscode.window.createTreeView('iconotype.fonts', {
+      treeDataProvider: fontTree, dragAndDropController: fontTreeDrop, canSelectMany: true,
+    }),
     vscode.window.registerTreeDataProvider('iconotype.usage', usageTree),
     vscode.window.registerWebviewViewProvider(IconGridViewProvider.viewType, grid),
   )
@@ -187,6 +189,31 @@ export async function activate(context: vscode.ExtensionContext) {
       return undefined
     }
     return { font, glyph }
+  }
+
+  /** Removes icons from a font, after asking. One write, however many there are. */
+  const removeIcons = async (font: IconFont, ids: readonly string[]): Promise<boolean> => {
+    const names = font.project.sets.flatMap((s) => s.glyphs).filter((g) => ids.includes(g.id)).map((g) => g.name)
+    if (!names.length) return false
+    const confirm = await vscode.window.showWarningMessage(
+      names.length === 1
+        ? `Remove "${names[0]}" from ${font.name}?`
+        : `Remove ${names.length} icons from ${font.name}?`,
+      {
+        modal: true,
+        detail: `${names.length === 1 ? 'Its codepoint stays' : 'Their codepoints stay'} reserved, so existing builds keep working.` +
+          (names.length > 1 ? `\n\n${names.slice(0, 12).join(', ')}${names.length > 12 ? `, … ${names.length - 12} more` : ''}` : ''),
+      },
+      'Remove',
+    )
+    if (confirm !== 'Remove') return false
+    // the dialog is modal, the file is not: a reload may have landed while it was up
+    const current = registry.get(font.uri)
+    if (!current) return false
+    const still = current.project.sets.flatMap((s) => s.glyphs).filter((g) => ids.includes(g.id)).map((g) => g.id)
+    if (!still.length) return false
+    await mutate(registry, current, { t: 'glyph.remove', ids: still })
+    return true
   }
 
   const runExport = async (font: IconFont) => {
@@ -355,6 +382,15 @@ export async function activate(context: vscode.ExtensionContext) {
         await addSvgSources(font, [...uris, ...files])
         return
       }
+      case 'bulk': {
+        if (!font || !message.ids.length) return
+        if (message.action === 'remove') {
+          if (await removeIcons(font, message.ids)) grid.clearPicked()
+          return
+        }
+        await mutate(registry, font, { t: 'glyph.select', ids: message.ids, selected: message.action === 'include' })
+        return
+      }
       case 'selectAll':
       case 'selectNone': {
         if (!font) return
@@ -399,31 +435,36 @@ export async function activate(context: vscode.ExtensionContext) {
     if (files?.length) await addSvgFiles(font, files)
   })
 
-  command('iconotype.removeIcon', async (node?: { font?: IconFont; glyph?: { id: string; name: string } }) => {
-    const target = resolveNode(node)
-    if (!target) return
-    const confirm = await vscode.window.showWarningMessage(
-      `Remove "${target.glyph.name}" from ${target.font.name}?`,
-      { modal: true, detail: 'Its codepoint stays reserved, so existing builds keep working.' },
-      'Remove',
-    )
-    if (confirm !== 'Remove') return
-    // the dialog is modal, the file is not: a reload may have landed while it was up
-    const current = resolveNode(node)
-    if (!current) return
-    await mutate(registry, current.font, { t: 'glyph.remove', ids: [current.glyph.id] })
+  type IconNode = { font?: IconFont; glyph?: { id: string; name?: string } }
+  /**
+   * The rows a tree command acts on. With several rows selected VS Code passes the
+   * clicked one AND all of them; the clicked one alone when it is not among them.
+   */
+  const nodesOf = (node?: IconNode, nodes?: readonly IconNode[]): IconNode[] =>
+    nodes?.length && node && nodes.includes(node) ? [...nodes] : node ? [node] : []
+
+  command('iconotype.removeIcon', async (node?: IconNode, nodes?: readonly IconNode[]) => {
+    const targets = nodesOf(node, nodes).map((n) => resolveNode(n)).filter((t) => t !== undefined)
+    const font = targets[0]?.font
+    if (!font) return
+    await removeIcons(font, targets.filter((t) => t.font === font).map((t) => t.glyph.id))
   })
 
   /**
    * Note the argument type: no `selected`. A node's copy of it is exactly as stale as
    * its font, so the flip is decided by what the file says NOW — otherwise a toggle
    * clicked after a reload flips from the wrong reading and appears to do nothing.
+   *
+   * Several rows flip together, all one way: the way the clicked row would flip.
    */
-  command('iconotype.toggleIcon', async (node?: { font?: IconFont; glyph?: { id: string } }) => {
-    const target = resolveNode(node)
-    if (!target) return
-    await mutate(registry, target.font, {
-      t: 'glyph.select', ids: [target.glyph.id], selected: target.glyph.selected === false,
+  command('iconotype.toggleIcon', async (node?: IconNode, nodes?: readonly IconNode[]) => {
+    const targets = nodesOf(node, nodes).map((n) => resolveNode(n)).filter((t) => t !== undefined)
+    const first = targets[0]
+    if (!first) return
+    await mutate(registry, first.font, {
+      t: 'glyph.select',
+      ids: targets.filter((t) => t.font === first.font).map((t) => t.glyph.id),
+      selected: first.glyph.selected === false,
     })
   })
 

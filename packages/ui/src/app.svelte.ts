@@ -1,5 +1,5 @@
 import type { Host } from '@iconotype/core-host'
-import { allocate, emptySet, type Glyph, type GlyphId, type IconSet, type OutputConfig, type SetId } from '@iconotype/core-model'
+import { allocate, emptySet, fitCodepoints, splitShapes, type Glyph, type GlyphId, type IconSet, type OutputConfig, type SetId } from '@iconotype/core-model'
 import type { CollectionInfo, IconRef } from '@iconotype/core-io'
 import type { FontFormat } from '@iconotype/core-font'
 import type { AlignMode, Finding, FlipAxis } from '@iconotype/core-svg'
@@ -408,6 +408,79 @@ export class AppStore {
     }
   }
 
+  // ── layers ───────────────────────────────────────────────────────────────────
+  /**
+   * A glyph's layers are its `paths` entries; a layer's shapes are what `splitShapes`
+   * finds inside one. Deleting either is a single history step on the glyph, plus a
+   * codepoint step when a multicolor glyph loses a layer.
+   */
+  #glyph(id: GlyphId) { return this.session.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === id) }
+
+  /**
+   * Writes a glyph's layers back, keeping codepoints in step on a multicolor glyph.
+   *
+   * Layer `i` of a multicolor glyph is drawn at `codes[i]`, so the kept layers keep
+   * the codepoints they had — the one belonging to a deleted layer is released, and
+   * nothing already built changes what the others render to. Down to one layer, the
+   * glyph is plain monochrome again, on the first surviving codepoint.
+   */
+  #setLayers(id: GlyphId, kept: number[], paths: string[], attrs: Array<Record<string, string>>, label: string) {
+    const glyph = this.#glyph(id)
+    if (!glyph) return
+    const code = this.session.project.codepoints[glyph.name]
+    const wasMulti = glyph.isMulticolor
+    const isMulticolor = wasMulti && paths.length > 1
+    this.session.do({ t: 'glyph.patch', id, patch: { paths, attrs, isMulticolor } }, label)
+    if (wasMulti && Array.isArray(code) && kept.length !== code.length) {
+      const codes = kept.map((i) => code[i]).filter((c): c is number => c !== undefined)
+      if (codes.length) this.session.do({ t: 'codepoint.assign', assignments: { [glyph.name]: isMulticolor ? codes : codes[0]! } })
+    }
+  }
+
+  deleteLayer(id: GlyphId, index: number) {
+    const glyph = this.#glyph(id)
+    if (!glyph || glyph.paths.length < 2) {
+      if (glyph) this.notify('warn', `${glyph.name} has one layer — remove the icon instead`)
+      return
+    }
+    const kept = glyph.paths.map((_, i) => i).filter((i) => i !== index)
+    this.#setLayers(id, kept, kept.map((i) => glyph.paths[i]!), kept.map((i) => glyph.attrs[i] ?? {}),
+      `Delete layer ${index + 1} of ${glyph.name}`)
+  }
+
+  /** Deletes one shape out of a layer; the layer goes too once nothing is left in it. */
+  deleteShape(id: GlyphId, layer: number, shape: number) {
+    const glyph = this.#glyph(id)
+    const d = glyph?.paths[layer]
+    if (!glyph || d === undefined) return
+    const shapes = splitShapes(d)
+    if (shapes.length < 2) { this.deleteLayer(id, layer); return }
+    const paths = [...glyph.paths]
+    paths[layer] = shapes.filter((_, i) => i !== shape).map((s) => s.d).join(' ')
+    this.session.do({ t: 'glyph.patch', id, patch: { paths } }, `Delete a shape from ${glyph.name}`)
+  }
+
+  /**
+   * Drops a layer's own colour, so it paints in whatever the CSS says.
+   *
+   * With no colour left anywhere the glyph has nothing multicolor about it, and it
+   * is flattened the same way "Flatten to one colour" does.
+   */
+  removeLayerColor(id: GlyphId, index: number) {
+    const glyph = this.#glyph(id)
+    if (!glyph?.attrs[index]?.fill) return
+    const attrs = glyph.attrs.map((a, i) => {
+      if (i !== index) return a
+      const { fill: _fill, 'fill-opacity': _opacity, ...rest } = a
+      return rest
+    })
+    if (!attrs.some((a) => a?.fill && a.fill !== 'none' && a.fill !== 'currentColor')) {
+      this.flattenColors(id)
+      return
+    }
+    this.session.do({ t: 'glyph.patch', id, patch: { attrs } }, `Remove the colour of layer ${index + 1} of ${glyph.name}`)
+  }
+
   /** Swaps one glyph's artwork for a new SVG, keeping its name, tags and codepoint. */
   async replaceArtwork(id: GlyphId) {
     const glyph = this.session.project.sets.flatMap((s) => s.glyphs).find((g) => g.id === id)
@@ -431,6 +504,7 @@ export class AppStore {
         },
         `Replace ${glyph.name} with ${file.name}`,
       )
+      this.#fitCodepoints(glyph.name, result.glyph)
       this.lint = new Map(this.lint).set(id, result.findings)
       result.warnings.forEach((w) => this.notify('warn', `${file.name}: ${w}`))
       await this.focusGlyph(id)
@@ -655,11 +729,8 @@ export class AppStore {
         } catch {
           // not an IcoMoon package — try it as a plain archive of SVGs
           const set = this.#targetSet()
-          const { results, glyphs, warnings } = importSvgZip(f.data, { targetHeight: set.height })
-          this.addGlyphs(set.id, glyphs, `Import ${glyphs.length} glyph(s) from ${f.name}`)
-          const next = new Map(this.lint)
-          for (const r of results) next.set(r.glyph.id, r.findings)
-          this.lint = next
+          const { results, warnings } = importSvgZip(f.data, { targetHeight: set.height })
+          this.#addOrReplace(set.id, results, `Import ${results.length} glyph(s) from ${f.name}`)
           warnings.forEach((w) => this.notify('warn', w))
         }
         return
@@ -668,10 +739,7 @@ export class AppStore {
         const { importSvg } = await io()
         const set = this.#targetSet()
         const { glyph, warnings, findings } = importSvg(text(), f.name, { targetHeight: set.height })
-        this.addGlyphs(set.id, [glyph])
-        // keep what the pipeline reported ON the glyph, so the badge and Fix panel
-        // show it instead of it scrolling past as a one-off notice
-        this.lint = new Map(this.lint).set(glyph.id, findings)
+        this.#addOrReplace(set.id, [{ glyph, findings }])
         warnings.forEach((w) => this.notify('warn', `${f.name}: ${w}`))
         return
       }
@@ -679,6 +747,52 @@ export class AppStore {
     } catch (e) {
       this.notify('error', `${f.name}: ${(e as Error).message}`)
     }
+  }
+
+  /**
+   * Adds imported glyphs — except one named like an icon the project already has,
+   * which replaces that icon's artwork instead.
+   *
+   * The name is the icon: its class, its codepoint key. Two glyphs sharing one used
+   * to sit side by side and fight over both. Replacing keeps the old glyph's id,
+   * codepoint and tags, as "Replace artwork" does, so nothing already built changes
+   * what the class renders to. Within one import, a later file wins over an earlier.
+   */
+  #addOrReplace(setId: SetId, results: Array<{ glyph: Glyph; findings: Finding[] }>, label?: string) {
+    const byName = new Map(results.map((r) => [r.glyph.name, r]))
+    const existing = new Map(this.session.project.sets.flatMap((s) => s.glyphs).map((g) => [g.name, g]))
+    const lint = new Map(this.lint)
+    const added: Glyph[] = []
+    for (const { glyph, findings } of byName.values()) {
+      const old = existing.get(glyph.name)
+      if (!old) {
+        added.push(glyph)
+        // keep what the pipeline reported ON the glyph, so the badge and Fix panel
+        // show it instead of it scrolling past as a one-off notice
+        lint.set(glyph.id, findings)
+        continue
+      }
+      this.session.do(
+        {
+          t: 'glyph.patch',
+          id: old.id,
+          patch: { paths: glyph.paths, attrs: glyph.attrs, isMulticolor: glyph.isMulticolor, grid: glyph.grid },
+        },
+        `Replace ${old.name}`,
+      )
+      this.#fitCodepoints(glyph.name, glyph)
+      lint.set(old.id, findings)
+    }
+    this.addGlyphs(setId, added, label)
+    this.lint = lint
+    const replaced = byName.size - added.length
+    if (replaced) this.notify('info', `Replaced the artwork of ${replaced} existing icon(s)`)
+  }
+
+  /** New artwork on an existing name: one codepoint per colour layer, the old ones kept. */
+  #fitCodepoints(name: string, artwork: Pick<Glyph, 'isMulticolor' | 'paths'>) {
+    const fitted = fitCodepoints(this.session.project, name, artwork.isMulticolor ? artwork.paths.length : 1)
+    if (fitted !== undefined) this.session.do({ t: 'codepoint.assign', assignments: { [name]: fitted } })
   }
 
   #targetSet() {

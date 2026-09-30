@@ -275,7 +275,53 @@ suite('iconotype extension', function () {
     assert.ok(vertical.paths.some((d) => d.trim()), 'a root-stroked SVG must not import empty')
     assert.ok(!glyphs.some((g) => g.name === 'blank'), 'an SVG with nothing drawable must be skipped, not added blank')
 
+    // dropping an SVG named like an icon the font has replaces that icon's artwork
+    const before = api.registry.get(font.uri)
+    const code = before.project.codepoints.vertical
+    const again = path.join(dir, 'again')
+    fs.mkdirSync(again)
+    fs.writeFileSync(path.join(again, 'vertical.svg'),
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20"/></svg>')
+    const replace = new vscode.DataTransfer()
+    replace.set('text/uri-list', new vscode.DataTransferItem(vscode.Uri.file(again).toString()))
+    await api.fontTreeDrop.handleDrop({ kind: 'font', font: before }, replace)
+    await wait(400)
+
+    const after = api.registry.get(font.uri)
+    const verticals = after.project.sets[0].glyphs.filter((g) => g.name === 'vertical')
+    assert.strictEqual(verticals.length, 1, 'a same-name drop must replace, not add a duplicate')
+    assert.strictEqual(verticals[0].id, vertical.id, 'the replaced icon keeps its id')
+    assert.notDeepStrictEqual(verticals[0].paths, vertical.paths, 'the artwork was not replaced')
+    assert.deepStrictEqual(after.project.codepoints.vertical, code, 'the replaced icon keeps its codepoint')
+
     fs.rmSync(dir, { recursive: true, force: true })
+    fs.rmSync(file, { force: true })
+  })
+
+  test('removing several tree rows at once removes them all', async () => {
+    const file = path.join(workspace, 'many.iconotype.json')
+    const icon = (name, i) => ({ name, code: (0xe900 + i).toString(16), paths: ['M0 0H200V200H0Z'] })
+    fs.writeFileSync(file, JSON.stringify({
+      schemaVersion: 1, name: 'many',
+      font: { family: 'many', prefix: 'many-', emSize: 1024, baseline: 6.25, whitespace: 50, version: '1.0' },
+      height: 1024, icons: ['a', 'b', 'c'].map(icon),
+    }, null, 2))
+    const font = await api.registry.load(vscode.Uri.file(file))
+    const [a, b] = font.project.sets[0].glyphs
+    const nodes = [{ font, glyph: a }, { font, glyph: b }]
+
+    // the modal is answered for us: nothing but "Remove" gets past it
+    const original = vscode.window.showWarningMessage
+    vscode.window.showWarningMessage = async () => 'Remove'
+    try {
+      await vscode.commands.executeCommand('iconotype.removeIcon', nodes[0], nodes)
+    } finally {
+      vscode.window.showWarningMessage = original
+    }
+    await wait(400)
+
+    const left = api.registry.get(font.uri).project.sets[0].glyphs.map((g) => g.name)
+    assert.deepStrictEqual(left, ['c'])
     fs.rmSync(file, { force: true })
   })
 
@@ -357,7 +403,12 @@ suite('iconotype extension', function () {
     for (const command of ['export', 'import', 'selectAll', 'selectNone', 'create']) {
       assert.ok(html.includes(`data-command="${command}"`) || command === 'create', `${command} control missing`)
     }
-    assert.match(html, /selected for export/)
+    assert.match(html, /included in the font/)
+
+    // picking several for a bulk action is its own thing, apart from the tick
+    for (const action of ['include', 'exclude', 'remove']) {
+      assert.ok(html.includes(`data-bulk="${action}"`), `bulk ${action} missing`)
+    }
   })
 
   test('flags a reference to an icon that does not exist, and suggests the right one', async () => {

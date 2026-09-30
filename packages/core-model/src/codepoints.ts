@@ -57,6 +57,31 @@ export function allocate(
   return { assignments, overflow }
 }
 
+/**
+ * The codepoints a glyph needs once its layer count changed — new artwork swapped in,
+ * say — or `undefined` when what it has already fits (or it has none yet, which is
+ * `allocate`'s job).
+ *
+ * Layer `i` of a multicolor glyph is drawn at its `i`th codepoint, and a font build
+ * DROPS any layer without one. So a monochrome icon whose artwork is replaced by a
+ * two-colour SVG needs a second codepoint, or half of it silently goes missing. The
+ * codepoints it has are kept, in order; extra ones come from the free space, and
+ * surplus ones are released from the end.
+ */
+export function fitCodepoints(project: Project, name: string, layers: number): number | number[] | undefined {
+  const current = project.codepoints[name]
+  if (current === undefined) return undefined
+  const codes = Array.isArray(current) ? current : [current]
+  const want = Math.max(1, layers)
+  if (codes.length === want) return undefined
+  if (codes.length > want) return want === 1 ? codes[0]! : codes.slice(0, want)
+  const key = '\u0000more'
+  const { assignments, overflow } = allocate(project, [{ name: key, layers: want - codes.length }])
+  if (overflow.length) return undefined
+  const more = assignments[key]!
+  return [...codes, ...(Array.isArray(more) ? more : [more])]
+}
+
 export const hex = (cp: number): string => cp.toString(16).padStart(4, '0')
 
 /** Serializes codepoints.lock — hand-editable, diff-friendly, sorted by codepoint. */
@@ -71,9 +96,13 @@ export function serializeLock(project: Project): string {
     '# Changing an existing line is a BREAKING change for every consumer of this font.',
     '',
     ...rows.map(([name, v]) =>
-      Array.isArray(v)
-        ? `${name}\tU+${hex(v[0]!)}..U+${hex(v[v.length - 1]!)}`
-        : `${name}\tU+${hex(v)}`),
+      !Array.isArray(v)
+        ? `${name}\tU+${hex(v)}`
+        // a run is written as a range; a run with a gap in it (a layer deleted out of
+        // the middle) as a list, or reading it back would invent the missing codes
+        : v.every((c, i) => i === 0 || c === v[i - 1]! + 1)
+          ? `${name}\tU+${hex(v[0]!)}..U+${hex(v[v.length - 1]!)}`
+          : `${name}\t${v.map((c) => `U+${hex(c)}`).join(',')}`),
   ]
   return lines.join('\n') + '\n'
 }
@@ -90,6 +119,8 @@ export function parseLock(text: string): Record<string, number | number[]> {
       const from = parseInt(range[1]!, 16)
       const to = parseInt(range[2]!, 16)
       out[name] = Array.from({ length: to - from + 1 }, (_, i) => from + i)
+    } else if (/^U\+[0-9a-fA-F]+(,U\+[0-9a-fA-F]+)+$/.test(spec)) {
+      out[name] = spec.split(',').map((c) => parseInt(c.slice(2), 16))
     } else {
       const single = spec.match(/^U\+([0-9a-fA-F]+)$/)
       if (single) out[name] = parseInt(single[1]!, 16)

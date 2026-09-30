@@ -376,8 +376,15 @@
     min-height: 0;
   }
   /* the drag handles are not panes: no surface, no shadow, no rounding */
+  /* wide or narrow, the editor's row is the viewport's height: a long history scrolls
+     inside its own pane rather than stretching the row the editor sits in */
+  main.embedded { grid-template-rows: minmax(0, 1fr); }
+  main.embedded > :global(:last-child) { overflow: auto; }
   main > :global(.splitter) { background: transparent; box-shadow: none; border-radius: 0; }
   @media (max-width: 720px) {
-    main.embedded { grid-template-columns: 1fr !important; grid-template-rows: 1fr auto; overflow: auto; }
+    /* history sits under the editor here. It grows by a row with every edit, and as an
+       unbounded row it took that height from the editor until the preview was gone */
+    main.embedded { grid-template-columns: 1fr !important; grid-template-rows: minmax(0, 1fr) auto; overflow: auto; }
+    main.embedded > :global(:last-child) { height: min(30vh, 220px); overflow: auto; }
   }
 </style>

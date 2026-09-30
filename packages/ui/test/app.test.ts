@@ -154,6 +154,41 @@ describe('AppStore import', () => {
     expect(session.project.preferences.font.family).toBe('ossweather')
   })
 
+  it('an SVG named like an existing icon replaces its artwork instead of duplicating it', async () => {
+    const project = emptyProject('p')
+    project.sets[0]!.glyphs = [glyph('home')]
+    project.codepoints = { home: 0xe900 }
+    const { app, session } = store(project)
+
+    await app.importFiles([
+      file('home.svg', '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/></svg>'),
+      file('user.svg', '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="20"/></svg>'),
+    ])
+
+    const glyphs = session.project.sets.flatMap((s) => s.glyphs)
+    expect(glyphs.map((g) => g.name)).toEqual(['home', 'user'])
+    const home = glyphs.find((g) => g.name === 'home')!
+    expect(home.id).toBe('home')
+    expect(home.paths).not.toEqual(['M0 0h512v512h-512z'])
+    expect(home.tags).toEqual(['home'])
+    expect(session.project.codepoints['home']).toBe(0xe900)
+    expect(session.project.codepoints['user']).toBeDefined()
+  })
+
+  it('replacing with more colours gives the icon a codepoint per layer', async () => {
+    const project = emptyProject('p')
+    project.sets[0]!.glyphs = [glyph('filter'), glyph('other')]
+    project.codepoints = { filter: 0xe900, other: 0xe901 }
+    const { app, session } = store(project)
+
+    await app.importFiles([file('filter.svg',
+      '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="24" fill="#D95D39"/><path d="M8 8H40V14H8Z" fill="white"/></svg>')])
+
+    const filter = session.project.sets[0]!.glyphs.find((g) => g.name === 'filter')!
+    expect(filter.isMulticolor).toBe(true)
+    expect(session.project.codepoints['filter']).toEqual([0xe900, 0xe902])
+  })
+
   it('says what it accepts when handed something else', async () => {
     const { app } = store()
     await app.importFiles([file('random.json', '{"hello":"world"}')])
@@ -250,5 +285,63 @@ describe('AppStore glyph editor', () => {
     await app.nudge(0, 0)
     // an empty history entry is worse than no entry: undo would appear to do nothing
     expect(session.timeline.length).toBe(steps)
+  })
+})
+
+describe('AppStore layers', () => {
+  const multi = () => {
+    const project = emptyProject('p')
+    project.sets[0]!.glyphs = [glyph('flag', {
+      isMulticolor: true,
+      paths: ['M0 0H10V10H0Z', 'M20 0H30V10H20Z M40 0H50V10H40Z', 'M60 0H70V10H60Z'],
+      attrs: [{ fill: '#f00' }, { fill: '#0f0' }, { fill: '#00f' }],
+    })]
+    project.codepoints = { flag: [0xe900, 0xe901, 0xe902] }
+    return store(project)
+  }
+  const flag = (session: SessionStore) => session.project.sets[0]!.glyphs[0]!
+
+  it('deleting a layer releases its codepoint and keeps the others on theirs', () => {
+    const { app, session } = multi()
+    app.deleteLayer('flag', 1)
+    expect(flag(session).paths).toEqual(['M0 0H10V10H0Z', 'M60 0H70V10H60Z'])
+    expect(flag(session).attrs).toEqual([{ fill: '#f00' }, { fill: '#00f' }])
+    expect(session.project.codepoints['flag']).toEqual([0xe900, 0xe902])
+  })
+
+  it('down to one layer, the glyph is monochrome on its surviving codepoint', () => {
+    const { app, session } = multi()
+    app.deleteLayer('flag', 0)
+    app.deleteLayer('flag', 0)
+    expect(flag(session).isMulticolor).toBe(false)
+    expect(session.project.codepoints['flag']).toBe(0xe902)
+    // and the last one cannot go: that is removing the icon
+    app.deleteLayer('flag', 0)
+    expect(flag(session).paths).toHaveLength(1)
+  })
+
+  it('deletes one shape out of a layer', () => {
+    const { app, session } = multi()
+    app.deleteShape('flag', 1, 0)
+    expect(flag(session).paths[1]).toBe('M40 0 H50 V10 H40 Z')
+    expect(flag(session).paths).toHaveLength(3)
+  })
+
+  it('removing the last colour flattens the glyph', () => {
+    const { app, session } = multi()
+    app.removeLayerColor('flag', 0)
+    expect(flag(session).attrs[0]).toEqual({})
+    expect(flag(session).isMulticolor).toBe(true)
+    app.removeLayerColor('flag', 1)
+    app.removeLayerColor('flag', 2)
+    expect(flag(session).isMulticolor).toBe(false)
+    expect(session.project.codepoints['flag']).toBe(0xe900)
+  })
+
+  it('each edit is undoable', () => {
+    const { app, session } = multi()
+    app.deleteShape('flag', 1, 0)
+    session.undo()
+    expect(flag(session).paths[1]).toBe('M20 0H30V10H20Z M40 0H50V10H40Z')
   })
 })

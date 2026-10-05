@@ -14,6 +14,9 @@ Everything below is exercised through the real extension host: discovery from di
 
 One committed file per icon font: **`<name>.iconotype.json`**. It holds the artwork, the codepoints **and** where a build writes its output, so the editor, the CLI and CI need no second config.
 
+> The full field-by-field specification is [22 — the project file](22-project-file.md).
+> The example below is the shape as it was at M5.
+
 ```jsonc
 {
   "schemaVersion": 1,

@@ -84,7 +84,8 @@ npx @iconotype/cli init --input icomoon/project.json \
   --fonts-dir app/fonts --styles-dir app/css --style-kind scss-variables
 ```
 
-That writes `<name>.iconotype.json` — commit it — and a `codepoints.lock`. Then, on a
+That writes `<name>.iconotype.json` — commit it — and a `codepoints.lock`. Every field of
+that file is specified in [docs/22](docs/22-project-file.md). Then, on a
 laptop or a runner:
 
 ```bash
@@ -235,7 +236,9 @@ cuts a release — four desktop bundles, the `.vsix`, and the CLI to npm.
 ## Documentation
 
 The [docs](docs/) are written as a record of the work, not a brochure: what was tried,
-what broke, and why the code looks the way it does.
+what broke, and why the code looks the way it does. The exception is
+[22](docs/22-project-file.md), the **specification of the `.iconotype.json` project file**:
+read it before generating one from a script or an agent.
 
 | | |
 |---|---|
@@ -247,6 +250,7 @@ what broke, and why the code looks the way it does.
 | [16](docs/16-m6-desktop.md) Desktop app | [17](docs/17-m7-glyph-editor.md) Glyph editor |
 | [18](docs/18-ux-pass.md) The UX pass | [19](docs/19-website-and-releases.md) Website & releases |
 | [20](docs/20-publishing.md) Publishing setup | [21](docs/21-icon-library.md) The icon library |
+| [22](docs/22-project-file.md) **Project file spec** | |
 
 ## Contributing
 

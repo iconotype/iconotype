@@ -1,5 +1,8 @@
 # 06 — Import / export formats
 
+Foreign formats only. Iconotype's own `.iconotype.json` is specified in
+[22](22-project-file.md).
+
 ## IcoMoon project JSON — verified schema
 
 Reverse-engineered from a real file (`alpimaps.json`, 3 sets, 25 glyphs). **Two distinct shapes exist**; support both.

@@ -134,8 +134,19 @@
           ],
           "properties": {
             "dir": {
-              "type": "string",
-              "description": "Workspace-relative directory, e.g. \"app/fonts\"."
+              "description": "Directory the font files are written to, relative to the project root (see the spec). A list writes the same files to each, e.g. [\"web/fonts\", \"mobile/assets/fonts\"]. Each file is named <font.family>.<format>.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              ]
             },
             "formats": {
               "type": "array",
@@ -147,7 +158,8 @@
                   "ttf",
                   "svg"
                 ]
-              }
+              },
+              "description": "Font formats to write into each dir, e.g. [\"woff2\", \"woff\", \"ttf\"]."
             },
             "publicPath": {
               "type": "string",
@@ -188,11 +200,23 @@
                 ]
               },
               "path": {
-                "type": "string",
-                "description": "Workspace-relative file, e.g. \"app/css/_icons.scss\"."
+                "description": "File to write, relative to the project root, e.g. \"app/css/_icons.scss\". A list writes the same content to each; the @font-face url is computed for the first one.",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  }
+                ]
               }
             }
-          }
+          },
+          "description": "Stylesheets and code files to generate. Several entries may share a kind."
         },
         "types": {
           "type": "object",
@@ -201,8 +225,19 @@
           ],
           "properties": {
             "path": {
-              "type": "string",
-              "description": "A .d.ts union of every icon name."
+              "description": "A .d.ts union of every icon name.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              ]
             }
           }
         },
@@ -213,7 +248,19 @@
           ],
           "properties": {
             "path": {
-              "type": "string"
+              "description": "An SVG <symbol> sprite of every selected icon.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              ]
             }
           }
         },
@@ -224,7 +271,19 @@
           ],
           "properties": {
             "path": {
-              "type": "string"
+              "description": "A standalone HTML page previewing every icon.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              ]
             }
           }
         }
@@ -242,7 +301,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Used for the class name and for autocompletion."
+            "description": "Unique. Used for the class name (prefix + name + postfix) and autocompletion. Keep to [a-z0-9_-]."
           },
           "code": {
             "type": "string",
@@ -266,13 +325,15 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Search keywords. Defaults to [name]."
           },
           "ligatures": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Text that renders as this icon when typed in the font, e.g. \"home\"."
           },
           "grid": {
             "type": "integer",
@@ -287,14 +348,15 @@
             "items": {
               "type": "string"
             },
-            "description": "SVG path data, already normalized."
+            "description": "SVG path data in the 0..height (y-down) coordinate space, already normalized: filled closed contours, nonzero winding, no strokes. A monochrome icon may have several entries (subpaths of one shape); with colors, each entry is one colour layer.",
+            "minItems": 1
           },
           "colors": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Per-layer fill, only for multicolor icons."
+            "description": "Per-layer CSS colour, parallel to paths. Two or more entries make the icon multicolor: each layer then needs its own codepoint (code + codes)."
           },
           "source": {
             "type": "object",
@@ -314,7 +376,8 @@
             }
           }
         }
-      }
+      },
+      "description": "Every icon. Names must be unique. Writers sort by codepoint."
     },
     "credits": {
       "type": "array",

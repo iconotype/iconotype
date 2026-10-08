@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1 — 2026-10-08
+
+### Fixes
+
+- **vscode:** list each project once, and tell same-named ones apart (627b678)
+
+### Other
+
+- **desktop:** catch Cargo.lock up to 0.3.0 (dc24831)
+- **release:** a failed registry publish no longer stops the npm publish (1a5aa64)
+- specify the .iconotype.json project file (d6c6175)
+
 ## 0.3.0 — 2026-09-30
 
 ### Features

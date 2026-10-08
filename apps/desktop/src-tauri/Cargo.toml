@@ -1,6 +1,6 @@
 [package]
 name = "iconotype"
-version = "0.3.0"
+version = "0.3.1"
 description = "Iconotype — build and manage icon fonts"
 authors = ["Iconotype"]
 edition = "2021"

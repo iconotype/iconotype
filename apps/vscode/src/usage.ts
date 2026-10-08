@@ -139,7 +139,7 @@ export class UsageIndex {
   }
 
   for(icon: IconRef): IconUsage | undefined {
-    return this.#usage.get(`${icon.font.name}/${icon.glyph.name}`)
+    return this.#usage.get(`${icon.font.id}/${icon.glyph.name}`)
   }
 
   get unused(): IconUsage[] { return this.all().filter((u) => u.sites.length === 0) }
@@ -173,8 +173,8 @@ export class UsageIndex {
    * prefix and the codebase disagree — an import renamed `alpimaps-` to `app-`, say.
    * Without this the panel just says "25 unused" and leaves you to work out why.
    */
-  likelyPrefix(fontName: string): { prefix: string; count: number } | undefined {
-    const seen = this.#otherPrefixes.get(fontName)
+  likelyPrefix(font: IconFont): { prefix: string; count: number } | undefined {
+    const seen = this.#otherPrefixes.get(font.id)
     if (!seen) return undefined
     const best = [...seen.entries()].sort((a, b) => b[1] - a[1])[0]
     return best && best[1] >= 2 ? { prefix: best[0], count: best[1] } : undefined
@@ -196,7 +196,7 @@ export class UsageIndex {
     if (!hit) return
     const icon = this.registry.resolve(reference)
     if (icon) {
-      usage.get(`${icon.font.name}/${icon.glyph.name}`)?.sites.push(site)
+      usage.get(`${icon.font.id}/${icon.glyph.name}`)?.sites.push(site)
       return
     }
     /*
@@ -209,7 +209,7 @@ export class UsageIndex {
     if (!written) return
     // still usage-scanned, just not somewhere a missing icon is worth reporting
     if (scope && !scope.has(site.uri.path)) return
-    const key = `${written.font.name}/${written.name}`
+    const key = `${written.font.id}/${written.name}`
     const entry = missing.get(key)
       ?? { font: written.font, name: written.name, prefix: written.prefix, sites: [] }
     entry.sites.push(site)
@@ -250,7 +250,7 @@ export class UsageIndex {
 
       const icons = this.registry.icons()
       const next = new Map<string, IconUsage>(
-        icons.map((icon) => [`${icon.font.name}/${icon.glyph.name}`, { icon, sites: [] }]))
+        icons.map((icon) => [`${icon.font.id}/${icon.glyph.name}`, { icon, sites: [] }]))
 
       this.#generated = new Set<string>()
       const absent = new Map<string, MissingIcon>()
@@ -270,7 +270,7 @@ export class UsageIndex {
           pattern: new RegExp(`([a-zA-Z][a-zA-Z0-9_]*-)(?:${escaped.join('|')})(?![a-zA-Z0-9_-])`, 'g'),
           seen: new Map<string, number>(),
         }
-      }).filter(Boolean) as Array<{ font: { name: string; prefix: string }; pattern: RegExp; seen: Map<string, number> }>
+      }).filter(Boolean) as Array<{ font: IconFont; pattern: RegExp; seen: Map<string, number> }>
 
       if (pattern) {
         const generated = this.#generatedPaths()
@@ -313,7 +313,7 @@ export class UsageIndex {
       this.#usage = next
       this.#missing = absent
       this.#missingScope = scope
-      this.#otherPrefixes = new Map(nearMiss.map((c) => [c.font.name, c.seen]))
+      this.#otherPrefixes = new Map(nearMiss.map((c) => [c.font.id, c.seen]))
     } finally {
       this.#scanning = false
       this.#emitter.fire()
@@ -516,7 +516,7 @@ export class UsageTreeProvider implements vscode.TreeDataProvider<UsageNode> {
     if (node.kind === 'generated') {
       const item = new vscode.TreeItem(
         vscode.workspace.asRelativePath(node.uri), vscode.TreeItemCollapsibleState.None)
-      item.description = node.font.name
+      item.description = this.registry?.label(node.font) ?? node.font.name
       item.resourceUri = node.uri
       item.iconPath = new vscode.ThemeIcon('go-to-file')
       item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri] }

@@ -13,6 +13,8 @@ import { ICONFONT_EXTENSION, parseIconFont, serializeIconFont, selectedGlyphs } 
 export interface IconFont {
   /** the file this came from */
   uri: vscode.Uri
+  /** what identifies the file; unlike `name`, no two loaded fonts share it */
+  id: string
   /** display name and the root of its class prefix, e.g. `app` */
   name: string
   /**
@@ -50,8 +52,37 @@ export interface IconRef {
 
 const GLOB = `**/*${ICONFONT_EXTENSION}`
 
+/**
+ * What identifies a file, whatever route its uri took to get here.
+ *
+ * The discovery scan, the `iconotype.projects` setting and the file watcher each build
+ * their own uri for the same file, and on a case-insensitive disk they need not agree on
+ * case. Keying the map by `uri.toString()` then held one project twice — in the tree,
+ * the grid's picker and the status bar alike.
+ */
+const keyOf = (uri: vscode.Uri): string => {
+  const plain = uri.with({ query: '', fragment: '' })
+  return plain.scheme === 'file' && (process.platform === 'darwin' || process.platform === 'win32')
+    ? plain.with({ path: plain.path.toLowerCase() }).toString()
+    : plain.toString()
+}
+
+const isMissing = (e: unknown): boolean =>
+  e instanceof vscode.FileSystemError
+    ? e.code === 'FileNotFound'
+    : (e as { code?: string })?.code === 'FileNotFound' || (e as { code?: string })?.code === 'ENOENT'
+
 export class IconFontRegistry implements vscode.Disposable {
   #fonts = new Map<string, IconFont>()
+  /**
+   * The newest load started for each file. A load is asynchronous, and a save, a branch
+   * switch or a delete can overlap it: only the latest may touch the map, or a read that
+   * began before the file vanished puts it back.
+   */
+  #loads = new Map<string, number>()
+  #loadCounter = 0
+  /** the files the `iconotype.projects` setting names, or undefined when everything is discovered */
+  #configured?: Set<string>
   #watcher?: vscode.FileSystemWatcher
   #emitter = new vscode.EventEmitter<void>()
   #disposables: vscode.Disposable[] = []
@@ -63,7 +94,22 @@ export class IconFontRegistry implements vscode.Disposable {
     return [...this.#fonts.values()].sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  get(uri: vscode.Uri): IconFont | undefined { return this.#fonts.get(uri.toString()) }
+  get(uri: vscode.Uri): IconFont | undefined { return this.#fonts.get(keyOf(uri)) }
+
+  /** True when another loaded font goes by the same name, so the name alone does not say which. */
+  isAmbiguous(font: IconFont): boolean {
+    return this.fonts.some((f) => f !== font && f.name === font.name)
+  }
+
+  /** Where the file is, relative to its workspace folder: the part that tells two same-named fonts apart. */
+  location(font: IconFont): string {
+    return vscode.workspace.asRelativePath(font.uri)
+  }
+
+  /** The name, with the path added only when the name alone would be confusing. */
+  label(font: IconFont): string {
+    return this.isAmbiguous(font) ? `${font.name} — ${this.location(font)}` : font.name
+  }
 
   byName(name: string): IconFont | undefined {
     return this.fonts.find((f) => f.name === name)
@@ -133,38 +179,89 @@ export class IconFontRegistry implements vscode.Disposable {
   }
 
   async initialize(): Promise<void> {
+    // a second call must replace the first's watcher, not add to it
+    for (const d of this.#disposables.splice(0)) d.dispose()
+
     const configured = vscode.workspace.getConfiguration('iconotype').get<string[]>('projects') ?? []
-    const uris = configured.length
+    const candidates = configured.length
       ? configured.flatMap((rel) =>
           (vscode.workspace.workspaceFolders ?? []).map((folder) => vscode.Uri.joinPath(folder.uri, rel)))
-      : [
-          ...await vscode.workspace.findFiles(GLOB, '**/node_modules/**'),
-        ]
+      : await vscode.workspace.findFiles(GLOB, this.#excludeGlob())
+    // one entry per file, however many routes led to it
+    const uris = [...new Map(candidates.map((uri) => [keyOf(uri), uri])).values()]
+    this.#configured = configured.length ? new Set(uris.map(keyOf)) : undefined
 
+    // what the new settings no longer cover goes; load() below brings back what they do
+    const keep = new Set(uris.map(keyOf))
+    for (const key of [...this.#fonts.keys()]) if (!keep.has(key)) this.#fonts.delete(key)
     await Promise.all(uris.map((uri) => this.load(uri)))
 
     this.#watcher = vscode.workspace.createFileSystemWatcher(GLOB)
+    const wanted = async (uri: vscode.Uri) => this.#configured
+      ? this.#configured.has(keyOf(uri))
+      // a font already known is wanted; a new one must clear the exclude list, which the
+      // watcher cannot do for us — ask the search, which applies it
+      : this.#fonts.has(keyOf(uri)) || await this.#discoverable(uri)
     this.#disposables.push(
       this.#watcher,
-      this.#watcher.onDidCreate((uri) => void this.load(uri)),
-      this.#watcher.onDidChange((uri) => void this.load(uri)),
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('iconotype.projects') || e.affectsConfiguration('iconotype.exclude')) {
+          void this.initialize()
+        }
+      }),
+      this.#watcher.onDidCreate(async (uri) => { if (await wanted(uri)) void this.load(uri) }),
+      this.#watcher.onDidChange(async (uri) => { if (await wanted(uri)) void this.load(uri) }),
       this.#watcher.onDidDelete((uri) => {
-        this.#fonts.delete(uri.toString())
-        this.#emitter.fire()
+        this.#loads.set(keyOf(uri), ++this.#loadCounter) // a read still in flight must not bring it back
+        if (this.#fonts.delete(keyOf(uri))) this.#emitter.fire()
       }),
     )
     this.#emitter.fire()
   }
 
+  /** `{a,b}` for findFiles, or undefined for none; an empty list really does exclude nothing. */
+  #excludeGlob(): string | null {
+    const patterns = (vscode.workspace.getConfiguration('iconotype').get<string[]>('exclude') ?? [])
+      .map((p) => p.trim()).filter(Boolean)
+    return patterns.length ? `{${patterns.join(',')}}` : null
+  }
+
+  /** Whether a scan with the exclude list would have found this file. */
+  async #discoverable(uri: vscode.Uri): Promise<boolean> {
+    const folder = vscode.workspace.getWorkspaceFolder(uri)
+    if (!folder) return false
+    const rel = vscode.workspace.asRelativePath(uri, false)
+    const found = await vscode.workspace.findFiles(new vscode.RelativePattern(folder, rel), this.#excludeGlob())
+    return found.length > 0
+  }
+
   async load(uri: vscode.Uri): Promise<IconFont | undefined> {
+    const key = keyOf(uri)
+    const ticket = ++this.#loadCounter
+    this.#loads.set(key, ticket)
     let font: IconFont
     try {
-      const text = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri))
+      let bytes: Uint8Array
+      try {
+        bytes = await vscode.workspace.fs.readFile(uri)
+      } catch (e) {
+        // A file that is not there is not a broken font. Keeping it listed made a
+        // `iconotype.projects` entry that exists in only one workspace folder show up in
+        // the others as a phantom copy, and left a deleted file behind if the read lost
+        // the race with the delete.
+        if (isMissing(e)) {
+          if (this.#loads.get(key) === ticket && this.#fonts.delete(key)) this.#emitter.fire()
+          return undefined
+        }
+        throw e
+      }
+      const text = new TextDecoder().decode(bytes)
       const project = parseIconFont(text, uri.toString())
       const classPrefix = project.preferences.font.prefix || `${project.name}-`
       const usage = (project.preferences.font.usagePrefixes ?? []).filter(Boolean)
       font = {
         uri,
+        id: key,
         name: project.name,
         // what the code writes wins: it is what completion inserts and rename rewrites
         prefix: usage[0] ?? classPrefix,
@@ -176,10 +273,11 @@ export class IconFontRegistry implements vscode.Disposable {
       }
     } catch (e) {
       // keep a broken file visible rather than dropping it silently
-      const previous = this.#fonts.get(uri.toString())
+      const previous = this.#fonts.get(key)
       const name = previous?.name ?? uri.path.split('/').pop()!.replace(ICONFONT_EXTENSION, '')
       font = {
         uri,
+        id: key,
         name,
         prefix: previous?.prefix ?? '',
         classPrefix: previous?.classPrefix ?? '',
@@ -191,7 +289,9 @@ export class IconFontRegistry implements vscode.Disposable {
         error: (e as Error).message,
       }
     }
-    this.#fonts.set(uri.toString(), font)
+    // a newer load of this file is under way, or it was deleted meanwhile
+    if (this.#loads.get(key) !== ticket) return this.#fonts.get(key)
+    this.#fonts.set(key, font)
     this.#emitter.fire()
     return font
   }
@@ -200,7 +300,9 @@ export class IconFontRegistry implements vscode.Disposable {
   async save(font: IconFont, project: Project): Promise<void> {
     const text = serializeIconFont(project)
     await vscode.workspace.fs.writeFile(font.uri, new TextEncoder().encode(text))
-    this.#fonts.set(font.uri.toString(), { ...font, project, error: undefined })
+    // the project just written is newer than any read that began before it
+    this.#loads.set(keyOf(font.uri), ++this.#loadCounter)
+    this.#fonts.set(keyOf(font.uri), { ...font, project, error: undefined })
     this.#emitter.fire()
   }
 

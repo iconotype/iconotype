@@ -129,7 +129,7 @@ export class IconDecorator implements vscode.Disposable {
   async warm(document?: vscode.TextDocument): Promise<void> {
     const wanted = document ? this.#referenced(document) : this.registry.icons()
     await Promise.all(wanted.map(async (icon) => {
-      const key = `${icon.font.name}/${icon.glyph.name}`
+      const key = `${icon.font.id}/${icon.glyph.name}`
       if (this.#paths.has(key)) return
       const { dark } = await this.icons.iconPath(icon.font, icon.glyph)
       this.#paths.set(key, dark)
@@ -144,13 +144,13 @@ export class IconDecorator implements vscode.Disposable {
     if (pattern) {
       for (const match of text.matchAll(pattern)) {
         const icon = this.registry.resolve(match[0])
-        if (icon) out.set(`${icon.font.name}/${icon.glyph.name}`, icon)
+        if (icon) out.set(`${icon.font.id}/${icon.glyph.name}`, icon)
       }
     }
     for (const match of text.matchAll(ESCAPE_PATTERN)) {
       const code = parseInt(match[1]!, 16)
       const icon = this.registry.icons().find((i) => i.codepoints.includes(code))
-      if (icon) out.set(`${icon.font.name}/${icon.glyph.name}`, icon)
+      if (icon) out.set(`${icon.font.id}/${icon.glyph.name}`, icon)
     }
     return [...out.values()]
   }
@@ -169,7 +169,7 @@ export class IconDecorator implements vscode.Disposable {
   }
 
   iconPathFor(icon: IconRef): vscode.Uri | undefined {
-    return this.#paths.get(`${icon.font.name}/${icon.glyph.name}`)
+    return this.#paths.get(`${icon.font.id}/${icon.glyph.name}`)
   }
 
   refresh(editor: vscode.TextEditor | undefined): void {

@@ -233,6 +233,54 @@ Every push runs the unit tests, the VSCode integration suite under xvfb, and a
 `cargo check` of the desktop crate. `main` deploys the site and the web app; a `v*` tag
 cuts a release — four desktop bundles, the `.vsix`, and the CLI to npm.
 
+## Releasing
+
+1. **Actions → release → Run workflow** on `main`, pick the bump (`patch`, `minor`,
+   `major`, or `test` for a prerelease). It bumps the version, tags, builds everything,
+   and creates the GitHub release with the desktop bundles and `iconotype.vsix`.
+2. It then publishes to each registry that has a token secret (`VSCE_PAT`, `OVSX_PAT`,
+   `NPM_TOKEN` — setup in [docs/20](docs/20-publishing.md)). A registry with no secret
+   is skipped; a registry that fails (Open VSX sometimes answers
+   `Registry is in read-only mode` during maintenance) does not stop the others. Check
+   the `publish` job for a skipped or failed step and finish that one by hand.
+
+### VSCode marketplace (manual)
+
+`VSCE_PAT` is not set, so the marketplace is always done by hand, from a terminal,
+with the Azure CLI login instead of a token:
+
+```bash
+az login   # once, with the Microsoft account that owns the `iconotype` publisher
+gh release download vX.Y.Z -p iconotype.vsix -D /tmp --clobber
+npx --yes @vscode/vsce publish --azure-credential --no-dependencies \
+  --packagePath /tmp/iconotype.vsix   # add --pre-release for a `test` release
+```
+
+`--azure-credential` uses the `az` session, so there is no PAT to create or expire.
+Fallback without the terminal: <https://marketplace.visualstudio.com/manage/publishers/iconotype>
+→ **Iconotype** row → **⋯ → Update** → upload the `.vsix`.
+
+### Open VSX (retry)
+
+```bash
+gh release download vX.Y.Z -p iconotype.vsix
+npx ovsx publish iconotype.vsix -p <open-vsx token>   # --pre-release for a `test` release
+```
+
+Tokens: <https://open-vsx.org/user-settings/tokens>. Status: <https://status.open-vsx.org>.
+
+### npm (retry)
+
+The CLI package is not attached to the GitHub release. Take it from the release run's
+`cli` artifact, or rebuild it from the tag:
+
+```bash
+gh run download <run-id> -n cli -D dist-npm
+# or: git checkout vX.Y.Z && pnpm install && node packages/cli/publish.mjs X.Y.Z
+#     (writes packages/cli/dist-npm)
+cd dist-npm && npm publish --access public   # --tag next for a `test` release
+```
+
 ## Documentation
 
 The [docs](docs/) are written as a record of the work, not a brochure: what was tried,

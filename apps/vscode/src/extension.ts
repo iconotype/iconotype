@@ -109,11 +109,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // an edit changes nothing on disk until an export runs; say so where it is visible
     status.text = stale.length
-      ? `$(warning) ${stale.length === 1 ? stale[0]!.name : `${stale.length} fonts`}: export pending`
+      ? `$(warning) ${stale.length === 1 ? registry.label(stale[0]!) : `${stale.length} fonts`}: export pending`
       : `$(symbol-color) ${total} icon${total === 1 ? '' : 's'}`
     status.tooltip = stale.length
-      ? `Font files are out of date for: ${stale.map((f) => f.name).join(', ')}\nClick to export.`
-      : fonts.map((f) => `${f.name}: ${registry.selected(f).length} selected`).join('\n')
+      ? `Font files are out of date for: ${stale.map((f) => registry.label(f)).join(', ')}\nClick to export.`
+      : fonts.map((f) => `${registry.label(f)}: ${registry.selected(f).length} selected`).join('\n')
     status.backgroundColor = stale.length
       ? new vscode.ThemeColor('statusBarItem.warningBackground')
       : undefined
@@ -667,7 +667,7 @@ export async function activate(context: vscode.ExtensionContext) {
     for (const font of registry.fonts) {
       const mine = all.filter((u) => u.icon.font === font)
       if (!mine.length || mine.some((u) => u.sites.length)) continue
-      const guess = usage.likelyPrefix(font.name)
+      const guess = usage.likelyPrefix(font)
       if (!guess) continue
       const choice = await vscode.window.showWarningMessage(
         `Iconotype: nothing references "${font.prefix}…", but "${guess.prefix}" appears ${guess.count}× with your icon names.`,

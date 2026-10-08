@@ -409,6 +409,74 @@ suite('iconotype extension', function () {
     for (const action of ['include', 'exclude', 'remove']) {
       assert.ok(html.includes(`data-bulk="${action}"`), `bulk ${action} missing`)
     }
+
+    // the bar for them is only there while something is picked: `.picks { display: flex }`
+    // outranks the UA's [hidden], so that rule has to be restated
+    assert.match(html, /<div class="picks" id="picks" hidden>/)
+    assert.match(html, /\[hidden\]\s*\{\s*display:\s*none\s*!important/, 'an author display rule would show the empty selection bar')
+  })
+
+  test('a file is one font however it is reached, and a missing one is not a font', async () => {
+    const before = api.registry.fonts.length
+    const file = uri('app.iconotype.json')
+
+    // loading the same file again, by any route, replaces rather than adds
+    await api.registry.load(file)
+    await api.registry.load(uri('APP.iconotype.json'))
+    assert.strictEqual(api.registry.fonts.length, before, 'the same file was held twice')
+    assert.strictEqual(new Set(api.registry.fonts.map((f) => f.id)).size, api.registry.fonts.length)
+
+    // a path with nothing behind it (a `projects` entry that exists in one folder only)
+    assert.strictEqual(await api.registry.load(uri('nowhere', 'ghost.iconotype.json')), undefined)
+    assert.strictEqual(api.registry.fonts.length, before, 'a missing file was listed as a broken font')
+  })
+
+  test('build output is not scanned for fonts, and the exclude list is configurable', async () => {
+    const copy = path.join('build', 'app.iconotype.json')
+    fs.mkdirSync(path.join(workspace, 'build'), { recursive: true })
+    fs.writeFileSync(path.join(workspace, copy), JSON.stringify(FIXTURE, null, 2))
+    const inBuild = () => api.registry.fonts.filter((f) => f.uri.fsPath.includes(`${path.sep}build${path.sep}`))
+    const config = vscode.workspace.getConfiguration('iconotype')
+    try {
+      await api.registry.initialize()
+      await wait(300)
+      assert.strictEqual(inBuild().length, 0, 'a copy under build/ was listed as a project')
+
+      await config.update('exclude', [], vscode.ConfigurationTarget.Workspace)
+      await wait(1500)
+      assert.strictEqual(inBuild().length, 1, 'emptying the exclude list did not bring the copy back')
+
+      await config.update('exclude', undefined, vscode.ConfigurationTarget.Workspace)
+      await wait(1500)
+      assert.strictEqual(inBuild().length, 0, 'restoring the default did not drop it again')
+    } finally {
+      await config.update('exclude', undefined, vscode.ConfigurationTarget.Workspace)
+      fs.rmSync(path.join(workspace, 'build'), { recursive: true, force: true })
+      await api.registry.initialize()
+    }
+  })
+
+  test('fonts that share a name are told apart by their path', async () => {
+    const copy = path.join('copy', 'app.iconotype.json')
+    fs.mkdirSync(path.join(workspace, 'copy'), { recursive: true })
+    fs.writeFileSync(path.join(workspace, copy), JSON.stringify(FIXTURE, null, 2))
+    try {
+      await api.registry.load(uri(copy))
+      const same = api.registry.fonts.filter((f) => f.name === 'app')
+      assert.strictEqual(same.length, 2)
+      const labels = same.map((f) => api.registry.label(f))
+      assert.strictEqual(new Set(labels).size, 2, `labels are not distinguishable: ${labels}`)
+      assert.ok(labels.some((l) => l.includes('copy')), 'the label does not carry the path')
+
+      // and the grid's picker says which is which
+      const html = api.grid.renderHtml({ cspSource: 'vscode-resource:' })
+      assert.match(html, /<option [^>]*>app — [^<]*copy[^<]*<\/option>/)
+    } finally {
+      fs.rmSync(path.join(workspace, 'copy'), { recursive: true, force: true })
+      // a reload of a file that is gone drops it, whether or not the watcher noticed
+      await api.registry.load(uri(copy))
+    }
+    assert.strictEqual(api.registry.fonts.filter((f) => f.name === 'app').length, 1, 'the deleted copy is still listed')
   })
 
   test('flags a reference to an icon that does not exist, and suggests the right one', async () => {
@@ -823,7 +891,7 @@ suite('iconotype extension', function () {
     await api.registry.load(vscode.Uri.file(other))
     await api.usage.scan()
 
-    const guess = api.usage.likelyPrefix('other')
+    const guess = api.usage.likelyPrefix(api.registry.fonts.find((f) => f.name === 'other'))
     assert.ok(guess, 'no candidate prefix found')
     assert.strictEqual(guess.prefix, 'mdi-')
     assert.ok(guess.count >= 3, `expected at least 3 hits, got ${guess.count}`)

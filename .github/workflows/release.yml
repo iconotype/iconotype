@@ -352,8 +352,12 @@ jobs:
           artifacts: 'artifacts/desktop-*/*,artifacts/extension/*.vsix,artifacts/latest.json'
           allowUpdates: true
 
+      # The extension registries are third-party services that go down or read-only on
+      # their own schedule. Neither may stop the npm publish below: a failed one is
+      # retried by hand from the .vsix on the GitHub release (see README → Releasing).
       - name: VSCode marketplace
         if: env.VSCE_PAT != ''
+        continue-on-error: true
         run: |
           npx --yes @vscode/vsce publish \
             --no-dependencies \
@@ -365,6 +369,7 @@ jobs:
       # is also the one available without an Azure DevOps account at all.
       - name: Open VSX
         if: env.OVSX_PAT != ''
+        continue-on-error: true
         run: |
           npx --yes ovsx publish artifacts/extension/iconotype.vsix \
             --pat "$OVSX_PAT" \

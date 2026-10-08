@@ -109,6 +109,8 @@ for fonts whose project file does not configure its own `output`.
 | `iconotype.defaults.stylesDir` | where the stylesheet goes, e.g. `app/css` |
 | `iconotype.defaults.styleKind` | `css`, `scss-variables`, `css-variables`, `dart`, … |
 | `iconotype.defaults.formats` | `woff2`, `woff`, `ttf`, `svg` |
+| `iconotype.exclude` | globs of folders not searched for `*.iconotype.json`; defaults to `node_modules`, `dist`, `build` and `out`, so a build copy of a project is not listed twice |
+| `iconotype.projects` | project files to load instead of discovering them, relative to each workspace folder |
 | `iconotype.autoExport` | `off` (default), `onSave`, or `onChange` |
 | `iconotype.decorations.enabled` | inline glyph previews |
 | `iconotype.diagnostics.enabled` | warn about unknown or excluded icons |

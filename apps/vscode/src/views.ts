@@ -77,9 +77,10 @@ export class FontTreeProvider implements vscode.TreeDataProvider<FontNode> {
       const selected = this.registry.selected(node.font).length
       const pending = !node.font.error && (this.stale?.isStale(node.font) ?? false)
       const item = new vscode.TreeItem(node.font.name, vscode.TreeItemCollapsibleState.Collapsed)
+      const where = this.registry.isAmbiguous(node.font) ? `${this.registry.location(node.font)} · ` : ''
       item.description = node.font.error
-        ? 'failed to load'
-        : `${selected === count ? `${count} icons` : `${selected}/${count} icons`}${pending ? ' · export pending' : ''}`
+        ? `${where}failed to load`
+        : `${where}${selected === count ? `${count} icons` : `${selected}/${count} icons`}${pending ? ' · export pending' : ''}`
       item.iconPath = new vscode.ThemeIcon(
         node.font.error ? 'warning' : pending ? 'cloud-upload' : 'symbol-color',
         pending ? new vscode.ThemeColor('list.warningForeground') : undefined,
@@ -199,7 +200,7 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
     for (const id of this.#picked) if (!ids.has(id)) this.#picked.delete(id)
 
     const options = fonts
-      .map((f) => `<option value="${f.uri.toString()}"${f === font ? ' selected' : ''}>${escapeHtml(f.name)}</option>`)
+      .map((f) => `<option value="${f.uri.toString()}"${f === font ? ' selected' : ''}${this.registry.isAmbiguous(f) ? ` title="${escapeHtml(f.uri.fsPath)}"` : ''}>${escapeHtml(this.registry.label(f))}</option>`)
       .join('')
 
     const cells = !font
@@ -298,6 +299,9 @@ export class IconGridViewProvider implements vscode.WebviewViewProvider {
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <style>
+  /* an author rule such as .picks { display: flex } outranks the UA's [hidden], which is
+     how the selection bar stayed on screen with nothing selected */
+  [hidden] { display: none !important; }
   body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); padding: 6px; }
   .bar { display: flex; gap: 4px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
   select, input { font: inherit; font-size: 11px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);

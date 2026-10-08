@@ -299,6 +299,20 @@
           "markdownDescription": "Icon font files to load, relative to each workspace folder. Leave empty to discover every `*.iconotype.json` automatically.",
           "scope": "resource"
         },
+        "iconotype.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/out/**"
+          ],
+          "markdownDescription": "Glob patterns for folders to skip when discovering `*.iconotype.json` files, so a build output holding a copy of a project is not listed as a second one. Replaces the default list when set. Files named in `#iconotype.projects#` are always loaded.",
+          "scope": "resource"
+        },
         "iconotype.defaults.fontsDir": {
           "type": "string",
           "default": "fonts",
